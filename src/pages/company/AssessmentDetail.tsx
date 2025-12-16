@@ -105,6 +105,19 @@ export default function AssessmentDetail() {
             <p className="font-mono text-sm mb-2">Positions: {assessment.positions || 1}</p>
             <p className="font-mono text-sm mb-2">Start: {assessment.start_at ? new Date(assessment.start_at).toLocaleString() : '—'}</p>
             <p className="font-mono text-sm mb-2">Duration: {assessment.duration_minutes ? `${assessment.duration_minutes} minutes` : '—'}</p>
+            {(() => {
+              const min = (assessment as any).min_salary ?? (assessment as any).minSalary;
+              const max = (assessment as any).max_salary ?? (assessment as any).maxSalary;
+              if (min == null && max == null) return null;
+              const fmt = (v: any) => {
+                try {
+                  return Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+                } catch (e) { return String(v); }
+              };
+              return (
+                <p className="font-mono text-sm mb-2">Salary: {min != null ? fmt(min) : '—'}{max != null ? ` — ${fmt(max)}` : ''}</p>
+              );
+            })()}
             <p className="font-mono text-sm mb-2">Technologies: {(assessment.technologies || []).join(', ')}</p>
             <p className="font-mono text-sm">Status: {assessment.status}</p>
           </div>

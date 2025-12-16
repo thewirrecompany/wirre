@@ -41,8 +41,8 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
 
         const assessmentIds = aList.map((a: any) => a.id).filter(Boolean);
 
-        // upcoming count
-        const upcoming = aList.filter((a: any) => a.status === 'ready' && a.start_at && new Date(a.start_at) > new Date()).length;
+        // upcoming count: any assessment with a future start date (exclude completed)
+        const upcoming = aList.filter((a: any) => a.start_at && new Date(a.start_at) > new Date() && a.status !== 'completed').length;
         if (mounted) setUpcomingCount(upcoming);
 
         // fetch registrations for these assessments
