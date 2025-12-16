@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
+import { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,14 +17,39 @@ const publicNavLinks = [
   { href: "/get-involved", label: "Get Involved" },
 ];
 
+const defaultNotifications = [
+  { id: 1, title: "Round results available", description: "Your Frontend Assessment results are ready", read: false },
+  { id: 2, title: "Report generated", description: "Capability report is now available", read: false },
+  { id: 3, title: "New round invitation", description: "You've been invited to Backend Assessment", read: true },
+];
+
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  
+  // Load notifications from localStorage or use defaults
+  const [notifications, setNotifications] = useState(() => {
+    const stored = localStorage.getItem('notifications');
+    return stored ? JSON.parse(stored) : defaultNotifications;
+  });
+
+  const hasUnread = notifications.some(n => !n.read);
+
+  // Persist notifications to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+  }, [notifications]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const markAsRead = (notificationId: number) => {
+    setNotifications(prev => 
+      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+    );
   };
 
   const dashboardLink = profile?.role === 'company' 
@@ -97,21 +123,36 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="relative">
                     <Bell className="h-4 w-4" />
-                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
-                      3
-                    </span>
+                    {hasUnread && (
+                      <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-white" />
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80">
                   <div className="px-4 py-2 border-b">
                     <p className="font-mono text-sm font-semibold">Notifications</p>
                   </div>
-                  <DropdownMenuItem className="font-mono text-xs py-3 cursor-pointer">
-                    <div>
-                      <p className="font-semibold">Round results available</p>
-                      <p className="text-muted-foreground">Your Frontend Assessment results are ready</p>
-                    </div>
-                  </DropdownMenuItem>
+                  {notifications.map((notification) => (
+                    <DropdownMenuItem 
+                      key={notification.id}
+                      className={cn(
+                        "font-mono text-xs py-3 cursor-pointer",
+                        !notification.read && "bg-muted/50"
+                      )}
+                      onClick={() => markAsRead(notification.id)}
+                    >
+                      <div className="flex gap-2 w-full">
+                        {!notification.read && (
+                          <span className="h-2 w-2 rounded-full bg-white mt-1 flex-shrink-0" />
+                        )}
+                        <div className={!notification.read ? "" : "ml-4"}>
+                          <p className="font-semibold">{notification.title}</p>
+                          <p className="text-muted-foreground">{notification.description}</p>
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                  
                   <DropdownMenuItem className="font-mono text-xs py-3 cursor-pointer">
                     <div>
                       <p className="font-semibold">Report generated</p>

@@ -142,7 +142,7 @@ export default function About() {
               If this resonates, we should talk.
             </p>
             <Button asChild size="lg">
-              <Link to="/signup">Request Access</Link>
+              <Link to="/signup">Sign Up</Link>
             </Button>
           </div>
         </div>

@@ -264,10 +264,10 @@ $ git push origin solution
               Ready to evaluate real engineering work?
             </h2>
             <p className="text-muted-foreground font-mono mb-8">
-              Request access to start building assessments that measure what matters.
+              Sign up to start building assessments that measure what matters.
             </p>
             <Button asChild size="lg">
-              <Link to="/signup">Request Access</Link>
+              <Link to="/signup">Sign Up</Link>
             </Button>
           </div>
         </div>

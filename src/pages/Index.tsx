@@ -39,11 +39,11 @@ export default function Index() {
           </p>
           <div className="mt-12 flex flex-wrap gap-4">
             <Button asChild size="lg">
-              <Link to="/signup">Request Access</Link>
+              <Link to="/signup">Sign Up</Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
               <Link to="/platform">
-                View Platform <ArrowRight className="ml-2 h-4 w-4" />
+                How It Works <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -201,7 +201,7 @@ export default function Index() {
             </div>
             <div className="mt-12">
               <Button asChild size="lg">
-                <Link to="/signup">Request Access</Link>
+                <Link to="/signup">Sign Up</Link>
               </Button>
             </div>
           </div>
