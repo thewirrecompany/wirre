@@ -1,64 +1,99 @@
 import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { GitBranch, Terminal, Clock, CheckCircle } from "lucide-react";
-
-const assessmentData = {
-  id: "abc123",
-  role: "Senior Backend Engineer",
-  company: "Acme Corp",
-  deadline: "2024-01-20T23:59:00Z",
-  status: "in_progress",
-  repoUrl: "git@wirre.dev:assess/abc123.git",
-  description: `
-## Overview
-
-You are tasked with implementing a rate-limiting service for a distributed API gateway. The service must handle high throughput while maintaining accuracy across multiple instances.
-
-## Requirements
-
-### Functional Requirements
-
-1. Implement a sliding window rate limiter
-2. Support configurable limits per API key
-3. Handle at least 10,000 requests per second per instance
-4. Maintain accuracy within 1% tolerance
-
-### Technical Constraints
-
-- Must use Redis for distributed state
-- Service must be stateless (except Redis)
-- Maximum latency: 5ms p99
-- Must handle Redis failures gracefully
-
-## Deliverables
-
-1. Complete implementation in Go
-2. Unit tests with >80% coverage
-3. Integration tests with Redis
-4. Documentation for deployment
-
-## Evaluation Criteria
-
-Your submission will be evaluated on:
-
-- **Functional Correctness**: Does it work as specified?
-- **Performance**: Does it meet latency and throughput requirements?
-- **Code Quality**: Is the code clean, well-structured, and maintainable?
-- **Error Handling**: How does it handle edge cases and failures?
-- **Documentation**: Is the code and approach well documented?
-  `.trim(),
-  steps: [
-    { id: 1, title: "Clone repository", status: "completed" },
-    { id: 2, title: "Review requirements", status: "completed" },
-    { id: 3, title: "Implementation", status: "in_progress" },
-    { id: 4, title: "Testing", status: "pending" },
-    { id: 5, title: "Submit PR", status: "pending" },
-  ],
-};
+import { GitBranch, Terminal, Clock } from "lucide-react";
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 export default function Assessment() {
   const { id } = useParams();
+  const { profile } = useAuth();
+  const [assessment, setAssessment] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [companyName, setCompanyName] = useState<string>('');
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!id) return;
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase.from('assessments').select('*').eq('id', id).single();
+      if (error) console.error('Error loading assessment:', error);
+      if (mounted) setAssessment(data || null);
+
+      // fetch company name (try common keys: companies.user_id, companies.id)
+      if (data?.company_user_id) {
+        try {
+          // primary: companies.user_id = company_user_id
+          let compRes = await supabase.from('companies').select('name').eq('user_id', data.company_user_id).maybeSingle();
+          let name = compRes.data?.name;
+          if (!name) {
+            // fallback: companies.id = company_user_id
+            compRes = await supabase.from('companies').select('name').eq('id', data.company_user_id).maybeSingle();
+            name = compRes.data?.name;
+          }
+          if (mounted) setCompanyName(name || '');
+        } catch (e) {
+          console.debug('Company lookup failed', e);
+        }
+      }
+
+      setLoading(false);
+    })();
+    return () => { mounted = false; };
+  }, [id]);
+
+  // check registration (if table exists) so we only reveal classroom/repo when allowed
+  useEffect(() => {
+    if (!id || !profile?.id) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('assessment_registrations')
+          .select('id')
+          .eq('assessment_id', id)
+          .eq('user_id', profile.id)
+          .single();
+        if (!error && data && mounted) setIsRegistered(true);
+      } catch (err) {
+        // If the registrations table doesn't exist or another error occurs,
+        // we fail-safe by not marking the user as registered.
+        console.debug('registration check failed or not present', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [id, profile?.id]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-muted-foreground">Loading assessment...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!assessment) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-muted-foreground">Assessment not found</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const classroomUrl = assessment.github_classroom_url || '';
+  const repoUrl = ''; // intentionally never expose original company repo to candidates
+  const description = assessment.description || '';
 
   return (
     <Layout>
@@ -68,63 +103,34 @@ export default function Assessment() {
             {/* Main Content */}
             <div className="lg:col-span-2">
               <div className="mb-8">
-                <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-2">
-                  Assessment
-                </p>
-                <h1 className="text-3xl font-bold font-mono tracking-tight">
-                  {assessmentData.role}
-                </h1>
-                <p className="text-muted-foreground font-mono mt-1">
-                  {assessmentData.company}
-                </p>
+                <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-2">Assessment</p>
+                <h1 className="text-3xl font-bold font-mono tracking-tight">{assessment.title}</h1>
+                {companyName ? (
+                  <p className="text-muted-foreground font-mono mt-1">{companyName}</p>
+                ) : null}
               </div>
 
-              {/* Problem Description */}
-              <div className="border border-border p-6 mb-8">
-                <div className="prose prose-invert max-w-none">
-                  <div className="font-mono text-sm whitespace-pre-wrap leading-relaxed">
-                    {assessmentData.description.split('\n').map((line, i) => {
-                      if (line.startsWith('## ')) {
-                        return <h2 key={i} className="text-xl font-bold mt-8 mb-4 first:mt-0">{line.replace('## ', '')}</h2>;
-                      }
-                      if (line.startsWith('### ')) {
-                        return <h3 key={i} className="text-lg font-bold mt-6 mb-3">{line.replace('### ', '')}</h3>;
-                      }
-                      if (line.startsWith('- **')) {
-                        const [label, ...rest] = line.replace('- **', '').split('**:');
-                        return <p key={i} className="my-2"><strong>{label}</strong>:{rest.join('')}</p>;
-                      }
-                      if (line.match(/^\d+\./)) {
-                        return <p key={i} className="my-1 ml-4">{line}</p>;
-                      }
-                      return <p key={i} className={line ? "my-2 text-muted-foreground" : "my-4"}>{line}</p>;
-                    })}
+              {/* Problem Description (only show if present) */}
+              {description && description.trim() ? (
+                <div className="border border-border p-6 mb-8">
+                  <div className="prose prose-invert max-w-none">
+                    <div className="font-mono text-sm whitespace-pre-wrap leading-relaxed">
+                      {description.split('\n').map((line: string, i: number) => {
+                        if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-bold mt-8 mb-4 first:mt-0">{line.replace('## ', '')}</h2>;
+                        if (line.startsWith('### ')) return <h3 key={i} className="text-lg font-bold mt-6 mb-3">{line.replace('### ', '')}</h3>;
+                        if (line.startsWith('- **')) {
+                          const [label, ...rest] = line.replace('- **', '').split('**:');
+                          return <p key={i} className="my-2"><strong>{label}</strong>:{rest.join('')}</p>;
+                        }
+                        if (line.match(/^\d+\./)) return <p key={i} className="my-1 ml-4">{line}</p>;
+                        return <p key={i} className={line ? 'my-2 text-muted-foreground' : 'my-4'}>{line}</p>;
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
 
-              {/* Instructions */}
-              <div className="border border-border p-6 mb-8">
-                <h2 className="font-mono font-bold mb-4">Submission Instructions</h2>
-                <div className="font-mono text-sm space-y-4">
-                  <div className="p-4 bg-secondary/50">
-                    <p className="text-muted-foreground mb-2"># Clone the assessment repository</p>
-                    <p>$ git clone {assessmentData.repoUrl}</p>
-                  </div>
-                  <div className="p-4 bg-secondary/50">
-                    <p className="text-muted-foreground mb-2"># Start the development environment</p>
-                    <p>$ cd abc123</p>
-                    <p>$ docker-compose up -d</p>
-                  </div>
-                  <div className="p-4 bg-secondary/50">
-                    <p className="text-muted-foreground mb-2"># Submit your solution</p>
-                    <p>$ git checkout -b solution</p>
-                    <p>$ git add -A</p>
-                    <p>$ git commit -m "Submit solution"</p>
-                    <p>$ git push origin solution</p>
-                  </div>
-                </div>
-              </div>
+              {/* Submission instructions removed (in repo README) */}
 
               {/* Repository URL */}
               <div className="border border-border p-6">
@@ -132,14 +138,47 @@ export default function Assessment() {
                   <GitBranch className="h-5 w-5" />
                   <h2 className="font-mono font-bold">Repository</h2>
                 </div>
-                <div className="flex items-center gap-4">
-                  <code className="flex-1 p-3 bg-secondary font-mono text-sm">
-                    {assessmentData.repoUrl}
-                  </code>
-                  <Button variant="outline" size="sm">
-                    Copy
-                  </Button>
+                  <div className="flex items-center gap-4">
+                  {isRegistered && assessment.start_at && new Date(assessment.start_at) <= new Date() ? (
+                    <>
+                      <code className="flex-1 p-3 bg-secondary font-mono text-sm">{classroomUrl || 'Classroom link will be available'}</code>
+                      <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(classroomUrl || '')}>Copy</Button>
+                    </>
+                  ) : (
+                    <div className="flex-1 p-3 bg-secondary font-mono text-sm text-muted-foreground">Classroom link is hidden until the round starts.</div>
+                  )}
                 </div>
+              </div>
+
+              {/* Details: show technologies and other metadata */}
+              <div className="border border-border p-6 mt-6">
+                <h3 className="font-mono font-bold mb-3">Details</h3>
+                 <div className="grid grid-cols-2 gap-4">
+                   {companyName ? (
+                     <div>
+                       <p className="text-sm text-muted-foreground">Company</p>
+                       <p className="font-medium">{companyName}</p>
+                     </div>
+                   ) : null}
+                   {assessment.positions && assessment.positions.length ? (
+                     <div>
+                       <p className="text-sm text-muted-foreground">Roles</p>
+                       <p className="font-medium">{assessment.positions.join(', ')}</p>
+                     </div>
+                   ) : null}
+                   {typeof assessment.duration_minutes === 'number' ? (
+                     <div>
+                       <p className="text-sm text-muted-foreground">Duration</p>
+                       <p className="font-medium">{assessment.duration_minutes ? `${assessment.duration_minutes} minutes` : '-'}</p>
+                     </div>
+                   ) : null}
+                   {Array.isArray(assessment.technologies) && assessment.technologies.length ? (
+                     <div>
+                       <p className="text-sm text-muted-foreground">Technologies</p>
+                       <p className="font-medium">{assessment.technologies.join(', ')}</p>
+                     </div>
+                   ) : null}
+                 </div>
               </div>
             </div>
 
@@ -154,71 +193,72 @@ export default function Assessment() {
                 <div className="space-y-3 font-mono text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status</span>
-                    <span className="uppercase text-xs tracking-wider">In Progress</span>
+                    <span className="uppercase text-xs tracking-wider">{assessment.status}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">ID</span>
-                    <span>{assessmentData.id}</span>
+                    <span>{assessment.id}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Deadline */}
+              {/* Deadline / Start */}
               <div className="border border-border p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <Clock className="h-5 w-5" />
-                  <h2 className="font-mono font-bold">Deadline</h2>
+                  <h2 className="font-mono font-bold">Schedule</h2>
                 </div>
-                <p className="font-mono text-sm">
-                  {new Date(assessmentData.deadline).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
-              </div>
-
-              {/* Progress */}
-              <div className="border border-border p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <CheckCircle className="h-5 w-5" />
-                  <h2 className="font-mono font-bold">Progress</h2>
-                </div>
-                <div className="space-y-3">
-                  {assessmentData.steps.map((step) => (
-                    <div key={step.id} className="flex items-center gap-3 font-mono text-sm">
-                      <div className={`w-2 h-2 ${
-                        step.status === 'completed' ? 'bg-foreground' :
-                        step.status === 'in_progress' ? 'bg-foreground animate-pulse' :
-                        'bg-muted'
-                      }`} />
-                      <span className={step.status === 'pending' ? 'text-muted-foreground' : ''}>
-                        {step.title}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <p className="font-mono text-sm">Start: {assessment.start_at ? new Date(assessment.start_at).toLocaleString() : '—'}</p>
+                <p className="font-mono text-sm mt-2">Duration: {assessment.duration_minutes ? `${assessment.duration_minutes} minutes` : '—'}</p>
+                <p className="font-mono text-sm mt-2">Positions: {assessment.positions || 1}</p>
               </div>
 
               {/* Actions */}
               <div className="space-y-2">
-                <Button className="w-full" size="lg">
-                  Submit Solution
+                {/* Finish: only enabled once assessment has started and user is registered */}
+                <Button
+                  className="w-full"
+                  size="lg"
+                  disabled={!(isRegistered && assessment.start_at && new Date(assessment.start_at) <= new Date())}
+                  onClick={async () => {
+                    if (!id) return;
+                    try {
+                      const { data, error } = await supabase.rpc('candidate_finish_assessment', { p_assessment_id: id });
+                      if (error) throw error;
+                      setAssessment((a: any) => ({ ...a, status: 'completed' }));
+                      toast({ title: 'Finished', description: 'Assessment marked completed.' });
+                    } catch (err: any) {
+                      console.error('Finish failed', err);
+                      toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+                    }
+                  }}
+                >
+                  Finish
                 </Button>
-                <Button variant="outline" className="w-full">
-                  Request Extension
-                </Button>
+
+                {/* Unregister: delete registration so it shows back in Opportunities */}
+                {isRegistered && (
+                  <Button variant="outline" className="w-full" onClick={async () => {
+                    if (!id || !profile?.id) return;
+                    const ok = window.confirm('Unregister from this assessment? This will return it to Opportunities.');
+                    if (!ok) return;
+                    try {
+                      const { error } = await supabase
+                        .from('assessment_registrations')
+                        .delete()
+                        .eq('assessment_id', id)
+                        .eq('user_id', profile.id);
+                      if (error) throw error;
+                      setIsRegistered(false);
+                      toast({ title: 'Unregistered', description: 'You have been unregistered from this assessment.' });
+                    } catch (err: any) {
+                      console.error('Unregister failed', err);
+                      toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+                    }
+                  }}>Unregister</Button>
+                )}
               </div>
 
-              {/* Prototype Notice */}
-              <div className="p-4 border border-border bg-secondary/50">
-                <p className="text-xs text-muted-foreground font-mono">
-                  Assessment functionality not yet active. This is a frontend prototype only.
-                </p>
-              </div>
             </div>
           </div>
         </div>

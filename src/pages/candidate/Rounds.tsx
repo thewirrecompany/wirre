@@ -2,41 +2,81 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, GitPullRequest, ExternalLink } from "lucide-react";
+import { Link } from 'react-router-dom';
+import { Clock, ExternalLink } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
-export default function CandidateRounds() {
-  // Mock data - will be replaced with real data later
-  const activeRounds = [
-    {
-      id: 1,
-      title: "Frontend Developer Assessment",
-      company: "Acme Corp",
-      repo: "acme-corp/frontend-challenge",
-      deadline: "2025-12-18T23:59:59",
-      status: "in_progress",
-      description: "Build a responsive dashboard with React and TypeScript",
-    },
-    {
-      id: 2,
-      title: "Backend API Challenge",
-      company: "TechStart Inc",
-      repo: "techstart/api-challenge",
-      deadline: "2025-12-20T23:59:59",
-      status: "invited",
-      description: "Create REST API endpoints with proper authentication",
-    },
-  ];
+interface CandidateRoundsProps {
+  userId?: string | null;
+  embedded?: boolean;
+}
 
-  const completedRounds = [
-    {
-      id: 3,
-      title: "Full Stack Assessment",
-      company: "DevHub",
-      submittedAt: "2025-12-14T10:30:00",
-      status: "under_review",
-      prLink: "https://github.com/devhub/challenge/pull/42",
-    },
-  ];
+export default function CandidateRounds({ userId, embedded = false }: CandidateRoundsProps) {
+  // Will load the rounds the candidate registered for from the backend
+  const { profile } = useAuth();
+  const [activeRounds, setActiveRounds] = useState<any[]>([]);
+  const [completedRounds, setCompletedRounds] = useState<any[]>([]);
+  const [upcomingRounds, setUpcomingRounds] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      const targetId = userId || profile?.id;
+      if (!targetId) {
+        setLoading(false);
+        return;
+      }
+      try {
+        // ensure due assessments are started
+        try { await supabase.rpc('mark_due_assessments_started'); } catch(e) { /* ignore */ }
+
+        // fetch registrations for the current user and include assessment details
+        const { data, error } = await supabase
+          .from('assessment_registrations')
+          .select('assessment:assessments(id,title,status,start_at,duration_minutes,positions,company_user_id,created_at)')
+          .eq('user_id', targetId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error loading my rounds:', error);
+          return;
+        }
+
+        const assessments = (data || []).map((r: any) => r.assessment).filter(Boolean);
+
+        const userIds = Array.from(new Set(assessments.map((a: any) => a.company_user_id).filter(Boolean)));
+        let companiesMap: Record<string,string> = {};
+        if (userIds.length > 0) {
+          const { data: companies } = await supabase
+            .from('companies')
+            .select('user_id,name')
+            .in('user_id', userIds as any[]);
+          if (companies) companiesMap = Object.fromEntries((companies as any[]).map(c => [c.user_id, c.name]));
+        }
+
+        // split upcoming, active and completed by status & start time
+        const now = new Date();
+        const upcoming = assessments.filter((a: any) => a.status === 'ready' && a.start_at && new Date(a.start_at) > now);
+        const completed = assessments.filter((a: any) => a.status === 'completed' || a.status === 'under_review');
+        const active = assessments.filter((a: any) => !completed.includes(a) && !upcoming.includes(a));
+
+        if (mounted) {
+          setUpcomingRounds(upcoming.map((a: any) => ({ ...a, company: companiesMap[a.company_user_id] || '' })));
+          setActiveRounds(active.map((a: any) => ({ ...a, company: companiesMap[a.company_user_id] || '' })));
+          setCompletedRounds(completed.map((a: any) => ({ ...a, company: companiesMap[a.company_user_id] || '' })));
+        }
+      } catch (err) {
+        console.error('Error loading rounds:', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [profile?.id]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -59,82 +99,112 @@ export default function CandidateRounds() {
     return `${days}d ${hours % 24}h remaining`;
   };
 
-  return (
-    <Layout>
-      <section className="min-h-[calc(100vh-14rem)] py-24">
-        <div className="container max-w-6xl">
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold font-mono tracking-tight mb-4">
-              Assessment Rounds
-            </h1>
-            <p className="text-muted-foreground font-mono text-sm">
-              Manage your active and completed assessment rounds
-            </p>
-          </div>
-
-          {/* Active Rounds */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold font-mono mb-6">Active Rounds</h2>
-            <div className="grid gap-6">
-              {activeRounds.map((round) => (
+  const content = (
+    <section className="py-8">
+      <div className="container max-w-6xl">
+        {/* Upcoming Rounds */}
+        <div className="mb-8">
+          <h3 className="text-xl font-bold font-mono mb-4">Upcoming Rounds</h3>
+          <div className="grid gap-6">
+            {upcomingRounds.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <h3 className="font-mono text-lg font-semibold mb-2">No opportunities available</h3>
+                  <p className="text-sm text-muted-foreground">Check back later for upcoming rounds</p>
+                </CardContent>
+              </Card>
+            ) : (
+              upcomingRounds.map((round) => (
                 <Card key={round.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="font-mono">{round.title}</CardTitle>
-                        <CardDescription className="font-mono mt-1">
-                          {round.company}
-                        </CardDescription>
+                        <CardDescription className="font-mono mt-1">{round.company}</CardDescription>
                       </div>
                       {getStatusBadge(round.status)}
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {round.description}
-                    </p>
-                    
                     <div className="flex items-center gap-6 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center gap-2">
-                        <GitPullRequest className="h-4 w-4" />
-                        <code className="text-xs">{round.repo}</code>
+                        <Clock className="h-4 w-4" />
+                        <span className="font-mono text-xs">Start: {round.start_at ? new Date(round.start_at).toLocaleString() : '—'}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <span className="font-mono text-xs">
-                          {getTimeRemaining(round.deadline)}
-                        </span>
+                        <span className="font-mono text-xs">Duration: {round.duration_minutes ? `${round.duration_minutes}m` : '—'}</span>
                       </div>
                     </div>
-
-                    <div className="flex gap-3">
-                      {round.status === "invited" ? (
-                        <Button size="sm">
-                          Start Assessment
+                      <div className="flex gap-3">
+                        <Button size="sm" variant="outline" asChild>
+                          <Link to={`/candidate/assessment/${round.id}`}>View</Link>
                         </Button>
-                      ) : (
-                        <>
-                          <Button size="sm" variant="outline">
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            View Repository
-                          </Button>
-                          <Button size="sm">
-                            Submit Pull Request
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                      </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+              ))
+            )}
           </div>
+        </div>
 
-          {/* Completed Rounds */}
-          <div>
-            <h2 className="text-2xl font-bold font-mono mb-6">Completed Rounds</h2>
-            <div className="grid gap-6">
-              {completedRounds.map((round) => (
+        {/* Active Rounds */}
+        <div className="mb-8">
+          <h3 className="text-xl font-bold font-mono mb-4">Active Rounds</h3>
+          <div className="grid gap-6">
+            {activeRounds.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <h3 className="font-mono text-lg font-semibold mb-2">No opportunities available</h3>
+                  <p className="text-sm text-muted-foreground">You have no active rounds</p>
+                </CardContent>
+              </Card>
+            ) : (
+              activeRounds.map((round) => (
+                <Card key={round.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="font-mono">{round.title}</CardTitle>
+                        <CardDescription className="font-mono mt-1">{round.company}</CardDescription>
+                      </div>
+                      {getStatusBadge(round.status)}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-6 text-sm text-muted-foreground mb-4">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span className="font-mono text-xs">Start: {round.start_at ? new Date(round.start_at).toLocaleDateString() : '—'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs">Duration: {round.duration_minutes ? `${round.duration_minutes}m` : '—'}</span>
+                      </div>
+                    </div>
+                      <div className="flex gap-3">
+                        <Button size="sm" variant="outline" asChild>
+                          <Link to={`/candidate/assessment/${round.id}`}>View</Link>
+                        </Button>
+                      </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Completed Rounds */}
+        <div>
+          <h3 className="text-xl font-bold font-mono mb-4">Completed Rounds</h3>
+          <div className="grid gap-6">
+            {completedRounds.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <h3 className="font-mono text-lg font-semibold mb-2">No opportunities available</h3>
+                  <p className="text-sm text-muted-foreground">You have no completed rounds</p>
+                </CardContent>
+              </Card>
+            ) : (
+              completedRounds.map((round) => (
                 <Card key={round.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -165,10 +235,25 @@ export default function CandidateRounds() {
                     </Button>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+              ))
+            )}
           </div>
         </div>
+      </div>
+    </section>
+  );
+
+  if (embedded) return content;
+  return (
+    <Layout>
+      <section className="min-h-[calc(100vh-14rem)] py-24">
+        <div className="container max-w-6xl">
+          <div className="mb-12">
+            <h1 className="text-4xl font-bold font-mono tracking-tight mb-4">Assessment Rounds</h1>
+            <p className="text-muted-foreground font-mono text-sm">Manage your active and completed assessment rounds</p>
+          </div>
+        </div>
+        {content}
       </section>
     </Layout>
   );

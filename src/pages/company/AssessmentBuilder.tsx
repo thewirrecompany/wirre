@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from 'react-router-dom';
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const predefinedRoles = [
   "Backend Engineer",
@@ -20,49 +23,31 @@ const predefinedRoles = [
   "Full Stack Engineer",
 ];
 
-const templates = [
-  { id: "bug-fix", name: "Bug Fix & Debugging", description: "Fix critical production bugs" },
-  { id: "feature-implementation", name: "Feature Implementation", description: "Build a new feature from requirements" },
-  { id: "refactoring", name: "Code Refactoring", description: "Improve existing codebase structure" },
-  { id: "performance", name: "Performance Optimization", description: "Optimize slow code paths" },
-  { id: "api-design", name: "API Design", description: "Design and implement REST/GraphQL APIs" },
-  { id: "testing", name: "Testing & Quality", description: "Add comprehensive test coverage" },
-];
-
-const predefinedFaults = [
-  { id: "memory-leak", name: "Memory Leak", description: "Gradual memory consumption increase" },
-  { id: "race-condition", name: "Race Condition", description: "Concurrent access issues" },
-  { id: "security-vuln", name: "Security Vulnerability", description: "Authentication/authorization issues" },
-  { id: "api-errors", name: "API Errors", description: "HTTP endpoint returning wrong responses" },
-  { id: "data-corruption", name: "Data Corruption", description: "Database inconsistencies" },
-  { id: "slow-queries", name: "Slow Database Queries", description: "Unoptimized database access" },
-];
+// Removed template/fault placeholder lists — only core inputs remain
 
 export default function AssessmentBuilder() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { profile } = useAuth();
+  const { id } = useParams();
   
   const [selectedRole, setSelectedRole] = useState("");
   const [customRole, setCustomRole] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
-  const [customTemplateName, setCustomTemplateName] = useState("");
-  const [customTemplateDescription, setCustomTemplateDescription] = useState("");
   const [githubRepo, setGithubRepo] = useState("");
   const [positions, setPositions] = useState(1);
+  const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
+  const [durationMinutes, setDurationMinutes] = useState(48 * 60); // default 48 hours
+  const [startAt, setStartAt] = useState<string>('');
   const [minSalary, setMinSalary] = useState("");
   const [maxSalary, setMaxSalary] = useState("");
   const [selectedFaults, setSelectedFaults] = useState<string[]>([]);
-  const [customFaults, setCustomFaults] = useState<Array<{id: string, name: string, description: string}>>([]);
-  const [newFaultName, setNewFaultName] = useState("");
-  const [newFaultDescription, setNewFaultDescription] = useState("");
   
-  const [weights, setWeights] = useState({
-    codeQuality: 30,
-    architecture: 25,
-    testing: 20,
-    documentation: 15,
-    bestPractices: 10,
-  });
+  // removed scoring weight placeholders
+
+  const topTechnologies = [
+    'JavaScript','TypeScript','React','Vue','Angular','Node.js','Express','Next.js','NestJS','Python','Django','Flask','FastAPI','Java','Spring','Kotlin','Go','Rust','C#','Dotnet','PHP','Laravel','Ruby','Rails','SQL','PostgreSQL','MySQL','MongoDB','Redis','GraphQL','Docker','Kubernetes','AWS','GCP','Azure','Terraform','HTML','CSS','Tailwind CSS','SASS','Webpack','Vite','Jest','Cypress','Playwright','Electron','Redux','MobX','RxJS','Elixir','Phoenix','Scala'
+  ];
 
   // Status check states
   const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
@@ -70,46 +55,56 @@ export default function AssessmentBuilder() {
   const [hasRepoAccess, setHasRepoAccess] = useState(false);
   const [hasPaymentConfirmed, setHasPaymentConfirmed] = useState(false);
 
-  const toggleFault = (faultId: string) => {
-    setSelectedFaults((prev) =>
-      prev.includes(faultId)
-        ? prev.filter((f) => f !== faultId)
-        : [...prev, faultId]
-    );
-  };
+  // removed fault helpers
 
-  const addCustomFault = () => {
-    if (!newFaultName.trim() || !newFaultDescription.trim()) return;
-    
-    const newFault = {
-      id: `custom-${Date.now()}`,
-      name: newFaultName,
-      description: newFaultDescription,
-    };
-    
-    setCustomFaults(prev => [...prev, newFault]);
-    setSelectedFaults(prev => [...prev, newFault.id]);
-    setNewFaultName("");
-    setNewFaultDescription("");
-  };
-
-  const handleWeightChange = (key: keyof typeof weights, value: string) => {
-    const numValue = parseInt(value) || 0;
-    setWeights((prev) => ({ ...prev, [key]: numValue }));
-  };
-
-  const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
-  
   const finalRole = customRole.trim() || selectedRole;
-  const finalTemplate = customTemplateName.trim() || selectedTemplate;
-  const allFaults = [...predefinedFaults, ...customFaults];
+  const finalTemplate = selectedTemplate;
+  const allFaults: any[] = [];
   
   const maxSalaryNum = parseFloat(maxSalary) || 0;
   const minSalaryNum = parseFloat(minSalary) || 0;
   const platformFee = positions * 0.20 * maxSalaryNum;
   
-  const allFieldsFilled = finalRole && finalTemplate && githubRepo.trim() && totalWeight === 100 && selectedFaults.length > 0 && minSalaryNum > 0 && maxSalaryNum > 0 && maxSalaryNum >= minSalaryNum;
+  const allFieldsFilled = finalRole && githubRepo.trim() && minSalaryNum > 0 && maxSalaryNum > 0 && maxSalaryNum >= minSalaryNum && selectedTechs.length >= 3 && selectedTechs.length <= 5 && durationMinutes > 0 && !!startAt;
   const canPublish = allFieldsFilled && hasCheckedStatus && hasRepoAccess && hasPaymentConfirmed;
+
+  // keep a copy of original data when editing to detect changes (optional)
+  const [originalLoaded, setOriginalLoaded] = useState(false);
+
+  // If editing an existing assessment, load it and prefill fields
+  useEffect(() => {
+    if (!id) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('assessments').select('*').eq('id', id).single();
+        if (error) throw error;
+        if (!mounted || !data) return;
+        // populate fields
+        setSelectedRole('');
+        setCustomRole(data.title || '');
+        setGithubRepo(data.github_repo || '');
+        setPositions(data.positions || 1);
+        setSelectedTechs(data.technologies || []);
+        setDurationMinutes(data.duration_minutes || 48 * 60);
+        setStartAt(data.start_at ? new Date(data.start_at).toISOString().slice(0,16) : '');
+        // prefill salary fields if present on the record (as strings)
+        const minVal = (data as any).min_salary ?? (data as any).minSalary ?? '';
+        const maxVal = (data as any).max_salary ?? (data as any).maxSalary ?? '';
+        setMinSalary(minVal !== null && minVal !== undefined ? String(minVal) : '');
+        setMaxSalary(maxVal !== null && maxVal !== undefined ? String(maxVal) : '');
+        // indicate checks already passed for existing assessment
+        setHasCheckedStatus(true);
+        setHasRepoAccess(true);
+        setHasPaymentConfirmed(true);
+        setOriginalLoaded(true);
+      } catch (err) {
+        console.error('Failed to load assessment for edit', err);
+        toast({ title: 'Load failed', description: String(err), variant: 'destructive' });
+      }
+    })();
+    return () => { mounted = false; };
+  }, [id]);
 
   const handleCheckStatus = async () => {
     setCheckingStatus(true);
@@ -141,11 +136,114 @@ export default function AssessmentBuilder() {
   };
 
   const handlePublish = () => {
-    toast({
-      title: "Role Published",
-      description: `${finalRole} is now live for candidates to register.`,
-    });
-    navigate('/company/dashboard');
+    (async () => {
+      try {
+        if (!finalRole || !githubRepo) {
+          toast({ title: 'Missing fields', description: 'Role and repository required', variant: 'destructive' });
+          return;
+        }
+
+        if (id) {
+          // update existing assessment
+          const updates: any = {
+            title: finalRole,
+            github_repo: githubRepo,
+            positions,
+            technologies: selectedTechs,
+            duration_minutes: durationMinutes,
+            start_at: startAt ? new Date(startAt).toISOString() : null,
+            min_salary: minSalary ? parseFloat(minSalary) : null,
+            max_salary: maxSalary ? parseFloat(maxSalary) : null,
+          };
+          const { data, error } = await supabase.from('assessments').update(updates).eq('id', id).select().single();
+          if (error) {
+            console.error('Error updating assessment:', error);
+            toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
+            return;
+          }
+
+          toast({ title: 'Saved', description: 'Assessment updated.' });
+
+          // audit
+          try {
+            await supabase.from('assessment_audits').insert([{
+              assessment_id: data.id,
+              actor_id: profile?.id,
+              actor_role: profile?.role || 'company',
+              action: 'edited',
+              details: { title: finalRole, github_repo: githubRepo, positions, technologies: selectedTechs, duration_minutes: durationMinutes, start_at: startAt }
+            }]);
+          } catch (err) { console.error('Failed to write audit record:', err); }
+
+          navigate(`/company/assessments/${id}`);
+          return;
+        }
+
+        // insert assessment row so admins are notified
+        const { data, error } = await supabase.from('assessments').insert([
+          {
+            company_user_id: profile?.id,
+            title: finalRole,
+            github_repo: githubRepo,
+            status: 'awaiting_classroom_setup',
+            positions: positions,
+            technologies: selectedTechs,
+            duration_minutes: durationMinutes,
+            start_at: startAt ? new Date(startAt).toISOString() : null,
+            min_salary: minSalary ? parseFloat(minSalary) : null,
+            max_salary: maxSalary ? parseFloat(maxSalary) : null,
+          },
+        ]).select().single();
+
+        if (error) {
+          console.error('Error creating assessment:', error);
+          toast({ title: 'Publish failed', description: error.message, variant: 'destructive' });
+          return;
+        }
+
+        toast({
+          title: "Role Published",
+          description: `${finalRole} is now live for candidates to register. Admins have been notified to create the Classroom assignment.`,
+        });
+
+        // create an audit record for this publish action
+        try {
+          await supabase.from('assessment_audits').insert([{
+            assessment_id: data.id,
+            actor_id: profile?.id,
+            actor_role: profile?.role || 'company',
+            action: 'published',
+            details: {
+              title: finalRole,
+              github_repo: githubRepo,
+              positions,
+              platformFee,
+              technologies: selectedTechs,
+              duration_minutes: durationMinutes,
+              start_at: startAt
+            }
+          }]);
+        } catch (err) {
+          console.error('Failed to write audit record:', err);
+        }
+
+        // create a notification for admins (recipient_role='admin')
+        try {
+          await supabase.from('assessment_notifications').insert([{
+            assessment_id: data.id,
+            recipient_role: 'admin',
+            message: `New assessment published: ${finalRole}`,
+            payload: { assessment_id: data.id, title: finalRole, github_repo: githubRepo }
+          }]);
+        } catch (err) {
+          console.error('Failed to create admin notification:', err);
+        }
+
+        navigate('/company/dashboard');
+      } catch (err) {
+        console.error(err);
+      }
+    })();
   };
 
   return (
@@ -211,6 +309,43 @@ export default function AssessmentBuilder() {
               Provide the repository URL. Ensure WIRRE has access before publishing. The README should specify what candidates need to solve.
             </p>
           </section>
+          <section className="mb-6">
+            <Label className="font-mono text-sm uppercase tracking-wider mb-2 block">Technologies (select 3–5)</Label>
+            <div className="border border-border p-3 max-h-48 overflow-auto grid grid-cols-2 gap-2">
+              {topTechnologies.map((tech) => (
+                <label key={tech} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={selectedTechs.includes(tech)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        if (selectedTechs.length < 5) setSelectedTechs(prev => [...prev, tech]);
+                      } else {
+                        setSelectedTechs(prev => prev.filter(t => t !== tech));
+                      }
+                    }}
+                  />
+                  <span className="font-mono">{tech}</span>
+                </label>
+              ))}
+            </div>
+            {selectedTechs.length < 3 && <p className="text-xs text-destructive mt-2">Select at least 3 technologies.</p>}
+            {selectedTechs.length > 5 && <p className="text-xs text-destructive mt-2">You can select at most 5 technologies.</p>}
+          </section>
+
+          {/* Duration and Start time */}
+          <section className="mb-6 grid grid-cols-2 gap-4">
+            <div>
+              <Label className="font-mono text-sm mb-2 block">Duration (minutes)</Label>
+              <Input type="number" min={10} value={durationMinutes} onChange={(e) => setDurationMinutes(parseInt(e.target.value || '0'))} className="font-mono w-48" />
+              <p className="text-xs text-muted-foreground mt-1">Specify how long candidates have to complete the assessment.</p>
+            </div>
+            <div>
+              <Label className="font-mono text-sm mb-2 block">Start Time</Label>
+              <Input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} className="font-mono w-full" />
+              <p className="text-xs text-muted-foreground mt-1">When the assessment will be available to candidates.</p>
+            </div>
+          </section>
 
           {/* Positions Available */}
           <section className="mb-12">
@@ -275,169 +410,7 @@ export default function AssessmentBuilder() {
             )}
           </section>
 
-          {/* Template Selection */}
-          <section className="mb-12">
-            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">
-              Select Template
-            </Label>
-            <div className="space-y-2 mb-4">
-              {templates.map((template) => (
-                <button
-                  key={template.id}
-                  onClick={() => {
-                    setSelectedTemplate(template.id);
-                    setCustomTemplateName("");
-                    setCustomTemplateDescription("");
-                  }}
-                  className={`w-full p-4 border font-mono text-left transition-colors ${
-                    selectedTemplate === template.id && !customTemplateName
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-border hover:border-foreground"
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-sm font-bold block">{template.name}</span>
-                      <span className={`text-xs ${
-                        selectedTemplate === template.id && !customTemplateName ? "opacity-70" : "text-muted-foreground"
-                      }`}>
-                        {template.description}
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-            
-            {/* Custom Template */}
-            <div className="border border-border p-4 mt-4">
-              <Label className="font-mono text-xs mb-2 block">Custom Template</Label>
-              <div className="space-y-2">
-                <Input
-                  placeholder="Template name"
-                  value={customTemplateName}
-                  onChange={(e) => {
-                    setCustomTemplateName(e.target.value);
-                    setSelectedTemplate("");
-                  }}
-                  className="font-mono text-sm"
-                />
-                <Input
-                  placeholder="Template description"
-                  value={customTemplateDescription}
-                  onChange={(e) => setCustomTemplateDescription(e.target.value)}
-                  className="font-mono text-sm"
-                />
-              </div>
-            </div>
-            
-            <p className="mt-4 text-xs text-muted-foreground font-mono">
-              Templates provide general direction for what candidates should accomplish.
-            </p>
-          </section>
-
-          {/* Mention Faults */}
-          <section className="mb-12">
-            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">
-              Mention Faults
-            </Label>
-            <p className="text-xs text-muted-foreground font-mono mb-4">
-              Select what issues exist in the repository that candidates need to solve. The repository README should already describe these.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
-              {allFaults.map((fault) => (
-                <button
-                  key={fault.id}
-                  onClick={() => toggleFault(fault.id)}
-                  className={`p-4 border font-mono text-left transition-colors ${
-                    selectedFaults.includes(fault.id)
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-border hover:border-foreground"
-                  }`}
-                >
-                  <span className="text-sm font-bold block">{fault.name}</span>
-                  <span className={`text-xs ${
-                    selectedFaults.includes(fault.id) ? "opacity-70" : "text-muted-foreground"
-                  }`}>
-                    {fault.description}
-                  </span>
-                </button>
-              ))}
-            </div>
-            
-            {/* Add Custom Fault */}
-            <div className="border border-border p-4 mt-4">
-              <Label className="font-mono text-xs mb-2 block">Add Custom Fault</Label>
-              <div className="space-y-2">
-                <Input
-                  placeholder="Fault name"
-                  value={newFaultName}
-                  onChange={(e) => setNewFaultName(e.target.value)}
-                  className="font-mono text-sm"
-                />
-                <Input
-                  placeholder="Fault description"
-                  value={newFaultDescription}
-                  onChange={(e) => setNewFaultDescription(e.target.value)}
-                  className="font-mono text-sm"
-                />
-                <Button
-                  onClick={addCustomFault}
-                  variant="outline"
-                  size="sm"
-                  disabled={!newFaultName.trim() || !newFaultDescription.trim()}
-                >
-                  Add Fault
-                </Button>
-              </div>
-            </div>
-          </section>
-
-          {/* Scoring Weights */}
-          <section className="mb-12">
-            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">
-              Scoring Weights (Not Visible to Candidates)
-            </Label>
-            <p className="text-xs text-muted-foreground font-mono mb-4">
-              Configure how PRs will be evaluated. These weights are kept private.
-            </p>
-            <div className="border border-border p-6 space-y-6">
-              {Object.entries(weights).map(([key, value]) => (
-                <div key={key} className="flex items-center gap-4">
-                  <span className="font-mono text-sm w-40" style={{ textTransform: 'capitalize' }}>
-                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                  </span>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={value}
-                    onChange={(e) => handleWeightChange(key as keyof typeof weights, e.target.value)}
-                    onFocus={(e) => e.target.select()}
-                    className="w-20 font-mono text-center"
-                  />
-                  <span className="text-muted-foreground font-mono text-sm">%</span>
-                  <div className="flex-1 h-2 bg-secondary">
-                    <div
-                      className="h-2 bg-foreground transition-all"
-                      style={{ width: `${value}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-              <div className="pt-4 border-t border-border flex items-center justify-between">
-                <span className="font-mono text-sm">Total</span>
-                <span className={`font-mono text-sm font-bold ${totalWeight !== 100 ? "text-destructive" : ""}`}>
-                  {totalWeight}%
-                </span>
-              </div>
-              {totalWeight !== 100 && (
-                <p className="text-xs text-destructive font-mono">
-                  Weights must sum to 100%
-                </p>
-              )}
-            </div>
-          </section>
+          {/* Removed template/fault/weight placeholder sections — kept minimal inputs only */}
 
           {/* Actions */}
           <div className="flex gap-4">
@@ -453,9 +426,9 @@ export default function AssessmentBuilder() {
               <Button 
                 size="lg" 
                 onClick={handlePublish}
-                disabled={!canPublish}
+                disabled={id ? !allFieldsFilled : !canPublish}
               >
-                Publish Role
+                {id ? 'Save Changes' : 'Publish Role'}
               </Button>
             )}
             <Button 

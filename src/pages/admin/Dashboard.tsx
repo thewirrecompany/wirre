@@ -10,11 +10,30 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState<(Company & { email: string })[]>([]);
   const [candidates, setCandidates] = useState<(Candidate & { email: string })[]>([]);
+  const [assessments, setAssessments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    loadAssessments();
+  }, []);
+
+  async function loadAssessments() {
+    try {
+      const { data, error } = await supabase
+        .from('assessments')
+        .select(`id,title,status,github_repo,company_user_id,created_at`)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAssessments(data || []);
+    } catch (err) {
+      console.error('Error loading assessments:', err);
+    }
+  }
 
   async function loadData() {
     try {
@@ -96,6 +115,9 @@ export default function AdminDashboard() {
             <TabsTrigger value="companies">
               Companies ({companies.length})
             </TabsTrigger>
+            <TabsTrigger value="assessments">
+              Assessments ({assessments.length})
+            </TabsTrigger>
             <TabsTrigger value="candidates">
               Candidates ({candidates.length})
             </TabsTrigger>
@@ -146,6 +168,32 @@ export default function AdminDashboard() {
                     >
                       View as Company
                     </Button>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="assessments" className="space-y-4">
+            {assessments.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-muted-foreground text-center">No assessments yet</p>
+                </CardContent>
+              </Card>
+            ) : (
+              assessments.map((a) => (
+                <Card key={a.id}>
+                  <CardHeader>
+                    <CardTitle>{a.title || 'Untitled'}</CardTitle>
+                    <CardDescription>{a.status}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-sm text-muted-foreground"><span className="font-medium">Repo:</span> {a.github_repo || '—'}</p>
+                    <p className="text-sm text-muted-foreground"><span className="font-medium">Created:</span> {new Date(a.created_at).toLocaleString()}</p>
+                    <div className="flex gap-2 mt-4">
+                      <Button onClick={() => navigate(`/admin/assessment/${a.id}`)}>Setup Classroom</Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))

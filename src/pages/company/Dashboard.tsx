@@ -1,15 +1,136 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Briefcase, Users, GitPullRequest } from "lucide-react";
+import { Plus, Briefcase, Users } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
-const activeRoles = [
-  { id: "1", role: "Senior Backend Engineer", positions: 2, candidates: 12, submissions: 8, avgScore: 78, created: "2024-01-15" },
-  { id: "2", role: "Platform Engineer", positions: 3, candidates: 8, submissions: 5, avgScore: 82, created: "2024-01-10" },
-  { id: "3", role: "Staff Systems Engineer", positions: 1, candidates: 5, submissions: 3, avgScore: 85, created: "2024-01-08" },
-];
+// state populated from DB
+// assessments: array of { id, title, positions, created_at, status, start_at, registrationsCount, submissionsCount }
+ 
 
-export default function CompanyDashboard() {
+interface CompanyDashboardProps {
+  companyUserId?: string | null;
+}
+
+export default function CompanyDashboard({ companyUserId }: CompanyDashboardProps) {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const ownerId = companyUserId || profile?.id;
+  const [upcomingCount, setUpcomingCount] = useState<number | null>(null);
+  const [assessments, setAssessments] = useState<any[]>([]);
+  const [activeRolesCount, setActiveRolesCount] = useState<number>(0);
+  const [totalCandidates, setTotalCandidates] = useState<number>(0);
+  const [submissionsCount, setSubmissionsCount] = useState<number>(0);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!ownerId) return;
+      try {
+        // fetch assessments for this company
+        const { data: aData, error: aErr } = await supabase
+          .from('assessments')
+          .select('id,title,positions,created_at,status,start_at')
+          .eq('company_user_id', ownerId)
+          .order('created_at', { ascending: false });
+        if (aErr) throw aErr;
+        const aList = aData || [];
+
+        const assessmentIds = aList.map((a: any) => a.id).filter(Boolean);
+
+        // upcoming count
+        const upcoming = aList.filter((a: any) => a.status === 'ready' && a.start_at && new Date(a.start_at) > new Date()).length;
+        if (mounted) setUpcomingCount(upcoming);
+
+        // fetch registrations for these assessments
+        let regs: any[] = [];
+        if (assessmentIds.length > 0) {
+          const { data: rData } = await supabase
+            .from('assessment_registrations')
+            .select('assessment_id,user_id')
+            .in('assessment_id', assessmentIds as any[]);
+          regs = rData || [];
+        }
+
+        // compute registrations count per assessment and unique candidate set
+        const regsByAssessment: Record<string, number> = {};
+        const uniqueCandidates = new Set<string>();
+        regs.forEach(r => {
+          regsByAssessment[r.assessment_id] = (regsByAssessment[r.assessment_id] || 0) + 1;
+          if (r.user_id) uniqueCandidates.add(r.user_id);
+        });
+
+        // fetch submission audits
+        let audits: any[] = [];
+        if (assessmentIds.length > 0) {
+          const { data: aAudits } = await supabase
+            .from('assessment_audits')
+            .select('assessment_id')
+            .in('assessment_id', assessmentIds as any[])
+            .eq('action', 'submission');
+          audits = aAudits || [];
+        }
+        const submissionsByAssessment: Record<string, number> = {};
+        audits.forEach(x => { submissionsByAssessment[x.assessment_id] = (submissionsByAssessment[x.assessment_id] || 0) + 1; });
+
+        // enrich assessments
+        const enriched = aList.map((a: any) => ({
+          ...a,
+          registrationsCount: regsByAssessment[a.id] || 0,
+          submissionsCount: submissionsByAssessment[a.id] || 0,
+        }));
+
+        // compute aggregate metrics
+        const activeCount = enriched
+          .filter((a: any) => a.status !== 'completed')
+          .reduce((s: number, it: any) => s + (it.positions || 0), 0);
+
+        const totalRegs = uniqueCandidates.size;
+        const totalSubmissions = audits.length;
+
+        if (mounted) {
+          setAssessments(enriched);
+          setActiveRolesCount(activeCount);
+          setTotalCandidates(totalRegs);
+          setSubmissionsCount(totalSubmissions);
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [ownerId]);
+
+  const handleDeleteCompany = async () => {
+    if (!ownerId) return;
+    const hasUpcoming = (upcomingCount || 0) > 0;
+    if (hasUpcoming) {
+      const ok = window.confirm('Deleting your company will remove upcoming rounds and incur a $1000 fee (simulated). Proceed?');
+      if (!ok) return;
+      // simulate payment flow
+      toast({ title: 'Payment required', description: 'Charging $1000 (simulation).' });
+      await new Promise((r) => setTimeout(r, 800));
+    } else {
+      const ok = window.confirm('Delete your company and upcoming rounds? This cannot be undone.');
+      if (!ok) return;
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('company_delete_self', { p_user_id: ownerId });
+      if (error) throw error;
+      toast({ title: 'Company deleted', description: 'Company and upcoming rounds removed.' });
+      // sign out and redirect home
+      await supabase.auth.signOut();
+      navigate('/');
+    } catch (err: any) {
+      console.error('Error deleting company:', err);
+      toast({ title: 'Delete failed', description: err?.message || String(err), variant: 'destructive' });
+    }
+  };
+
   return (
     <Layout>
       <div className="py-12">
@@ -33,27 +154,20 @@ export default function CompanyDashboard() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-12">
+          <div className="grid grid-cols-2 gap-4 mb-12">
             <div className="border border-border p-6">
               <div className="flex items-center gap-3 mb-2">
                 <Briefcase className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground font-mono uppercase tracking-wider">Active Roles</span>
               </div>
-              <p className="text-3xl font-bold font-mono">{activeRoles.length}</p>
+              <p className="text-3xl font-bold font-mono">{activeRolesCount}</p>
             </div>
             <div className="border border-border p-6">
               <div className="flex items-center gap-3 mb-2">
                 <Users className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground font-mono uppercase tracking-wider">Total Candidates</span>
               </div>
-              <p className="text-3xl font-bold font-mono">{activeRoles.reduce((acc, r) => acc + r.candidates, 0)}</p>
-            </div>
-            <div className="border border-border p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <GitPullRequest className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground font-mono uppercase tracking-wider">PR Submissions</span>
-              </div>
-              <p className="text-3xl font-bold font-mono">{activeRoles.reduce((acc, r) => acc + r.submissions, 0)}</p>
+              <p className="text-3xl font-bold font-mono">{totalCandidates}</p>
             </div>
           </div>
 
@@ -61,36 +175,33 @@ export default function CompanyDashboard() {
           <section>
             <h2 className="text-xl font-bold font-mono mb-6">Active Roles</h2>
             <div className="border border-border">
-              <div className="grid grid-cols-6 gap-4 p-4 border-b border-border text-sm text-muted-foreground font-mono uppercase tracking-wider">
-                <span>Role</span>
-                <span>Positions</span>
-                <span>Candidates</span>
-                <span>Submissions</span>
-                <span>Avg Score</span>
-                <span>Created</span>
-              </div>
-              {activeRoles.map((role) => (
-                <Link 
-                  key={role.id} 
-                  to={`/company/role/${role.id}`}
-                  className="grid grid-cols-6 gap-4 p-4 border-b border-border last:border-b-0 font-mono text-sm hover:bg-secondary/50 transition-colors cursor-pointer"
-                >
-                  <span className="font-semibold">{role.role}</span>
-                  <span>{role.positions}</span>
-                  <span>{role.candidates}</span>
-                  <span>{role.submissions}</span>
-                  <span>{role.avgScore}/100</span>
-                  <span className="text-muted-foreground">{role.created}</span>
-                </Link>
-              ))}
+                <div className="grid grid-cols-4 gap-4 p-4 border-b border-border text-sm text-muted-foreground font-mono uppercase tracking-wider">
+                  <span>Role</span>
+                  <span>Positions</span>
+                  <span>Candidates</span>
+                  <span>Created</span>
+                </div>
+                {assessments.map((role) => (
+                  <Link 
+                    key={role.id} 
+                    to={`/company/assessments/${role.id}`}
+                    className="grid grid-cols-4 gap-4 p-4 border-b border-border last:border-b-0 font-mono text-sm hover:bg-secondary/50 transition-colors cursor-pointer"
+                  >
+                    <span className="font-semibold">{role.title}</span>
+                    <span>{role.positions}</span>
+                    <span>{role.registrationsCount}</span>
+                    <span className="text-muted-foreground">{new Date(role.created_at).toLocaleDateString()}</span>
+                  </Link>
+                ))}
             </div>
           </section>
 
-          {/* Prototype Notice */}
-          <div className="mt-12 p-4 border border-border bg-secondary/50">
-            <p className="text-xs text-muted-foreground font-mono">
-              Dashboard functionality not yet active. This is a frontend prototype only. All data is placeholder.
-            </p>
+          
+          <div className="mt-8 border border-border p-6">
+            <h3 className="font-mono font-bold mb-2">Company Account</h3>
+            <p className="text-sm text-muted-foreground mb-4">Deleting your company will remove upcoming rounds and related registrations. Ongoing and completed rounds are preserved.</p>
+            <p className="text-sm mb-4">Upcoming rounds: <strong>{upcomingCount === null ? '...' : upcomingCount}</strong></p>
+            <Button variant="destructive" onClick={handleDeleteCompany}>Delete Company</Button>
           </div>
         </div>
       </div>
