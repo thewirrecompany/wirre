@@ -24,42 +24,82 @@ export default function Platform() {
       <section className="py-24 border-b border-border">
         <div className="container">
           <h2 className="text-2xl font-bold font-mono mb-12">System Architecture</h2>
-          <div className="font-mono text-sm overflow-x-auto">
-            <pre className="text-muted-foreground leading-relaxed">
-{`┌─────────────────────────────────────────────────────────────────────────┐
-│                           WIRRE PLATFORM                                │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌───────────────────┐    ┌───────────────────┐    ┌─────────────────┐ │
-│  │   CLIENT SIDE     │    │   GOVERNANCE      │    │  CANDIDATE SIDE │ │
-│  │                   │    │                   │    │                 │ │
-│  │  • Dashboard      │    │  • Templates      │    │  • Environment  │ │
-│  │  • Config Builder │◄──►│  • Constraints    │◄──►│  • Git Workflow │ │
-│  │  • Reports        │    │  • Scoring Rules  │    │  • Submission   │ │
-│  │  • Analytics      │    │  • Audit Logs     │    │  • Status       │ │
-│  │                   │    │                   │    │                 │ │
-│  └───────────────────┘    └───────────────────┘    └─────────────────┘ │
-│           │                        │                        │          │
-│           └────────────────────────┼────────────────────────┘          │
-│                                    │                                    │
-│                                    ▼                                    │
-│                    ┌───────────────────────────────┐                   │
-│                    │      EVALUATION ENGINE        │                   │
-│                    │                               │                   │
-│                    │  ┌─────────┐  ┌───────────┐  │                   │
-│                    │  │Container│  │Deterministic│  │                   │
-│                    │  │Runtime  │  │  Scoring   │  │                   │
-│                    │  └─────────┘  └───────────┘  │                   │
-│                    │                               │                   │
-│                    └───────────────────────────────┘                   │
-│                                    │                                    │
-│                                    ▼                                    │
-│                    ┌───────────────────────────────┐                   │
-│                    │     CAPABILITY REPORTS        │                   │
-│                    └───────────────────────────────┘                   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘`}
-            </pre>
+          <div className="border border-border p-8 bg-background">
+            <svg viewBox="0 0 800 600" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+              {/* Platform Container */}
+              <rect x="20" y="20" width="760" height="560" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
+              <text x="400" y="50" textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="16" fontFamily="monospace" fontWeight="bold">WIRRE PLATFORM</text>
+              <line x1="20" y1="65" x2="780" y2="65" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
+              
+              {/* Top Row - Three Boxes */}
+              <g id="client-side">
+                <rect x="50" y="100" width="180" height="140" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
+                <text x="140" y="120" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">CLIENT SIDE</text>
+                <text x="70" y="145" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Dashboard</text>
+                <text x="70" y="165" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Config Builder</text>
+                <text x="70" y="185" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Reports</text>
+                <text x="70" y="205" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Analytics</text>
+              </g>
+              
+              <g id="governance">
+                <rect x="310" y="100" width="180" height="140" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
+                <text x="400" y="120" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">GOVERNANCE</text>
+                <text x="330" y="145" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Templates</text>
+                <text x="330" y="165" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Constraints</text>
+                <text x="330" y="185" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Scoring Rules</text>
+                <text x="330" y="205" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Audit Logs</text>
+              </g>
+              
+              <g id="candidate-side">
+                <rect x="570" y="100" width="180" height="140" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
+                <text x="660" y="120" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">CANDIDATE SIDE</text>
+                <text x="590" y="145" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Environment</text>
+                <text x="590" y="165" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Git Workflow</text>
+                <text x="590" y="185" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Submission</text>
+                <text x="590" y="205" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Status</text>
+              </g>
+              
+              {/* Arrows between top boxes */}
+              <line x1="230" y1="170" x2="290" y2="170" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" markerEnd="url(#arrowhead)"/>
+              <line x1="290" y1="170" x2="230" y2="170" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" markerEnd="url(#arrowhead)"/>
+              <line x1="490" y1="170" x2="550" y2="170" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" markerEnd="url(#arrowhead)"/>
+              <line x1="550" y1="170" x2="490" y2="170" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" markerEnd="url(#arrowhead)"/>
+              
+              {/* Vertical connections to evaluation engine */}
+              <line x1="140" y1="240" x2="140" y2="280" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"/>
+              <line x1="400" y1="240" x2="400" y2="280" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"/>
+              <line x1="660" y1="240" x2="660" y2="280" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"/>
+              <line x1="140" y1="280" x2="660" y2="280" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"/>
+              <line x1="400" y1="280" x2="400" y2="320" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" markerEnd="url(#arrowhead)"/>
+              
+              {/* Evaluation Engine */}
+              <g id="evaluation-engine">
+                <rect x="250" y="330" width="300" height="120" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
+                <text x="400" y="355" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">EVALUATION ENGINE</text>
+                <rect x="275" y="375" width="100" height="50" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1"/>
+                <text x="325" y="395" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">Container</text>
+                <text x="325" y="410" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">Runtime</text>
+                <rect x="425" y="375" width="100" height="50" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1"/>
+                <text x="475" y="395" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">Deterministic</text>
+                <text x="475" y="410" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">Scoring</text>
+              </g>
+              
+              {/* Arrow to capability reports */}
+              <line x1="400" y1="450" x2="400" y2="490" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" markerEnd="url(#arrowhead)"/>
+              
+              {/* Capability Reports */}
+              <g id="capability-reports">
+                <rect x="275" y="500" width="250" height="50" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
+                <text x="400" y="530" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">CAPABILITY REPORTS</text>
+              </g>
+              
+              {/* Arrow marker definition */}
+              <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                  <polygon points="0 0, 10 3, 0 6" fill="rgba(255,255,255,0.3)" />
+                </marker>
+              </defs>
+            </svg>
           </div>
         </div>
       </section>

@@ -84,6 +84,36 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "liga" 1, "calt" 1;
+    background-image: 
+      radial-gradient(ellipse 150% 100% at 50% 0%, rgba(255, 255, 255, 0.02) 0%, transparent 50%),
+      radial-gradient(ellipse 120% 80% at 80% 20%, rgba(255, 255, 255, 0.015) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 70% at 20% 80%, rgba(255, 255, 255, 0.012) 0%, transparent 50%);
+    background-size: 100% 100%;
+    background-attachment: fixed;
+    position: relative;
+  }
+  
+  body::before {
+    content: '    w W I R R E';
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 100px;
+    font-weight: 700;
+    letter-spacing: 20px;
+    writing-mode: vertical-lr;
+    color: rgba(255, 255, 255, 0.10);
+    pointer-events: none;
+    z-index: 0;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+  
+  body > * {
+    position: relative;
+    z-index: 1;
   }
 
   ::selection {
