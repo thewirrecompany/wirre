@@ -10,6 +10,9 @@
     "build:prod": "vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview",
+    "export-audits": "node scripts/export-audits.js",
+    "set-access": "node scripts/set-access.js",
+    "confirm-payment": "node scripts/confirm-payment.js",
     "predeploy": "npm run build:prod",
     "deploy": "gh-pages -d dist"
   },

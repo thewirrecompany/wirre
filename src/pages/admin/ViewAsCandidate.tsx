@@ -98,7 +98,7 @@ export default function ViewAsCandidate() {
 
       {/* Add padding to account for fixed admin header */}
       <div className="pt-[73px]">
-        <CandidateDashboard />
+        <CandidateDashboard candidateUserId={profile.id} />
       </div>
     </div>
   );

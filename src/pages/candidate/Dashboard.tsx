@@ -8,23 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from 'react-router-dom';
+import CandidateRounds from './Rounds';
 
-const activeAssessments = [
-  { id: "abc123", role: "Senior Backend Engineer", company: "Acme Corp", deadline: "2024-01-20", status: "in_progress" },
-  { id: "def456", role: "Platform Engineer", company: "TechCo", deadline: "2024-01-22", status: "not_started" },
-];
+// Removed placeholder lists — keep profile settings and minimal status
 
-const pastAttempts = [
-  { id: "ghi789", role: "Backend Engineer", company: "StartupX", completed: "2024-01-10", score: 82 },
-  { id: "jkl012", role: "Systems Engineer", company: "BigCorp", completed: "2024-01-05", score: 76 },
-];
+interface CandidateDashboardProps {
+  candidateUserId?: string | null;
+}
 
-const capabilityReports = [
-  { id: "1", assessment: "Backend Engineer @ StartupX", date: "2024-01-10", status: "available" },
-  { id: "2", assessment: "Systems Engineer @ BigCorp", date: "2024-01-05", status: "available" },
-];
-
-export default function CandidateDashboard() {
+export default function CandidateDashboard({ candidateUserId }: CandidateDashboardProps) {
   const { profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -38,29 +31,37 @@ export default function CandidateDashboard() {
 
   useEffect(() => {
     const loadProfileData = async () => {
-      if (!profile?.id) return;
+      const targetId = candidateUserId || profile?.id;
+      if (!targetId) return;
 
       try {
-        // Get email from auth user
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        // Get candidate profile data
-        const { data, error } = await supabase
-          .from('candidates')
-          .select('full_name, github_username, linkedin_url')
-          .eq('user_id', profile.id)
+        // Fetch profile row for target user (contains email)
+        const { data: profileRow, error: profileErr } = await supabase
+          .from('profiles')
+          .select('full_name,email')
+          .eq('id', targetId)
           .single();
 
-        if (error) {
-          console.error('Error loading profile:', error);
-          return;
+        if (profileErr) {
+          console.error('Error loading profile row:', profileErr);
+        }
+
+        // Get candidate profile data
+        const { data: candidateRow, error: candidateError } = await supabase
+          .from('candidates')
+          .select('full_name, github_username, linkedin_url')
+          .eq('user_id', targetId)
+          .single();
+
+        if (candidateError) {
+          console.error('Error loading candidate data:', candidateError);
         }
 
         setProfileData({
-          full_name: data?.full_name || "",
-          email: user?.email || "",
-          github_username: data?.github_username || "",
-          linkedin_url: data?.linkedin_url || "",
+          full_name: (candidateRow && candidateRow.full_name) || (profileRow && profileRow.full_name) || "",
+          email: (profileRow && profileRow.email) || "",
+          github_username: candidateRow?.github_username || "",
+          linkedin_url: candidateRow?.linkedin_url || "",
         });
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -101,6 +102,29 @@ export default function CandidateDashboard() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const navigate = useNavigate();
+
+  const handleDeleteAccount = async () => {
+    if (!profile?.id) return;
+    const ok = window.confirm('Delete your account and all personal data? This cannot be undone.');
+    if (!ok) return;
+
+    try {
+      // Delete profile row; cascading FKs will remove candidate/company/registrations
+      const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
+      if (error) throw error;
+
+      // sign out
+      await supabase.auth.signOut();
+
+      toast({ title: 'Account deleted', description: 'Your account and personal data have been removed.' });
+      navigate('/');
+    } catch (err: any) {
+      console.error('Error deleting account:', err);
+      toast({ title: 'Delete failed', description: err?.message || String(err), variant: 'destructive' });
     }
   };
 
@@ -184,109 +208,30 @@ export default function CandidateDashboard() {
             </div>
           </section>
 
-          {/* Terminal-style status */}
-          <div className="mb-12 border border-border p-6 font-mono">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-4">
-              <Terminal className="h-4 w-4" />
-              <span>status</span>
-            </div>
-            <div className="space-y-1 text-sm">
-              <p><span className="text-muted-foreground">active_assessments:</span> {activeAssessments.length}</p>
-              <p><span className="text-muted-foreground">completed:</span> {pastAttempts.length}</p>
-              <p><span className="text-muted-foreground">reports_available:</span> {capabilityReports.length}</p>
-            </div>
-          </div>
-
-          {/* Active Assessments */}
-          <section className="mb-12">
-            <h2 className="text-xl font-bold font-mono mb-6 flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Active Assessments
-            </h2>
-            <div className="space-y-2">
-              {activeAssessments.map((assessment) => (
-                <Link
-                  key={assessment.id}
-                  to={`/candidate/assessment/${assessment.id}`}
-                  className="block border border-border p-6 hover:border-foreground transition-colors group"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-mono font-bold">{assessment.role}</h3>
-                      <p className="text-sm text-muted-foreground font-mono mt-1">
-                        {assessment.company}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className={`text-xs font-mono uppercase tracking-wider ${
-                        assessment.status === "in_progress" 
-                          ? "text-foreground" 
-                          : "text-muted-foreground"
-                      }`}>
-                        {assessment.status.replace("_", " ")}
-                      </span>
-                      <p className="text-xs text-muted-foreground font-mono mt-1">
-                        Due: {assessment.deadline}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-                    <span className="font-mono">Open assessment</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-
-          {/* Past Attempts */}
-          <section className="mb-12">
-            <h2 className="text-xl font-bold font-mono mb-6 flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Past Attempts
-            </h2>
-            <div className="border border-border">
-              <div className="grid grid-cols-4 gap-4 p-4 border-b border-border text-sm text-muted-foreground font-mono uppercase tracking-wider">
-                <span>Role</span>
-                <span>Company</span>
-                <span>Score</span>
-                <span>Completed</span>
+          {/* Candidate rounds (show when admin 'view as' or user wants to see rounds) */}
+          {candidateUserId && (
+            <section className="mb-12">
+              <h2 className="text-xl font-bold font-mono mb-6 flex items-center gap-2">Registered Rounds</h2>
+              {/* lazy load rounds component to show registered/upcoming/finished */}
+              {/* import dynamically to avoid circular imports */}
+              <div>
+                <CandidateRounds userId={candidateUserId} embedded />
               </div>
-              {pastAttempts.map((attempt) => (
-                <div key={attempt.id} className="grid grid-cols-4 gap-4 p-4 border-b border-border last:border-b-0 font-mono text-sm">
-                  <span>{attempt.role}</span>
-                  <span>{attempt.company}</span>
-                  <span>{attempt.score}/100</span>
-                  <span className="text-muted-foreground">{attempt.completed}</span>
-                </div>
-              ))}
+            </section>
+          )}
+          {/* Account deletion */}
+          <section>
+            <h2 className="text-xl font-bold font-mono mb-6 flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Account
+            </h2>
+            <div className="border border-border p-6">
+              <p className="text-sm text-muted-foreground mb-4">Delete your account and all personal data. This will remove your profile, candidate/company record and any registrations you made.</p>
+              <Button variant="destructive" onClick={handleDeleteAccount} className="font-mono">Delete Account</Button>
             </div>
           </section>
 
-          {/* Capability Reports */}
-          <section className="mb-12">
-            <h2 className="text-xl font-bold font-mono mb-6">Capability Reports</h2>
-            <div className="space-y-2">
-              {capabilityReports.map((report) => (
-                <div key={report.id} className="border border-border p-4 flex justify-between items-center">
-                  <div>
-                    <p className="font-mono text-sm">{report.assessment}</p>
-                    <p className="text-xs text-muted-foreground font-mono mt-1">{report.date}</p>
-                  </div>
-                  <button className="font-mono text-xs uppercase tracking-wider border border-border px-4 py-2 hover:bg-foreground hover:text-background transition-colors">
-                    View Report
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Prototype Notice */}
-          <div className="p-4 border border-border bg-secondary/50">
-            <p className="text-xs text-muted-foreground font-mono">
-              Dashboard functionality not yet active. This is a frontend prototype only. All data is placeholder.
-            </p>
-          </div>
+          {/* Removed placeholder lists and prototype notices — profile settings remain */}
         </div>
       </div>
     </Layout>

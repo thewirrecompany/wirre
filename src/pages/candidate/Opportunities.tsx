@@ -15,6 +15,7 @@ export default function CandidateOpportunities() {
   const { toast } = useToast();
   const [profileIncomplete, setProfileIncomplete] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
 
   useEffect(() => {
     const checkProfileCompletion = async () => {
@@ -47,95 +48,83 @@ export default function CandidateOpportunities() {
     };
 
     checkProfileCompletion();
+    loadOpportunities();
   }, [profile?.id]);
 
-  // Mock data - will be replaced with real data later
-  const opportunities = [
-    {
-      id: 1,
-      company: "Acme Corp",
-      position: "Frontend Developer",
-      title: "React & TypeScript Dashboard Challenge",
-      repo: "acme-corp/frontend-challenge",
-      duration: "48 hours",
-      scheduledDate: "2025-12-20T10:00:00",
-      difficulty: "Intermediate",
-      positions: 2,
-      technologies: ["React", "TypeScript", "Tailwind CSS"],
-      description: "Build a responsive analytics dashboard with real-time data visualization. Focus on component architecture and state management.",
-    },
-    {
-      id: 2,
-      company: "TechStart Inc",
-      position: "Backend Developer",
-      title: "Authentication API Challenge",
-      repo: "techstart/auth-challenge",
-      duration: "48 hours",
-      scheduledDate: "2025-12-22T14:00:00",
-      difficulty: "Intermediate",
-      positions: 3,
-      technologies: ["Node.js", "PostgreSQL", "JWT"],
-      description: "Implement secure authentication endpoints with proper password hashing, JWT tokens, and refresh token rotation.",
-    },
-    {
-      id: 3,
-      company: "DevHub",
-      position: "Full Stack Engineer",
-      title: "E-commerce Product Catalog",
-      repo: "devhub/ecommerce-challenge",
-      duration: "72 hours",
-      scheduledDate: "2025-12-25T09:00:00",
-      difficulty: "Intermediate",
-      positions: 1,
-      technologies: ["Next.js", "Prisma", "PostgreSQL"],
-      description: "Create a product catalog with search, filtering, and cart functionality. Backend and frontend integration required.",
-    },
-    {
-      id: 4,
-      company: "CloudTech Solutions",
-      position: "DevOps Engineer",
-      title: "CI/CD Pipeline Setup",
-      repo: "cloudtech/devops-challenge",
-      duration: "48 hours",
-      scheduledDate: "2025-12-27T10:00:00",
-      difficulty: "Advanced",
-      positions: 2,
-      technologies: ["Docker", "GitHub Actions", "Kubernetes"],
-      description: "Set up automated deployment pipeline with containerization, testing, and monitoring.",
-    },
-  ];
+  async function loadOpportunities() {
+    try {
+      // ensure any due assessments are marked started
+      try { await supabase.rpc('mark_due_assessments_started'); } catch (e) { /* ignore */ }
 
-  const getDifficultyColor = (difficulty: string) => {
-    const colors: Record<string, "default" | "secondary" | "destructive"> = {
-      Beginner: "secondary",
-      Intermediate: "default",
-      Advanced: "destructive",
-    };
-    return colors[difficulty] || "default";
+      // only show assessments that are marked ready
+      const { data, error } = await supabase
+        .from('assessments')
+        .select('id,title,company_user_id,created_at,technologies,duration_minutes,start_at,positions')
+        .eq('status', 'ready')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading opportunities:', error);
+        return;
+      }
+
+      const assessments = data || [];
+
+      // fetch company names for the company_user_id values
+      const userIds = Array.from(new Set(assessments.map((a: any) => a.company_user_id).filter(Boolean)));
+      let companiesMap: Record<string,string> = {};
+      if (userIds.length > 0) {
+        const { data: companies } = await supabase
+          .from('companies')
+          .select('user_id,name')
+          .in('user_id', userIds as any[]);
+        if (companies) {
+          companiesMap = Object.fromEntries((companies as any[]).map(c => [c.user_id, c.name]));
+        }
+      }
+
+      // fetch registrations for current user to filter out already-registered assessments
+      const registeredIds: string[] = [];
+      if (profile?.id) {
+        const { data: regs } = await supabase
+          .from('assessment_registrations')
+          .select('assessment_id')
+          .eq('user_id', profile.id);
+        if (regs) regs.forEach((r: any) => registeredIds.push(r.assessment_id));
+      }
+
+      const enriched = assessments
+        .filter((a: any) => !registeredIds.includes(a.id))
+        .map((a: any) => ({ ...a, company_name: companiesMap[a.company_user_id] || '' }));
+
+      setOpportunities(enriched);
+    } catch (err) {
+      console.error('Error loading opportunities:', err);
+    }
+  }
+
+  // opportunities loaded from DB where status = 'ready'
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleString();
   };
 
-  const formatScheduledDate = (date: string) => {
-    const d = new Date(date);
-    return d.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
-
-  const handleRegister = (oppId: number) => {
+  const handleRegister = async (oppId: string) => {
     if (profileIncomplete) {
-      toast({
-        title: "Complete your profile",
-        description: "Add your GitHub and LinkedIn URLs before registering",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Registration successful",
-        description: "You've been registered for this round",
-      });
+      toast({ title: "Complete your profile", description: "Add your GitHub and LinkedIn URLs before registering", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('assessment_registrations').insert({ assessment_id: oppId, user_id: profile.id });
+      if (error) throw error;
+      toast({ title: "Registration successful", description: "You've been registered for this round" });
+      // refresh lists
+      loadOpportunities();
+    } catch (err: any) {
+      console.error('Error registering:', err);
+      toast({ title: 'Registration failed', description: err?.message || String(err), variant: 'destructive' });
     }
   };
 
@@ -174,61 +163,36 @@ export default function CandidateOpportunities() {
                         <Building2 className="h-5 w-5" />
                       </div>
                       <div>
-                        <CardTitle className="font-mono text-lg">{opp.position}</CardTitle>
-                        <CardDescription className="font-mono text-xs">
-                          {opp.company}
-                        </CardDescription>
+                        <CardTitle className="font-mono text-lg">{opp.title || 'Assessment'}</CardTitle>
+                        <CardDescription className="font-mono text-xs">{opp.company_name || ''}</CardDescription>
                       </div>
                     </div>
-                    <Badge variant={getDifficultyColor(opp.difficulty)}>
-                      {opp.difficulty}
-                    </Badge>
                   </div>
-                  <h3 className="font-mono text-sm font-semibold">{opp.title}</h3>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {opp.description}
-                  </p>
-
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {opp.technologies.map((tech) => (
-                      <Badge key={tech} variant="outline" className="font-mono text-xs">
-                        {tech}
-                      </Badge>
-                    ))}
-                  </div>
-
                   <div className="flex items-center gap-6 text-sm text-muted-foreground mb-4 pb-4 border-b">
-                    <div className="flex items-center gap-2">
-                      <GitPullRequest className="h-4 w-4" />
-                      <code className="text-xs">{opp.repo}</code>
-                    </div>
+                    {/* Repo and classroom links are intentionally hidden from candidates until they register and the round starts */}
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
-                      <span className="font-mono text-xs">{opp.duration} to complete</span>
+                      <span className="font-mono text-xs">Ready</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      <span className="font-mono text-xs">
-                        Starts {formatScheduledDate(opp.scheduledDate)}
-                      </span>
+                      <span className="font-mono text-xs">Posted {formatDate(opp.created_at)}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Users className="h-4 w-4" />
-                      <span className="font-mono text-xs">
-                        {opp.positions} {opp.positions === 1 ? 'position' : 'positions'} available
-                      </span>
+                      <span className="font-mono text-xs">{(opp.positions ?? 1)} positions</span>
                     </div>
                     <div className="flex gap-3">
                       <Button size="sm" onClick={() => handleRegister(opp.id)} disabled={profileIncomplete}>
-                        Register for Round
+                        Register
                       </Button>
-                      <Button size="sm" variant="outline">
-                        View Details
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to={`/candidate/assessment/${opp.id}`}>View</Link>
                       </Button>
                     </div>
                   </div>

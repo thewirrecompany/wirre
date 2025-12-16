@@ -14,6 +14,7 @@ import GetInvolved from "./pages/GetInvolved";
 import CompanyDashboard from "./pages/company/Dashboard";
 import RoleDetails from "./pages/company/RoleDetails";
 import AssessmentBuilder from "./pages/company/AssessmentBuilder";
+import AssessmentDetail from "./pages/company/AssessmentDetail";
 import CandidateDashboard from "./pages/candidate/Dashboard";
 import CandidateRounds from "./pages/candidate/Rounds";
 import CandidateOpportunities from "./pages/candidate/Opportunities";
@@ -22,6 +23,7 @@ import Assessment from "./pages/candidate/Assessment";
 import AdminDashboard from "./pages/admin/Dashboard";
 import ViewAsCompany from "./pages/admin/ViewAsCompany";
 import ViewAsCandidate from "./pages/admin/ViewAsCandidate";
+import AssessmentSetup from "./pages/admin/AssessmentSetup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +64,22 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="company">
                   <AssessmentBuilder />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/company/assessments/:id/edit" 
+              element={
+                <ProtectedRoute requiredRole="company">
+                  <AssessmentBuilder />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/company/assessments/:id" 
+              element={
+                <ProtectedRoute requiredRole="company">
+                  <AssessmentDetail />
                 </ProtectedRoute>
               } 
             />
@@ -128,6 +146,14 @@ const App = () => (
                   <ViewAsCandidate />
                 </ProtectedRoute>
               } 
+            />
+            <Route
+              path="/admin/assessment/:id"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AssessmentSetup />
+                </ProtectedRoute>
+              }
             />
             <Route path="*" element={<NotFound />} />
           </Routes>

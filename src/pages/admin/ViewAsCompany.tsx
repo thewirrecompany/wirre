@@ -109,7 +109,7 @@ export default function ViewAsCompany() {
 
       {/* Add padding to account for fixed admin header */}
       <div className="pt-[73px]">
-        <CompanyDashboard />
+        <CompanyDashboard companyUserId={company.user_id} />
       </div>
     </div>
   );

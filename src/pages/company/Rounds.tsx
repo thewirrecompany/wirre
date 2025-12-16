@@ -2,7 +2,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, GitPullRequest, Plus } from "lucide-react";
+import { Clock, Users, GitPullRequest } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function CompanyRounds() {
@@ -51,12 +51,7 @@ export default function CompanyRounds() {
                 Manage your active assessment rounds and review candidate submissions
               </p>
             </div>
-            <Button asChild>
-              <Link to="/company/assessments/new">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Round
-              </Link>
-            </Button>
+            {/* Create Round removed per request */}
           </div>
 
           {/* Active Rounds */}
@@ -130,12 +125,7 @@ export default function CompanyRounds() {
                 <p className="text-sm text-muted-foreground mb-6">
                   Create your first assessment round to start evaluating candidates
                 </p>
-                <Button asChild>
-                  <Link to="/company/assessments/new">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create New Role
-                  </Link>
-                </Button>
+                {/* Create New Role removed */}
               </CardContent>
             </Card>
           )}
