@@ -17,10 +17,16 @@ const publicNavLinks = [
   { href: "/get-involved", label: "Get Involved" },
 ];
 
-const defaultNotifications = [
+const candidateNotifications = [
   { id: 1, title: "Round results available", description: "Your Frontend Assessment results are ready", read: false },
   { id: 2, title: "Report generated", description: "Capability report is now available", read: false },
   { id: 3, title: "New round invitation", description: "You've been invited to Backend Assessment", read: true },
+];
+
+const companyNotifications = [
+  { id: 1, title: "New candidate registered", description: "5 new candidates for Senior Backend Engineer role", read: false },
+  { id: 2, title: "PR submission received", description: "Candidate #A7B2 submitted PR for Platform Engineer", read: false },
+  { id: 3, title: "Assessment deadline approaching", description: "Backend Engineer round closes in 24 hours", read: true },
 ];
 
 export function Header() {
@@ -28,18 +34,24 @@ export function Header() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
   
-  // Load notifications from localStorage or use defaults
+  // Load notifications from localStorage or use defaults based on role
   const [notifications, setNotifications] = useState(() => {
-    const stored = localStorage.getItem('notifications');
-    return stored ? JSON.parse(stored) : defaultNotifications;
+    const storageKey = `notifications_${profile?.role || 'guest'}`;
+    const stored = localStorage.getItem(storageKey);
+    if (stored) return JSON.parse(stored);
+    
+    return profile?.role === 'company' ? companyNotifications : candidateNotifications;
   });
 
   const hasUnread = notifications.some(n => !n.read);
 
   // Persist notifications to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('notifications', JSON.stringify(notifications));
-  }, [notifications]);
+    if (profile?.role) {
+      const storageKey = `notifications_${profile.role}`;
+      localStorage.setItem(storageKey, JSON.stringify(notifications));
+    }
+  }, [notifications, profile?.role]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -52,7 +64,9 @@ export function Header() {
     );
   };
 
-  const dashboardLink = profile?.role === 'company' 
+  const dashboardLink = profile?.role === 'admin'
+    ? '/admin/dashboard'
+    : profile?.role === 'company' 
     ? '/company/dashboard' 
     : '/candidate/dashboard';
 

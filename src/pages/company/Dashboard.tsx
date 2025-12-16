@@ -27,7 +27,7 @@ export default function CompanyDashboard() {
             <Button asChild>
               <Link to="/company/assessments/new">
                 <Plus className="h-4 w-4 mr-2" />
-                New Role
+                Hire
               </Link>
             </Button>
           </div>
