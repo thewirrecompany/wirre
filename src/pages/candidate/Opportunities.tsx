@@ -81,6 +81,9 @@ export default function CandidateOpportunities() {
       day: 'numeric', 
       hour: '2-digit', 
       minute: '2-digit' 
+    });
+  };
+
   const handleRegister = (oppId: number) => {
     if (profileIncomplete) {
       toast({
@@ -89,7 +92,22 @@ export default function CandidateOpportunities() {
         variant: "destructive",
       });
     } else {
-      toast({ mb-6">
+      toast({
+        title: "Registration successful",
+        description: "You've been registered for this round",
+      });
+    }
+  };
+
+  return (
+    <Layout>
+      <section className="min-h-[calc(100vh-14rem)] py-24">
+        <div className="container max-w-6xl">
+          <div className="mb-12">
+            <h1 className="text-4xl font-bold font-mono tracking-tight mb-4">
+              Opportunities
+            </h1>
+            <p className="text-muted-foreground font-mono text-sm mb-6">
               Browse upcoming assessment rounds from companies hiring on WIRRE
             </p>
             
