@@ -33,6 +33,11 @@ export default function CandidateOpportunities() {
       id: 2,
       company: "TechStart Inc",
       position: "Backend Developer",
+      title: "Authentication API Challenge",
+      repo: "techstart/auth-challenge",
+      duration: "48 hours",
+      scheduledDate: "2025-12-22T14:00:00",
+      difficulty: "Intermediate",
       positions: 3,
       technologies: ["Node.js", "PostgreSQL", "JWT"],
       description: "Implement secure authentication endpoints with proper password hashing, JWT tokens, and refresh token rotation.",
@@ -121,25 +126,7 @@ export default function CandidateOpportunities() {
                   </Button>
                 </AlertDescription>
               </Alert>
-            )}ion: "You've been registered for this round",
-      });
-    }
-  };
-
-    });
-  };
-
-  return (
-    <Layout>
-      <section className="min-h-[calc(100vh-14rem)] py-24">
-        <div className="container max-w-6xl">
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold font-mono tracking-tight mb-4">
-              Opportunities
-            </h1>
-            <p className="text-muted-foreground font-mono text-sm">
-              Browse upcoming assessment rounds from companies hiring on WIRRE
-            </p>
+            )}
           </div>
 
           <div className="grid gap-6">
@@ -168,16 +155,10 @@ export default function CandidateOpportunities() {
                   <p className="text-sm text-muted-foreground mb-4">
                     {opp.description}
                   </p>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      <span className="font-mono text-xs">
-                        {opp.positions} {opp.positions === 1 ? 'position' : 'positions'} available
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="flex gap-3">
-                    <Button size="sm" onClick={() => handleRegister(opp.id)} disabled={profileIncomplete}h} variant="outline" className="font-mono text-xs">
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {opp.technologies.map((tech) => (
+                      <Badge key={tech} variant="outline" className="font-mono text-xs">
                         {tech}
                       </Badge>
                     ))}
@@ -200,13 +181,21 @@ export default function CandidateOpportunities() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
-                    <Button size="sm">
-                      Register for Round
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      View Details
-                    </Button>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span className="font-mono text-xs">
+                        {opp.positions} {opp.positions === 1 ? 'position' : 'positions'} available
+                      </span>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button size="sm" onClick={() => handleRegister(opp.id)} disabled={profileIncomplete}>
+                        Register for Round
+                      </Button>
+                      <Button size="sm" variant="outline">
+                        View Details
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
