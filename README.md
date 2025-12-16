@@ -1,73 +1,83 @@
-# Welcome to your Lovable project
+# WIRRE
 
-## Project info
+**Hiring is Infrastructure**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+WIRRE is infrastructure for evaluating real engineering work using production-grade workflows. Stop measuring interview performance. Start measuring engineering capability.
 
-## How can I edit this code?
+## About
 
-There are several ways of editing your application.
+WIRRE provides a modern platform for technical assessments that mirror real-world engineering environments. Our platform enables companies to evaluate candidates using production-grade tools and workflows, giving a true measure of engineering capability.
 
-**Use Lovable**
+## Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- **Candidate Dashboard**: Track and manage assessment progress
+- **Company Dashboard**: Create and monitor technical assessments
+- **Assessment Builder**: Design custom technical evaluations
+- **Modern UI**: Built with shadcn-ui components and Tailwind CSS
+- **Type-safe**: Full TypeScript implementation
 
-Changes made via Lovable will be committed automatically to this repo.
+## Tech Stack
 
-**Use your preferred IDE**
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **UI Components**: shadcn-ui
+- **Styling**: Tailwind CSS
+- **Routing**: React Router v6
+- **Forms**: React Hook Form with Zod validation
+- **State Management**: TanStack Query
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
 
-Follow these steps:
+- Node.js (v18 or higher)
+- npm or yarn
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Installation
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+```bash
+# Clone the repository
+git clone <your-repo-url>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Navigate to project directory
+cd wirre
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Available Scripts
 
-**Use GitHub Codespaces**
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run build:dev` - Build in development mode
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Project Structure
 
-## What technologies are used for this project?
+```
+src/
+├── components/       # Reusable UI components
+│   ├── ui/          # shadcn-ui components
+│   └── layout/      # Layout components
+├── pages/           # Page components
+│   ├── candidate/   # Candidate-facing pages
+│   └── company/     # Company-facing pages
+├── hooks/           # Custom React hooks
+└── lib/             # Utility functions
+```
 
-This project is built with:
+## License
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+All rights reserved.
 
-## How can I deploy this project?
+## Connect
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- **LinkedIn**: [WIRRE](https://www.linkedin.com/company/wirre/)
+- For more information, contact us through the platform
