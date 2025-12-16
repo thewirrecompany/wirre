@@ -1,6 +1,13 @@
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
-import { Terminal, Clock, CheckCircle, ArrowRight } from "lucide-react";
+import { Terminal, Clock, CheckCircle, ArrowRight, User, Save } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 const activeAssessments = [
   { id: "abc123", role: "Senior Backend Engineer", company: "Acme Corp", deadline: "2024-01-20", status: "in_progress" },
@@ -18,6 +25,85 @@ const capabilityReports = [
 ];
 
 export default function CandidateDashboard() {
+  const { profile } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [profileData, setProfileData] = useState({
+    full_name: "",
+    email: "",
+    github_username: "",
+    linkedin_url: "",
+  });
+
+  useEffect(() => {
+    const loadProfileData = async () => {
+      if (!profile?.id) return;
+
+      try {
+        // Get email from auth user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // Get candidate profile data
+        const { data, error } = await supabase
+          .from('candidates')
+          .select('full_name, github_username, linkedin_url')
+          .eq('user_id', profile.id)
+          .single();
+
+        if (error) {
+          console.error('Error loading profile:', error);
+          return;
+        }
+
+        setProfileData({
+          full_name: data?.full_name || "",
+          email: user?.email || "",
+          github_username: data?.github_username || "",
+          linkedin_url: data?.linkedin_url || "",
+        });
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfileData();
+  }, [profile?.id]);
+
+  const handleSave = async () => {
+    if (!profile?.id) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('candidates')
+        .update({
+          full_name: profileData.full_name,
+          github_username: profileData.github_username,
+          linkedin_url: profileData.linkedin_url,
+        })
+        .eq('user_id', profile.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="py-12">
@@ -31,6 +117,72 @@ export default function CandidateDashboard() {
               Your assessments and capability reports
             </p>
           </div>
+
+          {/* Profile Settings */}
+          <section className="mb-12">
+            <h2 className="text-xl font-bold font-mono mb-6 flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Profile Settings
+            </h2>
+            <div className="border border-border p-6">
+              <div className="space-y-6">
+                <div className="grid gap-2">
+                  <Label htmlFor="full_name" className="font-mono text-sm">Full Name</Label>
+                  <Input
+                    id="full_name"
+                    value={profileData.full_name}
+                    onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
+                    className="font-mono"
+                    disabled={loading}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="email" className="font-mono text-sm">Email</Label>
+                  <Input
+                    id="email"
+                    value={profileData.email}
+                    disabled
+                    className="font-mono bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground font-mono">Email cannot be changed</p>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="github_username" className="font-mono text-sm">GitHub Username</Label>
+                  <Input
+                    id="github_username"
+                    value={profileData.github_username}
+                    onChange={(e) => setProfileData({ ...profileData, github_username: e.target.value })}
+                    placeholder="octocat"
+                    className="font-mono"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="linkedin_url" className="font-mono text-sm">LinkedIn URL</Label>
+                  <Input
+                    id="linkedin_url"
+                    value={profileData.linkedin_url}
+                    onChange={(e) => setProfileData({ ...profileData, linkedin_url: e.target.value })}
+                    placeholder="https://linkedin.com/in/yourprofile"
+                    className="font-mono"
+                    disabled={loading}
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleSave} 
+                  disabled={loading || saving}
+                  className="font-mono"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          </section>
 
           {/* Terminal-style status */}
           <div className="mb-12 border border-border p-6 font-mono">

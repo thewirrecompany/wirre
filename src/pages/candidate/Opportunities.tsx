@@ -5,14 +5,49 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, GitPullRequest, Building2, Calendar, Users, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/lib/supabase";
 
 export default function CandidateOpportunities() {
   const { profile } = useAuth();
   const { toast } = useToast();
-  const [profileIncomplete, setProfileIncomplete] = useState(true); // Will check from DB later
+  const [profileIncomplete, setProfileIncomplete] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkProfileCompletion = async () => {
+      if (!profile?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('candidates')
+          .select('github_username, linkedin_url')
+          .eq('user_id', profile.id)
+          .single();
+
+        if (error) {
+          console.error('Error checking profile:', error);
+          setLoading(false);
+          return;
+        }
+
+        // Profile is complete if both github_username and linkedin_url are filled
+        const isComplete = !!(data?.github_username && data?.linkedin_url);
+        setProfileIncomplete(!isComplete);
+      } catch (error) {
+        console.error('Error checking profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkProfileCompletion();
+  }, [profile?.id]);
 
   // Mock data - will be replaced with real data later
   const opportunities = [

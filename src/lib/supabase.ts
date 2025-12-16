@@ -31,5 +31,6 @@ export type Candidate = {
   user_id: string;
   full_name: string;
   github_username: string | null;
+  linkedin_url: string | null;
   created_at: string;
 };
