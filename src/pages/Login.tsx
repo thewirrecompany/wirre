@@ -38,7 +38,8 @@ export default function Login() {
 
       if (profileError) throw profileError;
 
-      if (profile.role !== loginType) {
+      // Allow admins to login from any tab
+      if (profile.role !== 'admin' && profile.role !== loginType) {
         await supabase.auth.signOut();
         throw new Error(`This account is not registered as a ${loginType}`);
       }
@@ -49,7 +50,9 @@ export default function Login() {
       });
 
       // Navigate to appropriate dashboard
-      if (profile.role === 'company') {
+      if (profile.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (profile.role === 'company') {
         navigate('/company/dashboard');
       } else {
         navigate('/candidate/dashboard');

@@ -19,6 +19,9 @@ import CandidateRounds from "./pages/candidate/Rounds";
 import CandidateOpportunities from "./pages/candidate/Opportunities";
 import CandidateProfile from "./pages/candidate/Profile";
 import Assessment from "./pages/candidate/Assessment";
+import AdminDashboard from "./pages/admin/Dashboard";
+import ViewAsCompany from "./pages/admin/ViewAsCompany";
+import ViewAsCandidate from "./pages/admin/ViewAsCandidate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -99,6 +102,30 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="candidate">
                   <Assessment />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/view-as/company/:userId" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <ViewAsCompany />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/view-as/candidate/:userId" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <ViewAsCandidate />
                 </ProtectedRoute>
               } 
             />
