@@ -70,6 +70,7 @@ export default function AssessmentBuilder() {
 
   // keep a copy of original data when editing to detect changes (optional)
   const [originalLoaded, setOriginalLoaded] = useState(false);
+  const [salaryColumnsExist, setSalaryColumnsExist] = useState(false);
 
   // If editing an existing assessment, load it and prefill fields
   useEffect(() => {
@@ -93,6 +94,9 @@ export default function AssessmentBuilder() {
         const maxVal = (data as any).max_salary ?? (data as any).maxSalary ?? '';
         setMinSalary(minVal !== null && minVal !== undefined ? String(minVal) : '');
         setMaxSalary(maxVal !== null && maxVal !== undefined ? String(maxVal) : '');
+        // detect whether salary columns exist in this DB schema
+        const hasSalaryCols = Object.prototype.hasOwnProperty.call(data, 'min_salary') || Object.prototype.hasOwnProperty.call(data, 'max_salary') || Object.prototype.hasOwnProperty.call(data, 'minSalary') || Object.prototype.hasOwnProperty.call(data, 'maxSalary');
+        setSalaryColumnsExist(Boolean(hasSalaryCols));
         // indicate checks already passed for existing assessment
         setHasCheckedStatus(true);
         setHasRepoAccess(true);
@@ -101,6 +105,23 @@ export default function AssessmentBuilder() {
       } catch (err) {
         console.error('Failed to load assessment for edit', err);
         toast({ title: 'Load failed', description: String(err), variant: 'destructive' });
+      }
+    })();
+    return () => { mounted = false; };
+  }, [id]);
+
+  // Detect whether salary columns exist for new assessments (create flow)
+  useEffect(() => {
+    if (id) return; // already handled in edit loader
+    let mounted = true;
+    (async () => {
+      try {
+        // try selecting the salary column; will error if column doesn't exist
+        const { data, error } = await supabase.from('assessments').select('min_salary').limit(1).maybeSingle();
+        if (!error && mounted) setSalaryColumnsExist(true);
+      } catch (err) {
+        // column likely doesn't exist
+        if (mounted) setSalaryColumnsExist(false);
       }
     })();
     return () => { mounted = false; };
@@ -152,9 +173,11 @@ export default function AssessmentBuilder() {
             technologies: selectedTechs,
             duration_minutes: durationMinutes,
             start_at: startAt ? new Date(startAt).toISOString() : null,
-            min_salary: minSalary ? parseFloat(minSalary) : null,
-            max_salary: maxSalary ? parseFloat(maxSalary) : null,
           };
+          if (salaryColumnsExist) {
+            updates.min_salary = minSalary ? parseFloat(minSalary) : null;
+            updates.max_salary = maxSalary ? parseFloat(maxSalary) : null;
+          }
           const { data, error } = await supabase.from('assessments').update(updates).eq('id', id).select().single();
           if (error) {
             console.error('Error updating assessment:', error);
@@ -180,20 +203,21 @@ export default function AssessmentBuilder() {
         }
 
         // insert assessment row so admins are notified
-        const { data, error } = await supabase.from('assessments').insert([
-          {
-            company_user_id: profile?.id,
-            title: finalRole,
-            github_repo: githubRepo,
-            status: 'awaiting_classroom_setup',
-            positions: positions,
-            technologies: selectedTechs,
-            duration_minutes: durationMinutes,
-            start_at: startAt ? new Date(startAt).toISOString() : null,
-            min_salary: minSalary ? parseFloat(minSalary) : null,
-            max_salary: maxSalary ? parseFloat(maxSalary) : null,
-          },
-        ]).select().single();
+        const insertPayload: any = {
+          company_user_id: profile?.id,
+          title: finalRole,
+          github_repo: githubRepo,
+          status: 'awaiting_classroom_setup',
+          positions: positions,
+          technologies: selectedTechs,
+          duration_minutes: durationMinutes,
+          start_at: startAt ? new Date(startAt).toISOString() : null,
+        };
+        if (salaryColumnsExist) {
+          insertPayload.min_salary = minSalary ? parseFloat(minSalary) : null;
+          insertPayload.max_salary = maxSalary ? parseFloat(maxSalary) : null;
+        }
+        const { data, error } = await supabase.from('assessments').insert([ insertPayload ]).select().single();
 
         if (error) {
           console.error('Error creating assessment:', error);
