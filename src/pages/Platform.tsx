@@ -11,11 +11,11 @@ export default function Platform() {
             Platform
           </p>
           <h1 className="text-4xl md:text-5xl font-bold font-mono tracking-tight">
-            Infrastructure for engineering evaluation
+            Controlled, contribution-based hiring system
           </h1>
           <p className="mt-6 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            WIRRE provides the primitives for standardized, reproducible assessment of engineering work. 
-            Built on containers, Git, and deterministic scoring.
+            Built around real repositories, Dockerized environments, and PR-based evaluation. 
+            Not a test platform. Not an interview tool. Infrastructure for measuring real engineering work.
           </p>
         </div>
       </section>

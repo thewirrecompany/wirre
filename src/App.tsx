@@ -3,14 +3,21 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Platform from "./pages/Platform";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import About from "./pages/About";
+import GetInvolved from "./pages/GetInvolved";
 import CompanyDashboard from "./pages/company/Dashboard";
+import RoleDetails from "./pages/company/RoleDetails";
 import AssessmentBuilder from "./pages/company/AssessmentBuilder";
 import CandidateDashboard from "./pages/candidate/Dashboard";
+import CandidateRounds from "./pages/candidate/Rounds";
+import CandidateOpportunities from "./pages/candidate/Opportunities";
+import CandidateProfile from "./pages/candidate/Profile";
 import Assessment from "./pages/candidate/Assessment";
 import NotFound from "./pages/NotFound";
 
@@ -21,19 +28,83 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/platform" element={<Platform />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/company/dashboard" element={<CompanyDashboard />} />
-          <Route path="/company/assessments/new" element={<AssessmentBuilder />} />
-          <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
-          <Route path="/candidate/assessment/:id" element={<Assessment />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+      <BrowserRouter basename="/wirre">
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/platform" element={<Platform />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/get-involved" element={<GetInvolved />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route 
+              path="/company/dashboard" 
+              element={
+                <ProtectedRoute requiredRole="company">
+                  <CompanyDashboard />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/company/role/:roleId" 
+              element={
+                <ProtectedRoute requiredRole="company">
+                  <RoleDetails />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/company/assessments/new" 
+              element={
+                <ProtectedRoute requiredRole="company">
+                  <AssessmentBuilder />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/candidate/dashboard" 
+              element={
+                <ProtectedRoute requiredRole="candidate">
+                  <CandidateDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/candidate/rounds" 
+              element={
+                <ProtectedRoute requiredRole="candidate">
+                  <CandidateRounds />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/candidate/opportunities" 
+              element={
+                <ProtectedRoute requiredRole="candidate">
+                  <CandidateOpportunities />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/candidate/profile" 
+              element={
+                <ProtectedRoute requiredRole="candidate">
+                  <CandidateProfile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/candidate/assessment/:id" 
+              element={
+                <ProtectedRoute requiredRole="candidate">
+                  <Assessment />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -82,24 +82,29 @@ export default function About() {
 
             <section className="space-y-6">
               <h2 className="text-2xl font-bold font-mono mt-16 mb-6">
-                Real work in real environments
+                Contribution-based evaluation
               </h2>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                The only way to know if someone can do the work is to have them 
-                do the work. Not a simplified version. Not a puzzle that tests 
-                tangential skills. The actual work, in an environment that mirrors 
-                production constraints.
+                WIRRE is not a test platform. It's not an interview tool. It's not 
+                a coding playground. It's a controlled, contribution-based hiring 
+                system built around real repositories, Dockerized environments, and 
+                PR-based evaluation.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                WIRRE provides containerized environments, Git-based workflows, 
-                and deterministic evaluation. Candidates work locally using familiar 
-                tools. Evaluation is automated and consistent. The output is a 
-                structured capability report, not a binary pass/fail from a single 
-                interviewer having a bad day.
+                Companies create challenge repositories—real codebases with bugs, 
+                missing features, failing tests, and architectural issues. Candidates 
+                clone the repo, run it locally with Docker, read existing code, make 
+                real changes, commit, and open a Pull Request.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                This is not revolutionary. It is obvious. The surprising thing is 
-                that it took this long for someone to build it properly.
+                Evaluation is based on code quality, commit history, design decisions, 
+                tests added, PR descriptions, and how they reason about tradeoffs. 
+                This is exactly how real engineers are evaluated in production environments.
+              </p>
+              <p className="text-muted-foreground font-mono leading-relaxed">
+                No DSA rounds. No live interviews. No whiteboard coding. No artificial 
+                time pressure. Just real engineering work, evaluated the way engineers 
+                actually work.
               </p>
             </section>
 
@@ -109,24 +114,24 @@ export default function About() {
               </h2>
               <ul className="space-y-4 text-muted-foreground font-mono">
                 <li className="flex items-start gap-3">
-                  <span className="text-foreground">1.</span>
-                  <span>Hiring outcomes should be determined by engineering capability, not interview preparation.</span>
+                  <span className="text-foreground">→</span>
+                  <span>The only way to know if someone can do the work is to have them do the work</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-foreground">2.</span>
-                  <span>Measurement must be standardized, reproducible, and auditable.</span>
+                  <span className="text-foreground">→</span>
+                  <span>Interviews should mirror actual job responsibilities, not test tangential skills</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-foreground">3.</span>
-                  <span>Candidates deserve to be evaluated on their actual work, not their performance under artificial pressure.</span>
+                  <span className="text-foreground">→</span>
+                  <span>Environment parity via Docker eliminates "works on my machine" excuses</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-foreground">4.</span>
-                  <span>Engineering teams deserve reliable signals about candidate capabilities.</span>
+                  <span className="text-foreground">→</span>
+                  <span>PR-based evaluation captures how engineers actually reason and make decisions</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-foreground">5.</span>
-                  <span>Hiring is too important to be left to broken processes and uncalibrated gut instinct.</span>
+                  <span className="text-foreground">→</span>
+                  <span>Standardized measurement enables fair comparison and reduces bias</span>
                 </li>
               </ul>
             </section>

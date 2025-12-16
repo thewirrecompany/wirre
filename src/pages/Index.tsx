@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, GitBranch, Terminal, Shield, Gauge, CheckCircle } from "lucide-react";
 
 const steps = [
-  { num: "01", title: "Configure workflow", desc: "Define evaluation criteria, environment constraints, and scoring parameters" },
-  { num: "02", title: "Candidate works locally", desc: "Engineers work in their own environment using familiar tools" },
-  { num: "03", title: "PR submission", desc: "Submit work through standard Git workflows" },
-  { num: "04", title: "Automated evaluation", desc: "Deterministic scoring against defined criteria" },
-  { num: "05", title: "Capability report", desc: "Structured analysis of engineering competencies" },
+  { num: "01", title: "Company creates challenge repo", desc: "Real codebase with bugs, missing features, failing tests, and architectural issues" },
+  { num: "02", title: "Candidate clones and runs locally", desc: "git clone, docker compose up, run tests, read existing code" },
+  { num: "03", title: "Work on real problems", desc: "Debug issues, implement features, refactor code, fix tests, make architectural decisions" },
+  { num: "04", title: "Submit via Pull Request", desc: "Commit changes, push code, open PR with description and reasoning" },
+  { num: "05", title: "PR-based evaluation", desc: "Code quality, commit history, design decisions, tests added, tradeoff explanations" },
 ];
 
 const metrics = [
@@ -32,8 +32,10 @@ export default function Index() {
             Hiring is infrastructure.
           </p>
           <p className="mt-8 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            WIRRE is infrastructure for evaluating real engineering work using production-grade workflows. 
-            Stop measuring interview performance. Start measuring engineering capability.
+            No DSA rounds. No live interviews. No whiteboard coding. No artificial problems.
+            Just real codebases with bugs, missing features, and architectural issues. 
+            Candidates clone repos, work locally with Docker, and open Pull Requests. 
+            We evaluate real engineering work.
           </p>
           <div className="mt-12 flex flex-wrap gap-4">
             <Button asChild size="lg">
@@ -84,40 +86,40 @@ export default function Index() {
               The Solution
             </p>
             <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight">
-              Evaluate real work in real environments
+              Contribution-based evaluation, like GSoC
             </h2>
           </div>
           <div className="mt-12 grid md:grid-cols-2 gap-8">
             <div className="p-6 border border-border">
               <Terminal className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Docker-based workflows</h3>
+              <h3 className="font-mono font-bold mb-2">Real codebases, not puzzles</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Reproducible, isolated environments that mirror production infrastructure. 
-                No local setup variance. No platform dependencies.
+                Challenge repos contain actual bugs, missing features, refactors, failing tests, 
+                and architectural issues. Not artificial problems designed for interviews.
               </p>
             </div>
             <div className="p-6 border border-border">
               <GitBranch className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Git + PR submission</h3>
+              <h3 className="font-mono font-bold mb-2">Clone, work, submit PR</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Candidates work using the same tools and workflows they use professionally. 
-                Commit history, branch strategy, and code review patterns are all observable.
+                Candidates use git, their IDE, and Docker. No browser editors. No time pressure. 
+                Just real engineering work with standard workflows.
               </p>
             </div>
             <div className="p-6 border border-border">
               <Gauge className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Deterministic scoring</h3>
+              <h3 className="font-mono font-bold mb-2">Docker environments</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Automated evaluation against defined criteria. Same input, same output, every time. 
-                Eliminates interviewer bias and inconsistency.
+                Environment parity via containers. Zero setup excuses. Deterministic evaluation. 
+                No "works on my machine" problems.
               </p>
             </div>
             <div className="p-6 border border-border">
               <Shield className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Real environments</h3>
+              <h3 className="font-mono font-bold mb-2">PR-based signals</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Not puzzles. Not toy problems. Actual engineering tasks with production constraints, 
-                failure modes, and operational considerations.
+                Evaluate diff quality, commit messages, file touch patterns, tests added, 
+                PR descriptions, and tradeoff explanations. How real engineers are measured.
               </p>
             </div>
           </div>
