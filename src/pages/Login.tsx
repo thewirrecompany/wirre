@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 type LoginType = "company" | "candidate";
 
@@ -11,10 +13,56 @@ export default function Login() {
   const [loginType, setLoginType] = useState<LoginType>("company");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // UI only - no functionality
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // Check if user's role matches selected login type
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      if (profile.role !== loginType) {
+        await supabase.auth.signOut();
+        throw new Error(`This account is not registered as a ${loginType}`);
+      }
+
+      toast({
+        title: "Login successful",
+        description: `Welcome back!`,
+      });
+
+      // Navigate to appropriate dashboard
+      if (profile.role === 'company') {
+        navigate('/company/dashboard');
+      } else {
+        navigate('/candidate/dashboard');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -81,16 +129,10 @@ export default function Login() {
               />
             </div>
 
-            <Button type="submit" className="w-full" size="lg">
-              Login as {loginType === "company" ? "Company" : "Candidate"}
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? "Logging in..." : `Login as ${loginType === "company" ? "Company" : "Candidate"}`}
             </Button>
           </form>
-
-          <div className="mt-8 p-4 border border-border bg-secondary/50">
-            <p className="text-xs text-muted-foreground font-mono">
-              Authentication not yet active. This is a frontend prototype only.
-            </p>
-          </div>
 
           <p className="mt-8 text-sm text-muted-foreground font-mono text-center">
             Don't have an account?{" "}
