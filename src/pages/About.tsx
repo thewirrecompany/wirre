@@ -85,26 +85,16 @@ export default function About() {
                 Contribution-based evaluation
               </h2>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                WIRRE is not a test platform. It's not an interview tool. It's not 
-                a coding playground. It's a controlled, contribution-based hiring 
-                system built around real repositories, Dockerized environments, and 
-                PR-based evaluation.
+                WIRRE is not a test platform or a coding playground. It's a controlled, contribution-based hiring system built around real repositories, reproducible environments, and PR-based evaluation.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                Companies create challenge repositories—real codebases with bugs, 
-                missing features, failing tests, and architectural issues. Candidates 
-                clone the repo, run it locally with Docker, read existing code, make 
-                real changes, commit, and open a Pull Request.
+                Companies create challenge repositories—real codebases with bugs, missing features, failing tests, and architectural issues. Candidates run the repo locally in the provided environment, make real changes, commit, and open a Pull Request.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                Evaluation is based on code quality, commit history, design decisions, 
-                tests added, PR descriptions, and how they reason about tradeoffs. 
-                This is exactly how real engineers are evaluated in production environments.
+                Evaluation is based on code quality, commit history, design decisions, tests added, PR descriptions, and how candidates reason about tradeoffs. This mirrors how engineering work is reviewed in production.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                No DSA rounds. No live interviews. No whiteboard coding. No artificial 
-                time pressure. Just real engineering work, evaluated the way engineers 
-                actually work.
+                No DSA rounds. No live interviews. No whiteboard coding. No artificial time pressure. Just real engineering work, evaluated the way engineers actually work.
               </p>
             </section>
 
@@ -123,7 +113,7 @@ export default function About() {
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-foreground">→</span>
-                  <span>Environment parity via Docker eliminates "works on my machine" excuses</span>
+                  <span>Environment parity via reproducible setups eliminates "works on my machine" excuses</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-foreground">→</span>

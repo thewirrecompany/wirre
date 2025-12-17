@@ -69,63 +69,7 @@ export default function GetInvolved() {
         </div>
       </section>
 
-      {/* For Developers */}
-      <section className="py-24 border-b border-border">
-        <div className="container">
-          <div className="max-w-3xl">
-            <h2 className="text-2xl font-bold font-mono mb-6">For Developers</h2>
-            <p className="text-muted-foreground font-mono leading-relaxed mb-8">
-              WIRRE is built by engineers, for engineers. While our core platform is 
-              proprietary, we're interested in connecting with developers who want to 
-              contribute to the future of technical assessment.
-            </p>
-            
-            <div className="space-y-6 mb-12">
-              <div>
-                <h3 className="font-mono font-bold mb-2">Technical Advisors</h3>
-                <p className="text-sm text-muted-foreground font-mono">
-                  Share your expertise in distributed systems, containerization, 
-                  deterministic evaluation, or assessment design. Help shape our technical decisions.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-mono font-bold mb-2">Assessment Authors</h3>
-                <p className="text-sm text-muted-foreground font-mono">
-                  Create high-quality assessment templates. We're building a library of 
-                  production-grade evaluations and looking for experienced engineers to contribute.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-mono font-bold mb-2">Beta Testers</h3>
-                <p className="text-sm text-muted-foreground font-mono">
-                  Get early access to WIRRE. Test the platform, provide feedback, 
-                  and help us refine the candidate and client experience.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-mono font-bold mb-2">Future Team Members</h3>
-                <p className="text-sm text-muted-foreground font-mono">
-                  We're building a lean, technical team. If you're interested in working 
-                  on infrastructure that changes how engineering teams hire, reach out.
-                </p>
-              </div>
-            </div>
-
-            <a 
-              href="https://www.linkedin.com/company/wirre/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <Button size="lg">
-                Get in Touch
-              </Button>
-            </a>
-          </div>
-        </div>
-      </section>
+      {/* Contact Info */}
 
       {/* Contact Info */}
       <section className="py-24">

@@ -141,11 +141,11 @@ export default function Assessment() {
                   <div className="flex items-center gap-4">
                   {isRegistered && assessment.start_at && new Date(assessment.start_at) <= new Date() ? (
                     <>
-                      <code className="flex-1 p-3 bg-secondary font-mono text-sm">{classroomUrl || 'Classroom link will be available'}</code>
+                      <code className="flex-1 p-3 bg-secondary font-mono text-sm">{classroomUrl || 'Assignment link will be available'}</code>
                       <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(classroomUrl || '')}>Copy</Button>
                     </>
                   ) : (
-                    <div className="flex-1 p-3 bg-secondary font-mono text-sm text-muted-foreground">Classroom link is hidden until the round starts.</div>
+                    <div className="flex-1 p-3 bg-secondary font-mono text-sm text-muted-foreground">Assignment link is hidden until the round starts.</div>
                   )}
                 </div>
               </div>
