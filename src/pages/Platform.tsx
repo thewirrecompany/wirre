@@ -14,7 +14,7 @@ export default function Platform() {
             Controlled, contribution-based hiring system
           </h1>
           <p className="mt-6 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            Built around real repositories, Dockerized environments, and PR-based evaluation. 
+            Built around real repositories, reproducible environments, and PR-based evaluation.
             Not a test platform. Not an interview tool. Infrastructure for measuring real engineering work.
           </p>
         </div>
@@ -175,8 +175,8 @@ interface ScoringConfig {
 $ git clone git@wirre.dev:assess/abc123.git
 $ cd abc123
 
-# Start development environment
-$ docker-compose up -d
+# Start development environment (managed)
+$ ./scripts/setup-dev.sh
 
 # Work in familiar local environment
 $ code .
@@ -204,7 +204,7 @@ $ git push origin solution
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
-                  <span>Containerized environments for consistency</span>
+                  <span>Reproducible environments for consistency</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>

@@ -32,7 +32,7 @@ export default function AssessmentSetup() {
       return;
     }
     setAssessment(data);
-    setClassroomUrl(data.github_classroom_url || '');
+      setClassroomUrl(data.github_classroom_url || '');
     setLoading(false);
   }
 
@@ -57,7 +57,7 @@ export default function AssessmentSetup() {
         assessment_id: id,
         actor_id: profile?.id,
         actor_role: profile?.role || 'admin',
-        action: 'classroom_url_saved',
+        action: 'assignment_url_saved',
         details: { github_classroom_url: classroomUrl }
       }]);
     } catch (err) {
@@ -109,7 +109,7 @@ export default function AssessmentSetup() {
       <div className="py-12">
         <div className="container max-w-3xl">
           <h1 className="text-2xl font-bold mb-4">Assessment Setup</h1>
-          <p className="text-sm text-muted-foreground mb-6">Paste the GitHub Classroom invitation URL here so candidates can join the assignment.</p>
+          <p className="text-sm text-muted-foreground mb-6">Paste the assignment invitation URL here so candidates can join the assignment.</p>
 
           <div className="mb-4">
             <Label className="font-mono text-xs mb-2 block">Template Repository</Label>
@@ -117,7 +117,7 @@ export default function AssessmentSetup() {
           </div>
 
           <div className="mb-6">
-            <Label className="font-mono text-xs mb-2 block">Classroom Invitation URL</Label>
+            <Label className="font-mono text-xs mb-2 block">Assignment Invitation URL</Label>
             <Input value={classroomUrl} onChange={(e) => setClassroomUrl(e.target.value)} className="font-mono" />
           </div>
 

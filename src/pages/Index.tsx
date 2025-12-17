@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, GitBranch, Terminal, Shield, Gauge, CheckCircle } from "lucide-react";
 
 const steps = [
-  { num: "01", title: "Company creates challenge repo", desc: "Real codebase with bugs, missing features, failing tests, and architectural issues" },
-  { num: "02", title: "Candidate clones and runs locally", desc: "git clone, docker compose up, run tests, read existing code" },
-  { num: "03", title: "Work on real problems", desc: "Debug issues, implement features, refactor code, fix tests, make architectural decisions" },
-  { num: "04", title: "Submit via Pull Request", desc: "Commit changes, push code, open PR with description and reasoning" },
-  { num: "05", title: "PR-based evaluation", desc: "Code quality, commit history, design decisions, tests added, tradeoff explanations" },
+  { num: "01", title: "Company prepares a challenge", desc: "A curated repo with real bugs, missing features, failing tests, and architecture to evaluate" },
+  { num: "02", title: "Delivered with reproducibility", desc: "Challenges arrive ready-to-run via our managed delivery layer so environments behave the same for everyone" },
+  { num: "03", title: "Solve and iterate locally", desc: "Use your normal dev tools — run, debug, refactor, and add tests locally" },
+  { num: "04", title: "Push, PR, explain", desc: "Create a branch, push changes, open a PR, and explain your tradeoffs" },
+  { num: "05", title: "Signals that matter", desc: "We score diffs, commits, tests, and rationale — the signals that predict real engineering success" },
 ];
 
 const metrics = [
@@ -32,10 +32,8 @@ export default function Index() {
             Hiring is infrastructure.
           </p>
           <p className="mt-8 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            No DSA rounds. No live interviews. No whiteboard coding. No artificial problems.
-            Just real codebases with bugs, missing features, and architectural issues. 
-            Candidates clone repos, work locally with Docker, and open Pull Requests. 
-            We evaluate real engineering work.
+            No DSA rounds. No whiteboard theater. No contrived puzzles.
+            We built something a little crazy — a battle-tested delivery layer that spins up reproducible challenge repos. Candidates run the code locally, iterate like they would at work, and submit changes through standard Git workflows. We score real engineering output — not interview theater.
           </p>
           <div className="mt-12 flex flex-wrap gap-4">
             <Button asChild size="lg">
@@ -92,34 +90,30 @@ export default function Index() {
           <div className="mt-12 grid md:grid-cols-2 gap-8">
             <div className="p-6 border border-border">
               <Terminal className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Real codebases, not puzzles</h3>
+              <h3 className="font-mono font-bold mb-2">Shipable challenges</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Challenge repos contain actual bugs, missing features, refactors, failing tests, 
-                and architectural issues. Not artificial problems designed for interviews.
+                Real engineering problems — not interview contrivances. Fix issues you'd actually encounter on the job.
               </p>
             </div>
             <div className="p-6 border border-border">
               <GitBranch className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Clone, work, submit PR</h3>
+              <h3 className="font-mono font-bold mb-2">Run, iterate, repeat</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Candidates use git, their IDE, and Docker. No browser editors. No time pressure. 
-                Just real engineering work with standard workflows.
+                Reproducible repos remove "works on my machine" excuses. Use your IDE, run locally, and iterate until it ships.
               </p>
             </div>
             <div className="p-6 border border-border">
               <Gauge className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Docker environments</h3>
+              <h3 className="font-mono font-bold mb-2">Deterministic dev</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Environment parity via containers. Zero setup excuses. Deterministic evaluation. 
-                No "works on my machine" problems.
+                Deterministic environments let reviewers see exactly what candidates see — stable, fair evaluation with no setup friction.
               </p>
             </div>
             <div className="p-6 border border-border">
               <Shield className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">PR-based signals</h3>
+              <h3 className="font-mono font-bold mb-2">Signals, not quizzes</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Evaluate diff quality, commit messages, file touch patterns, tests added, 
-                PR descriptions, and tradeoff explanations. How real engineers are measured.
+                We evaluate the artifacts that matter — diffs, commits, tests, and written tradeoffs. That's how hiring reflects real work.
               </p>
             </div>
           </div>
