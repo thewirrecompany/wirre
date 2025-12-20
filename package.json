@@ -14,7 +14,7 @@
     "set-access": "node scripts/set-access.js",
     "confirm-payment": "node scripts/confirm-payment.js",
     "predeploy": "npm run build:prod",
-    "deploy": "gh-pages -d dist"
+    "deploy": "node scripts/deploy-if-main.js"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
