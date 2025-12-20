@@ -139,7 +139,7 @@ export default function Login() {
 
           <p className="mt-8 text-sm text-muted-foreground font-mono text-center">
             Don't have an account?{" "}
-            <Link to="/signup" className="text-foreground hover:underline">
+            <Link to="/waitlist" className="text-foreground hover:underline">
               Sign up
             </Link>
           </p>

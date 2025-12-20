@@ -202,10 +202,10 @@ export function Header() {
             </>
           ) : (
             <Link
-              to="/login"
+              to="/waitlist"
               className={cn(
                 "text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground",
-                location.pathname === '/login' ? "text-foreground" : "text-muted-foreground"
+                location.pathname === '/waitlist' ? "text-foreground" : "text-muted-foreground"
               )}
             >
               Login
