@@ -60,11 +60,9 @@ export function Header() {
     if (profile?.role === 'admin') {
       loadForAdmin();
     } else if (profile?.role) {
-      const storageKey = `notifications_${profile.role}`;
-      const stored = localStorage.getItem(storageKey);
-      const items = stored ? JSON.parse(stored) : [];
-      setNotifications(items);
-      setHasUnread(items.some((n: any) => !n.read));
+      // Do not persist notifications in localStorage to avoid exposing data via Inspect Element
+      setNotifications([]);
+      setHasUnread(false);
     }
 
     return () => { mounted = false; };
