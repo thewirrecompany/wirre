@@ -7,10 +7,11 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Platform from "./pages/Platform";
-import Waitlist from "./pages/Waitlist";
 // Login and Signup pages are kept in the repo but not exposed via routes.
 import About from "./pages/About";
 import GetInvolved from "./pages/GetInvolved";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import CompanyDashboard from "./pages/company/Dashboard";
 import RoleDetails from "./pages/company/RoleDetails";
 import AssessmentBuilder from "./pages/company/AssessmentBuilder";
@@ -38,10 +39,10 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/platform" element={<Platform />} />
-            <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/about" element={<About />} />
             <Route path="/get-involved" element={<GetInvolved />} />
-            {/* /login and /signup routes intentionally removed to keep pages non-routable */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             <Route 
               path="/company/dashboard" 
               element={

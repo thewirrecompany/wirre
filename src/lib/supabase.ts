@@ -7,7 +7,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Configure client to avoid persisting auth sessions to localStorage
+// This reduces risk of session tokens being leaked via Inspect Element
+// Persist sessions in browser storage (login remains across reloads).
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    // disable session detection in URL to avoid leaking tokens via URLs
+    detectSessionInUrl: false,
+  },
+});
 
 export type Profile = {
   id: string;
