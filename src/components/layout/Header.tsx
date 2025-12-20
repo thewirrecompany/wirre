@@ -60,9 +60,11 @@ export function Header() {
     if (profile?.role === 'admin') {
       loadForAdmin();
     } else if (profile?.role) {
-      // Do not persist notifications in localStorage to avoid exposing data via Inspect Element
-      setNotifications([]);
-      setHasUnread(false);
+      const storageKey = `notifications_${profile.role}`;
+      const stored = localStorage.getItem(storageKey);
+      const items = stored ? JSON.parse(stored) : [];
+      setNotifications(items);
+      setHasUnread(items.some((n: any) => !n.read));
     }
 
     return () => { mounted = false; };
@@ -200,10 +202,10 @@ export function Header() {
             </>
           ) : (
             <Link
-              to="/login"
+              to="/waitlist"
               className={cn(
                 "text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground",
-                location.pathname === '/login' ? "text-foreground" : "text-muted-foreground"
+                location.pathname === '/waitlist' ? "text-foreground" : "text-muted-foreground"
               )}
             >
               Login

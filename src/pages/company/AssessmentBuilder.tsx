@@ -11,34 +11,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
 const predefinedRoles = [
-  'Accessibility Engineer',
-  'Android Engineer',
-  'Backend Engineer',
-  'Build/Release Engineer',
-  'Cloud Engineer',
-  'Computer Vision Engineer',
-  'Data Engineer',
-  'Database Engineer',
-  'Developer Advocate',
-  'DevOps Engineer',
-  'Embedded Systems Engineer',
-  'Frontend Engineer',
-  'Full Stack Engineer',
-  'Game Developer',
-  'Graphics Engineer',
-  'Infrastructure Engineer',
-  'iOS Engineer',
-  'Machine Learning Engineer',
-  'Mobile Engineer',
-  'Network Engineer',
-  'Performance Engineer',
-  'Platform Architect',
-  'QA Engineer',
-  'Security Engineer',
-  'Site Reliability Engineer',
-  'Test Automation Engineer'
+  "Backend Engineer",
+  "Senior Backend Engineer",
+  "Staff Backend Engineer",
+  "Platform Engineer",
+  "Senior Platform Engineer",
+  "Systems Engineer",
+  "Staff Systems Engineer",
+  "Infrastructure Engineer",
+  "Frontend Engineer",
+  "Full Stack Engineer",
 ];
-
 
 // Removed template/fault placeholder lists — only core inputs remain
 
@@ -54,26 +37,8 @@ export default function AssessmentBuilder() {
   const [githubRepo, setGithubRepo] = useState("");
   const [positions, setPositions] = useState(1);
   const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
-  const [durationMinutes, setDurationMinutes] = useState(180); // default 180 minutes
-  const [customTechInput, setCustomTechInput] = useState("");
-  const [additionalTechs, setAdditionalTechs] = useState<string[]>([]);
+  const [durationMinutes, setDurationMinutes] = useState(48 * 60); // default 48 hours
   const [startAt, setStartAt] = useState<string>('');
-  const [assignmentMode, setAssignmentMode] = useState<'repo' | 'wirre'>('repo');
-  const [selectedLevel, setSelectedLevel] = useState("");
-
-  const levels = [
-    'Intern',
-    'New Grad',
-    'Level 1',
-    'Level 2',
-    'Level 3',
-    'Junior',
-    'Mid',
-    'Senior',
-    'Staff',
-    'Principal',
-    'Lead'
-  ];
   const [minSalary, setMinSalary] = useState("");
   const [maxSalary, setMaxSalary] = useState("");
   const [selectedFaults, setSelectedFaults] = useState<string[]>([]);
@@ -81,86 +46,8 @@ export default function AssessmentBuilder() {
   // removed scoring weight placeholders
 
   const topTechnologies = [
-    'Ansible',
-    'Angular',
-    'AWS',
-    'Azure',
-    'C',
-    'C#',
-    'C++',
-    'CSS',
-    'Django',
-    'Docker',
-    'Docker Compose',
-    'Dotnet',
-    'ElasticSearch',
-    'Elixir',
-    'Electron',
-    'Express',
-    'FastAPI',
-    'Flask',
-    'Flutter',
-    'GCP',
-    'Grafana',
-    'GraphQL',
-    'gRPC',
-    'Go',
-    'Hadoop',
-    'HTML',
-    'InfluxDB',
-    'Jest',
-    'Java',
-    'JavaScript',
-    'Kafka',
-    'Kotlin',
-    'Kubernetes',
-    'Laravel',
-    'MariaDB',
-    'MongoDB',
-    'MySQL',
-    'NestJS',
-    'Neo4j',
-    'Next.js',
-    'Node.js',
-    'NumPy',
-    'Pandas',
-    'PHP',
-    'Playwright',
-    'PostCSS',
-    'PostgreSQL',
-    'Prometheus',
-    'PyTorch',
-    'Python',
-    'React',
-    'React Native',
-    'Redux',
-    'Redis',
-    'REST',
-    'Rollup',
-    'Ruby',
-    'Rails',
-    'RxJS',
-    'Rust',
-    'SASS',
-    'Scala',
-    'Scikit-learn',
-    'Svelte',
-    'SolidJS',
-    'Spark',
-    'Spring',
-    'Storybook',
-    'SQL',
-    'Swift',
-    'Tailwind CSS',
-    'TensorFlow',
-    'TypeScript',
-    'Vite',
-    'Vitest',
-    'Vue',
-    'Webpack'
+    'JavaScript','TypeScript','React','Vue','Angular','Node.js','Express','Next.js','NestJS','Python','Django','Flask','FastAPI','Java','Spring','Kotlin','Go','Rust','C#','Dotnet','PHP','Laravel','Ruby','Rails','SQL','PostgreSQL','MySQL','MongoDB','Redis','GraphQL','Docker','Kubernetes','AWS','GCP','Azure','Terraform','HTML','CSS','Tailwind CSS','SASS','Webpack','Vite','Jest','Cypress','Playwright','Electron','Redux','MobX','RxJS','Elixir','Phoenix','Scala'
   ];
-
-  const displayedTechnologies = [...topTechnologies, ...additionalTechs];
 
   // Status check states
   const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
@@ -178,10 +65,7 @@ export default function AssessmentBuilder() {
   const minSalaryNum = parseFloat(minSalary) || 0;
   const platformFee = positions * 0.20 * maxSalaryNum;
   
-  const repoProvided = githubRepo.trim().length > 0;
-  // Salary rules: min > 0, min < max, max <= 10,000,000
-  const salaryValid = (minSalaryNum > 0) && (minSalaryNum < maxSalaryNum) && (maxSalaryNum <= 10000000);
-  const allFieldsFilled = Boolean(finalRole && selectedLevel && (assignmentMode === 'wirre' || repoProvided) && salaryValid && selectedTechs.length >= 1 && selectedTechs.length <= 10 && durationMinutes > 0 && !!startAt);
+  const allFieldsFilled = finalRole && githubRepo.trim() && minSalaryNum > 0 && maxSalaryNum > 0 && maxSalaryNum >= minSalaryNum && selectedTechs.length >= 3 && selectedTechs.length <= 5 && durationMinutes > 0 && !!startAt;
   const canPublish = allFieldsFilled && hasCheckedStatus && hasRepoAccess && hasPaymentConfirmed;
 
   // keep a copy of original data when editing to detect changes (optional)
@@ -203,15 +87,7 @@ export default function AssessmentBuilder() {
         setGithubRepo(data.github_repo || '');
         setPositions(data.positions || 1);
         setSelectedTechs(data.technologies || []);
-        // prefill assignment mode defensively (support different prior values)
-        const rawMode = (data as any).assignment_mode ?? (data as any).assignmentMode ?? null;
-        if (rawMode) {
-          const rm = String(rawMode).toLowerCase();
-          if (rm === 'make repo' || rm === 'wirre' || rm === 'make_repo' || rm === 'make-repo') setAssignmentMode('wirre');
-          else setAssignmentMode('repo');
-        }
-        setSelectedLevel((data as any).level ?? (data as any).assignment_level ?? '');
-        setDurationMinutes(data.duration_minutes || 180);
+        setDurationMinutes(data.duration_minutes || 48 * 60);
         setStartAt(data.start_at ? new Date(data.start_at).toISOString().slice(0,16) : '');
         // prefill salary fields if present on the record (as strings)
         const minVal = (data as any).min_salary ?? (data as any).minSalary ?? '';
@@ -297,7 +173,6 @@ export default function AssessmentBuilder() {
             technologies: selectedTechs,
             duration_minutes: durationMinutes,
             start_at: startAt ? new Date(startAt).toISOString() : null,
-            assignment_mode: assignmentMode === 'repo' ? 'company repo' : 'make repo',
           };
           if (salaryColumnsExist) {
             updates.min_salary = minSalary ? parseFloat(minSalary) : null;
@@ -331,9 +206,7 @@ export default function AssessmentBuilder() {
         const insertPayload: any = {
           company_user_id: profile?.id,
           title: finalRole,
-          github_repo: githubRepo.trim().length > 0 ? githubRepo : null,
-          assignment_mode: assignmentMode === 'repo' ? 'company repo' : 'make repo',
-          assignment_level: selectedLevel || null,
+          github_repo: githubRepo,
           status: 'awaiting_classroom_setup',
           positions: positions,
           technologies: selectedTechs,
@@ -354,7 +227,7 @@ export default function AssessmentBuilder() {
 
         toast({
           title: "Role Published",
-          description: `${finalRole} is not yet live for candidates to register. Admins have been notified to create the assignment; candidates will be able to register once it's provisioned.`,
+          description: `${finalRole} is now live for candidates to register. Admins have been notified to create the Classroom assignment.`,
         });
 
         // create an audit record for this publish action
@@ -366,9 +239,7 @@ export default function AssessmentBuilder() {
             action: 'published',
             details: {
               title: finalRole,
-              github_repo: githubRepo.trim().length > 0 ? githubRepo : null,
-              assignment_mode: assignmentMode === 'repo' ? 'company repo' : 'make repo',
-              assignment_level: selectedLevel || null,
+              github_repo: githubRepo,
               positions,
               platformFee,
               technologies: selectedTechs,
@@ -420,10 +291,9 @@ export default function AssessmentBuilder() {
                 <button
                   key={role}
                   onClick={() => {
-                      setSelectedRole(role);
-                      setCustomRole("");
-                      setSelectedLevel("");
-                    }}
+                    setSelectedRole(role);
+                    setCustomRole("");
+                  }}
                   className={`p-3 border font-mono text-xs text-left transition-colors ${
                     selectedRole === role && !customRole
                       ? "border-foreground bg-foreground text-background"
@@ -442,86 +312,38 @@ export default function AssessmentBuilder() {
                 onChange={(e) => {
                   setCustomRole(e.target.value);
                   setSelectedRole("");
-                  setSelectedLevel("");
                 }}
                 className="font-mono"
               />
             </div>
           </section>
 
-          {/* Level (appears after role selection) - single-select grid */}
-          { (customRole.trim() || selectedRole) && (
-            <section className="mb-6">
-              <Label className="font-mono text-sm uppercase tracking-wider mb-2 block">Level</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-                {levels.map((lvl) => (
-                  <button
-                    key={lvl}
-                    type="button"
-                    onClick={() => setSelectedLevel(lvl)}
-                    className={`p-2 border font-mono text-xs text-left transition-colors ${
-                      selectedLevel === lvl ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground"
-                    }`}
-                  >
-                    {lvl}
-                  </button>
-                ))}
-              </div>
-              {!selectedLevel && (
-                <p className="text-xs text-destructive">Please select a level.</p>
-              )}
-            </section>
-          )}
-
-          
+          {/* GitHub Repository */}
+          <section className="mb-12">
+            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">
+              GitHub Repository
+            </Label>
+            <Input
+              placeholder="owner/repository"
+              value={githubRepo}
+              onChange={(e) => setGithubRepo(e.target.value)}
+              className="font-mono mb-2"
+            />
+            <p className="text-xs text-muted-foreground font-mono">
+              Provide the repository URL. Ensure WIRRE has access before publishing. The README should specify what candidates need to solve.
+            </p>
+          </section>
           <section className="mb-6">
-            <Label className="font-mono text-sm uppercase tracking-wider mb-2 block">Technologies (select 1–10)</Label>
-              <div className="mb-3 flex gap-2 items-center">
-                <Input
-                  placeholder="Add custom technology (press Enter or click Add)"
-                  value={customTechInput}
-                  onChange={(e) => setCustomTechInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const candidate = customTechInput.trim();
-                      if (!candidate) return;
-                      const exists = displayedTechnologies.some(t => t.toLowerCase() === candidate.toLowerCase());
-                      if (exists) {
-                        toast({ title: 'Duplicate', description: `${candidate} is already in the list.`, variant: 'destructive' });
-                        return;
-                      }
-                      setAdditionalTechs(prev => [candidate, ...prev]);
-                      setCustomTechInput('');
-                    }
-                  }}
-                  className="font-mono flex-1"
-                />
-                <Button
-                  onClick={() => {
-                    const candidate = customTechInput.trim();
-                    if (!candidate) return;
-                    const exists = displayedTechnologies.some(t => t.toLowerCase() === candidate.toLowerCase());
-                    if (exists) {
-                      toast({ title: 'Duplicate', description: `${candidate} is already in the list.`, variant: 'destructive' });
-                      return;
-                    }
-                    setAdditionalTechs(prev => [candidate, ...prev]);
-                    setCustomTechInput('');
-                  }}
-                >
-                  Add
-                </Button>
-              </div>
-              <div className="border border-border p-3 max-h-48 overflow-auto grid grid-cols-2 gap-2">
-              {displayedTechnologies.map((tech) => (
+            <Label className="font-mono text-sm uppercase tracking-wider mb-2 block">Technologies (select 3–5)</Label>
+            <div className="border border-border p-3 max-h-48 overflow-auto grid grid-cols-2 gap-2">
+              {topTechnologies.map((tech) => (
                 <label key={tech} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
                     checked={selectedTechs.includes(tech)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        if (selectedTechs.length < 10) setSelectedTechs(prev => [...prev, tech]);
+                        if (selectedTechs.length < 5) setSelectedTechs(prev => [...prev, tech]);
                       } else {
                         setSelectedTechs(prev => prev.filter(t => t !== tech));
                       }
@@ -531,22 +353,8 @@ export default function AssessmentBuilder() {
                 </label>
               ))}
             </div>
-              {(selectedTechs.length > 0 || additionalTechs.length > 0) && (
-                <div className="mt-3 p-3 border border-border bg-secondary/30">
-                  {selectedTechs.length > 0 && (
-                    <p className="text-sm font-mono">
-                      <strong>Selected:</strong>{' '}{selectedTechs.join(', ')}
-                    </p>
-                  )}
-                  {additionalTechs.length > 0 && (
-                    <p className="text-sm font-mono mt-2">
-                      <strong>Custom added:</strong>{' '}{additionalTechs.join(', ')}
-                    </p>
-                  )}
-                </div>
-              )}
-            {selectedTechs.length < 1 && <p className="text-xs text-destructive mt-2">Select at least 1 technology.</p>}
-            {selectedTechs.length > 10 && <p className="text-xs text-destructive mt-2">You can select at most 10 technologies.</p>}
+            {selectedTechs.length < 3 && <p className="text-xs text-destructive mt-2">Select at least 3 technologies.</p>}
+            {selectedTechs.length > 5 && <p className="text-xs text-destructive mt-2">You can select at most 5 technologies.</p>}
           </section>
 
           {/* Duration and Start time */}
@@ -581,8 +389,6 @@ export default function AssessmentBuilder() {
             />
           </section>
 
- 
-
           {/* Salary Range */}
           <section className="mb-12">
             <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">
@@ -593,7 +399,7 @@ export default function AssessmentBuilder() {
                 <Label className="font-mono text-xs mb-2 block">Min Salary (USD)</Label>
                 <Input
                   type="number"
-                  min="1"
+                  min="0"
                   placeholder="80000"
                   value={minSalary}
                   onChange={(e) => setMinSalary(e.target.value)}
@@ -605,8 +411,7 @@ export default function AssessmentBuilder() {
                 <Label className="font-mono text-xs mb-2 block">Max Salary (USD)</Label>
                 <Input
                   type="number"
-                  min="1"
-                  max={10000000}
+                  min="0"
                   placeholder="150000"
                   value={maxSalary}
                   onChange={(e) => setMaxSalary(e.target.value)}
@@ -630,56 +435,6 @@ export default function AssessmentBuilder() {
           </section>
 
           {/* Removed template/fault/weight placeholder sections — kept minimal inputs only */}
-
-          {/* Assessment Source */}
-          <section className="mb-6">
-            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">
-              Assessment Source
-            </Label>
-            <div className="flex gap-6 items-center mb-3">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="assignmentMode"
-                  value="repo"
-                  checked={assignmentMode === 'repo'}
-                  onChange={() => setAssignmentMode('repo')}
-                />
-                <span className="font-mono text-sm ml-1">Provide my GitHub repository</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="assignmentMode"
-                  value="wirre"
-                  checked={assignmentMode === 'wirre'}
-                  onChange={() => setAssignmentMode('wirre')}
-                />
-                <span className="font-mono text-sm ml-1">Make assignment for me</span>
-              </label>
-            </div>
-
-            {assignmentMode === 'repo' && (
-              <>
-                <Input
-                  placeholder="owner/repository"
-                  value={githubRepo}
-                  onChange={(e) => setGithubRepo(e.target.value)}
-                  className="font-mono mb-2"
-                />
-                <p className="text-xs text-muted-foreground font-mono">
-                Provide the repository URL (optional unless you choose this option). If you provide a repo, ensure the GitHub user <strong>wirrecompany</strong> has full access to your repository. The README should specify what candidates need to solve.
-                </p>
-              </>
-            )}
-
-            {assignmentMode === 'wirre' && (
-              <p className="text-xs text-muted-foreground font-mono mb-2">
-                We will create a custom assignment for your role. Choose this option if you want us to author the test. Note: We recommend creating your own repo and granting access.
-              </p>
-            )}
-
-          </section>
 
           {/* Actions */}
           <div className="flex gap-4">
@@ -712,12 +467,9 @@ export default function AssessmentBuilder() {
           {/* Status Messages */}
           {!allFieldsFilled && (
             <div className="mt-4 p-3 border border-border bg-secondary/50">
-                <p className="text-xs text-muted-foreground font-mono mb-2">Required: Role, Level, Repository (if chosen), Salary range, 1–10 technologies, duration and start time</p>
-                <div className="text-xs text-destructive font-mono">
-                  {! (minSalaryNum > 0) && <div>• Min salary must be greater than 0.</div>}
-                  {! (minSalaryNum < maxSalaryNum) && (minSalaryNum > 0 || maxSalaryNum > 0) && <div>• Min salary must be less than max salary.</div>}
-                  {maxSalaryNum > 10000000 && <div>• Max salary cannot exceed 10,000,000.</div>}
-                </div>
+              <p className="text-xs text-muted-foreground font-mono">
+                Required: Role, GitHub repository, Salary range (max ≥ min), Template, at least one Fault, and weights summing to 100%
+              </p>
             </div>
           )}
 

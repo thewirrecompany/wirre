@@ -74,7 +74,7 @@ export default function About() {
                 made by people who were incorrectly rejected.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                WIRRE applies infrastructure principles to hiring: reproducibility, 
+                WIRRE applies infrastructure principles to hiring: documentation, 
                 determinism, observability, governance. We build primitives that 
                 teams can trust to produce reliable signals about engineering capability.
               </p>
@@ -85,10 +85,10 @@ export default function About() {
                 Contribution-based evaluation
               </h2>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                WIRRE is not a test platform or a coding playground. It's a controlled, contribution-based hiring system built around real repositories, reproducible environments, and PR-based evaluation.
+                WIRRE is not a test platform or a coding playground. It's a controlled, contribution-based hiring system built around real repositories and submission-based evaluation.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                Companies create challenge repositories—real codebases with bugs, missing features, failing tests, and architectural issues. Candidates run the repo locally in the provided environment, make real changes, commit, and open a Pull Request.
+                Companies create challenge repositories—real codebases with bugs, missing features, failing tests, and architectural issues. Candidates run the repo locally, make changes, and submit their solution through the platform.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
                 Evaluation is based on code quality, commit history, design decisions, tests added, PR descriptions, and how candidates reason about tradeoffs. This mirrors how engineering work is reviewed in production.
@@ -113,11 +113,11 @@ export default function About() {
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-foreground">→</span>
-                  <span>Environment parity via reproducible setups eliminates "works on my machine" excuses</span>
+                  <span>Clear environment instructions reduce "works on my machine" issues</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-foreground">→</span>
-                  <span>PR-based evaluation captures how engineers actually reason and make decisions</span>
+                  <span>Submission-based evaluation captures how engineers actually reason and make decisions</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-foreground">→</span>
@@ -132,7 +132,7 @@ export default function About() {
               If this resonates, we should talk.
             </p>
             <Button asChild size="lg">
-              <Link to="/signup">Sign Up</Link>
+              <Link to="/waitlist">Sign Up</Link>
             </Button>
           </div>
         </div>

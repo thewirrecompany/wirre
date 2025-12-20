@@ -56,7 +56,7 @@ export default function Signup() {
         description: "You can now login with your credentials.",
       });
 
-      navigate('/login');
+      navigate('/waitlist');
     } catch (error: any) {
       toast({
         title: "Signup failed",
@@ -153,7 +153,7 @@ export default function Signup() {
 
           <p className="mt-8 text-sm text-muted-foreground font-mono text-center">
             Already have an account?{" "}
-            <Link to="/login" className="text-foreground hover:underline">
+            <Link to="/waitlist" className="text-foreground hover:underline">
               Login
             </Link>
           </p>

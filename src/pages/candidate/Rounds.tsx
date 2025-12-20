@@ -230,7 +230,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                     <Button size="sm" variant="outline" asChild>
                       <a href={round.prLink} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        View Pull Request
+                        View Submission
                       </a>
                     </Button>
                   </CardContent>

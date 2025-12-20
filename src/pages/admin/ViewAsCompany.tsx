@@ -47,12 +47,14 @@ export default function ViewAsCompany() {
         throw companyError;
       }
 
-      // avoid logging sensitive data to client console
+      console.log('Loaded profile:', profileData);
+      console.log('Loaded company:', companyData);
 
       setProfile(profileData);
       setCompany(companyData);
     } catch (error: any) {
-      console.error('Error loading company data:', error?.message || error);
+      console.error('Error loading company data:', error);
+      console.error('Full error details:', JSON.stringify(error, null, 2));
     } finally {
       setLoading(false);
     }
