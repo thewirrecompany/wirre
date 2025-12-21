@@ -12,3 +12,6 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://aryamirani.github.io/wirre/sitemap.xml
+# Sitemap points to your GitHub Pages site
