@@ -1,0 +1,2 @@
+1. email notifs about rounds
+2. fix in web app notifs

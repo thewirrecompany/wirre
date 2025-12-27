@@ -89,7 +89,9 @@ export function Header() {
     })();
   };
 
-  const dashboardLink = profile?.role === 'admin'
+  const dashboardLink = profile?.role === 'superadmin'
+    ? '/superadmin/dashboard'
+    : profile?.role === 'admin'
     ? '/admin/dashboard'
     : profile?.role === 'company'
     ? '/company/dashboard'
@@ -145,6 +147,19 @@ export function Header() {
               >
                 Dashboard
               </Link>
+
+              {/* Admin Profile link (shown to admins) */}
+              {profile?.role === 'admin' && (
+                <Link
+                  to="/admin/profile"
+                  className={cn(
+                    "text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground",
+                    location.pathname === '/admin/profile' ? "text-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  Profile
+                </Link>
+              )}
 
               {profile?.role === 'candidate' && (
                 <>

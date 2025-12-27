@@ -118,6 +118,7 @@ export default function Signup() {
               />
             </div>
 
+
             <div className="space-y-2">
               <Label htmlFor="email" className="font-mono text-sm">
                 Email
@@ -130,6 +131,7 @@ export default function Signup() {
                 placeholder="you@example.com"
                 className="font-mono"
               />
+              <p className="text-red-600 text-xs mt-1 font-semibold">Emails cannot be changed later.</p>
             </div>
 
             <div className="space-y-2">
