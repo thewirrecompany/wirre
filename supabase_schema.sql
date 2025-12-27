@@ -579,7 +579,7 @@ CREATE POLICY "Owners and admins can view assessments" ON "public"."assessments"
 
 
 
-CREATE POLICY "Public ready assessments" ON "public"."assessments" FOR SELECT TO "authenticated" USING (("status" = 'ready'::"text"));
+CREATE POLICY "Public ready assessments" ON "public"."assessments" FOR SELECT TO "authenticated" USING (("status" = 'ready'::"text") OR (EXISTS (SELECT 1 FROM public.assessment_registrations ar WHERE ar.assessment_id = assessments.id AND ar.user_id = auth.uid())));
 
 
 

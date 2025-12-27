@@ -54,6 +54,7 @@ export default function AssessmentBuilder() {
   const [githubRepo, setGithubRepo] = useState("");
   const [positions, setPositions] = useState(1);
   const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
+  const [description, setDescription] = useState<string>('');
   const [durationMinutes, setDurationMinutes] = useState(180); // default 180 minutes
   const [customTechInput, setCustomTechInput] = useState("");
   const [additionalTechs, setAdditionalTechs] = useState<string[]>([]);
@@ -187,6 +188,7 @@ export default function AssessmentBuilder() {
   // keep a copy of original data when editing to detect changes (optional)
   const [originalLoaded, setOriginalLoaded] = useState(false);
   const [salaryColumnsExist, setSalaryColumnsExist] = useState(false);
+  const [descriptionColumnExists, setDescriptionColumnExists] = useState(false);
 
   // If editing an existing assessment, load it and prefill fields
   useEffect(() => {
@@ -203,6 +205,8 @@ export default function AssessmentBuilder() {
         setGithubRepo(data.github_repo || '');
         setPositions(data.positions || 1);
         setSelectedTechs(data.technologies || []);
+        setDescription((data as any).description || '');
+        if (Object.prototype.hasOwnProperty.call(data, 'description')) setDescriptionColumnExists(true);
         // prefill assignment mode defensively (support different prior values)
         const rawMode = (data as any).assignment_mode ?? (data as any).assignmentMode ?? null;
         if (rawMode) {
@@ -243,6 +247,13 @@ export default function AssessmentBuilder() {
         // try selecting the salary column; will error if column doesn't exist
         const { data, error } = await supabase.from('assessments').select('min_salary').limit(1).maybeSingle();
         if (!error && mounted) setSalaryColumnsExist(true);
+        // detect description column
+        try {
+          const { data: descData, error: descErr } = await supabase.from('assessments').select('description').limit(1).maybeSingle();
+          if (!descErr && mounted) setDescriptionColumnExists(true);
+        } catch (e) {
+          if (mounted) setDescriptionColumnExists(false);
+        }
       } catch (err) {
         // column likely doesn't exist
         if (mounted) setSalaryColumnsExist(false);
@@ -299,6 +310,7 @@ export default function AssessmentBuilder() {
             start_at: startAt ? new Date(startAt).toISOString() : null,
             assignment_mode: assignmentMode === 'repo' ? 'company repo' : 'make repo',
           };
+          if (descriptionColumnExists) updates.description = description;
           if (salaryColumnsExist) {
             updates.min_salary = minSalary ? parseFloat(minSalary) : null;
             updates.max_salary = maxSalary ? parseFloat(maxSalary) : null;
@@ -318,8 +330,7 @@ export default function AssessmentBuilder() {
               assessment_id: data.id,
               actor_id: profile?.id,
               actor_role: profile?.role || 'company',
-              action: 'edited',
-              details: { title: finalRole, github_repo: githubRepo, positions, technologies: selectedTechs, duration_minutes: durationMinutes, start_at: startAt }
+              action: 'edited'
             }]);
           } catch (err) { console.error('Failed to write audit record:', err); }
 
@@ -340,6 +351,7 @@ export default function AssessmentBuilder() {
           duration_minutes: durationMinutes,
           start_at: startAt ? new Date(startAt).toISOString() : null,
         };
+        if (descriptionColumnExists) insertPayload.description = description;
         if (salaryColumnsExist) {
           insertPayload.min_salary = minSalary ? parseFloat(minSalary) : null;
           insertPayload.max_salary = maxSalary ? parseFloat(maxSalary) : null;
@@ -363,18 +375,7 @@ export default function AssessmentBuilder() {
             assessment_id: data.id,
             actor_id: profile?.id,
             actor_role: profile?.role || 'company',
-            action: 'published',
-            details: {
-              title: finalRole,
-              github_repo: githubRepo.trim().length > 0 ? githubRepo : null,
-              assignment_mode: assignmentMode === 'repo' ? 'company repo' : 'make repo',
-              assignment_level: selectedLevel || null,
-              positions,
-              platformFee,
-              technologies: selectedTechs,
-              duration_minutes: durationMinutes,
-              start_at: startAt
-            }
+            action: 'published'
           }]);
         } catch (err) {
           console.error('Failed to write audit record:', err);
@@ -548,6 +549,21 @@ export default function AssessmentBuilder() {
             {selectedTechs.length < 1 && <p className="text-xs text-destructive mt-2">Select at least 1 technology.</p>}
             {selectedTechs.length > 10 && <p className="text-xs text-destructive mt-2">You can select at most 10 technologies.</p>}
           </section>
+
+            {/* Description (company-provided) */}
+            <section className="mb-6">
+              <Label className="font-mono text-sm uppercase tracking-wider mb-2 block">Description</Label>
+              <Textarea
+                placeholder="Provide a brief description of the role, expectations, or any instructions for the assessment. Markdown supported."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="font-mono w-full"
+                rows={6}
+              />
+              {!descriptionColumnExists && (
+                <p className="text-xs text-muted-foreground mt-2">Note: your database does not have a description column; this text will not be persisted until a schema migration is applied.</p>
+              )}
+            </section>
 
           {/* Duration and Start time */}
           <section className="mb-6 grid grid-cols-2 gap-4">

@@ -57,8 +57,7 @@ export default function AssessmentSetup() {
         assessment_id: id,
         actor_id: profile?.id,
         actor_role: profile?.role || 'admin',
-        action: 'assignment_url_saved',
-        details: { github_classroom_url: classroomUrl }
+        action: 'assignment_url_saved'
       }]);
     } catch (err) {
       console.error('Failed to write audit record:', err);
