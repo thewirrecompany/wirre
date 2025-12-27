@@ -166,6 +166,43 @@ export default function Index() {
               </div>
             ))}
           </div>
+
+          {/* The Method */}
+          <div className="mt-12 max-w-3xl">
+            <h3 className="text-xl font-bold font-mono mb-3">The Method — Real Engineering, Not Brainteasers</h3>
+            <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+              We evaluate candidates where they do their best work: in their local IDE using standard Git workflows. No algorithmic riddles, no whiteboard theater — just Clone → Branch → Pull Request. Candidates make real changes to real code, submit a PR, and our system evaluates the work that actually matters.
+            </p>
+          </div>
+
+          {/* The 4 Pillars */}
+          <div className="mt-8 grid md:grid-cols-2 gap-6">
+            <div className="p-6 border border-border">
+              <h4 className="font-mono font-bold mb-2">Functional Correctness</h4>
+              <p className="text-sm text-muted-foreground font-mono">Does the code solve the problem and pass the test suite?</p>
+            </div>
+            <div className="p-6 border border-border">
+              <h4 className="font-mono font-bold mb-2">Code Quality & Maintainability</h4>
+              <p className="text-sm text-muted-foreground font-mono">Structure, naming, abstractions and long-term maintainability.</p>
+            </div>
+            <div className="p-6 border border-border">
+              <h4 className="font-mono font-bold mb-2">Production Readiness</h4>
+              <p className="text-sm text-muted-foreground font-mono">Logging, security, performance and deployment considerations.</p>
+            </div>
+            <div className="p-6 border border-border">
+              <h4 className="font-mono font-bold mb-2">Collaboration Signal</h4>
+              <p className="text-sm text-muted-foreground font-mono">PR description, commit structure, and how the candidate explains tradeoffs.</p>
+            </div>
+          </div>
+
+          {/* The Feedback Loop */}
+          <div className="mt-8 max-w-3xl">
+            <h3 className="text-xl font-bold font-mono mb-3">The Promise — The Feedback Loop</h3>
+            <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+              Every submission receives automated, line-by-line feedback and a clear capability report. Candidates walk away with actionable notes about strengths and areas for growth — no black holes, no silence.
+            </p>
+            <p className="mt-3 text-xs text-muted-foreground font-mono">We keep weighting and hidden tests private to prevent gaming; we do, however, show the pillars and the signals we measure.</p>
+          </div>
         </div>
       </section>
 

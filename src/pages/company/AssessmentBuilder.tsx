@@ -66,6 +66,8 @@ export default function AssessmentBuilder() {
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [hasRepoAccess, setHasRepoAccess] = useState(false);
   const [hasPaymentConfirmed, setHasPaymentConfirmed] = useState(false);
+  const [localAssessmentId, setLocalAssessmentId] = useState<string | null>(null);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [repoInstallUrl, setRepoInstallUrl] = useState<string | null>(null);
   const [repoVerifyError, setRepoVerifyError] = useState<string | null>(null);
 
@@ -140,7 +142,7 @@ export default function AssessmentBuilder() {
         setMaxSalary(String(data.max_salary || ''));
         setHasRepoAccess(data.github_repo_verified || false);
         setHasCheckedStatus(true);
-        setHasPaymentConfirmed(true);
+        setHasPaymentConfirmed(Boolean(data.payment_confirmed));
       } catch (err) {
         toast({ title: 'Load failed', description: String(err), variant: 'destructive' });
       }
@@ -172,7 +174,6 @@ export default function AssessmentBuilder() {
       if (data.ok) {
         setHasRepoAccess(true);
         setHasCheckedStatus(true);
-        setHasPaymentConfirmed(true);
         toast({ title: 'Access Granted', description: `WIRRE verified access to ${githubRepo}` });
       } else {
         setHasRepoAccess(false);
@@ -210,8 +211,9 @@ export default function AssessmentBuilder() {
         description
       };
 
-      const { data, error } = id 
-        ? await supabase.from('assessments').update(insertPayload).eq('id', id).select().single()
+      const targetId = id || localAssessmentId;
+      const { data, error } = targetId
+        ? await supabase.from('assessments').update(insertPayload).eq('id', targetId).select().single()
         : await supabase.from('assessments').insert([insertPayload]).select().single();
 
       if (error) throw error;
@@ -220,6 +222,103 @@ export default function AssessmentBuilder() {
       navigate('/company/dashboard');
     } catch (err: any) {
       toast({ title: 'Action failed', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleMakePayment = async () => {
+    setPaymentProcessing(true);
+    setRepoVerifyError(null);
+    try {
+      const amount = Math.round(platformFee * 100) / 100;
+
+      // If we already have an assessment id (editing existing), tell the confirm-payment function to mark it paid
+      const targetId = id || localAssessmentId;
+
+      // If no existing assessment, prepare payload to create a draft assessment server-side
+      let payload: any = undefined;
+      if (!targetId) {
+        const parts = githubRepo.split('/');
+        payload = {
+          company_user_id: profile?.id,
+          title: finalRole,
+          github_repo_owner: assignmentMode === 'repo' ? (parts[0] || null) : null,
+          github_repo_name: assignmentMode === 'repo' ? (parts[1] || null) : null,
+          github_repo_verified: hasRepoAccess,
+          assignment_mode: assignmentMode === 'repo' ? 'company repo' : 'make repo',
+          assignment_level: selectedLevel || null,
+          status: 'awaiting_classroom_setup',
+          positions,
+          technologies: selectedTechs,
+          duration_minutes: durationMinutes,
+          start_at: (startDate && startTime) ? (isNaN(new Date(`${startDate}T${startTime}`).getTime()) ? null : new Date(`${startDate}T${startTime}`).toISOString()) : null,
+          min_salary: parseFloat(minSalary) || null,
+          max_salary: parseFloat(maxSalary) || null,
+          description
+        };
+      }
+
+      // Create Razorpay order (this will create a draft assessment if needed)
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ amount, assessment_id: targetId, payload })
+      });
+
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Failed to create payment order');
+
+      // if the function returned an assessment_id (created draft), keep local copy
+      if (json.assessment_id) setLocalAssessmentId(json.assessment_id);
+
+      // Load Razorpay script if not present
+      if (!(window as any).Razorpay) {
+        await new Promise<void>((resolve, reject) => {
+          const s = document.createElement('script')
+          s.src = 'https://checkout.razorpay.com/v1/checkout.js'
+          s.onload = () => resolve()
+          s.onerror = () => reject(new Error('Failed to load Razorpay SDK'))
+          document.head.appendChild(s)
+        })
+      }
+
+      const options: any = {
+        key: json.key,
+        amount: Math.round(amount * 100),
+        currency: 'INR',
+        name: 'WIRRE',
+        order_id: json.order_id,
+        config: {
+          display: {
+            blocks: {
+              banks: {
+                name: 'Pay via UPI/RuPay',
+                instruments: [
+                  { method: 'upi' },
+                  { method: 'card', networks: ['RuPay'] }
+                ]
+              }
+            },
+            sequence: ['block.banks'],
+            preferences: { show_default_blocks: false }
+          }
+        },
+        handler: function (resp: any) {
+          // Payment succeeded client-side; final confirmation will arrive via webhook.
+          setHasPaymentConfirmed(true);
+          toast({ title: 'Payment submitted', description: 'Payment processed — awaiting confirmation.' });
+        }
+      }
+
+      const rzp = new (window as any).Razorpay(options)
+      rzp.open()
+    } catch (err: any) {
+      setRepoVerifyError(err.message);
+      toast({ title: 'Payment error', description: err.message, variant: 'destructive' });
+    } finally {
+      setPaymentProcessing(false);
     }
   };
 
@@ -291,7 +390,7 @@ export default function AssessmentBuilder() {
           </section>
 
           <section className="mb-12">
-            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">Salary Range (USD)</Label>
+            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">Salary Range (INR)</Label>
             <div className="flex gap-4 items-center">
               <Input type="number" placeholder="Min" value={minSalary} onChange={(e) => setMinSalary(e.target.value)} className="font-mono" />
               <span className="text-muted-foreground">—</span>
@@ -300,7 +399,7 @@ export default function AssessmentBuilder() {
             {maxSalaryNum > 0 && (
               <div className="mt-4 p-4 border border-border bg-secondary/30 flex justify-between items-center font-mono">
                 <span className="text-sm">Platform Fee (20%)</span>
-                <span className="text-lg font-bold">${platformFee.toLocaleString()}</span>
+                <span className="text-lg font-bold">₹{platformFee.toLocaleString('en-IN')}</span>
               </div>
             )}
           </section>
@@ -319,33 +418,43 @@ export default function AssessmentBuilder() {
           <div className="flex gap-4 border-t pt-8">
             <div className="flex-1">
               {!hasCheckedStatus && assignmentMode === 'repo' ? (
-                <div>
-                  <Button size="lg" onClick={handleCheckStatus} disabled={!allFieldsFilled || checkingStatus}>
-                    {checkingStatus ? "Verifying..." : "Verify Repository Access"}
-                  </Button>
+                  <div>
+                    <Button size="lg" onClick={handleCheckStatus} disabled={!allFieldsFilled || checkingStatus}>
+                      {checkingStatus ? "Verifying..." : "Verify Repository Access"}
+                    </Button>
 
-                  <div className="mt-3 p-3 border border-border bg-secondary/5 font-mono text-sm">
-                    <div className="uppercase tracking-wider text-xs mb-2">Requirements to verify</div>
-                    <div className="mb-2 text-[11px] text-red-400 font-mono">
-                      DEBUG: role:{String(!!finalRole)} level:{String(!!selectedLevel)} repo:{String(repoProvided)} salary:{String(salaryValid)} tech:{selectedTechs.length} date:{String(!!startDate)} time:{String(!!startTime)}
+                    <div className="mt-3 p-3 border border-border bg-secondary/5 font-mono text-sm">
+                      <div className="uppercase tracking-wider text-xs mb-2">Requirements to verify</div>
+                      <div className="mb-2 text-[11px] text-red-400 font-mono">
+                        DEBUG: role:{String(!!finalRole)} level:{String(!!selectedLevel)} repo:{String(repoProvided)} salary:{String(salaryValid)} tech:{selectedTechs.length} date:{String(!!startDate)} time:{String(!!startTime)}
+                      </div>
+                      <ul className="space-y-1">
+                        {missingItems.length === 0 ? (
+                          <li className="text-green-500">✅ All required fields filled — ready to verify</li>
+                        ) : (
+                          missingItems.map((it) => (
+                            <li key={it} className="text-orange-400">❌ {it}</li>
+                          ))
+                        )}
+                      </ul>
+                      <div className="mt-2 text-xs text-muted-foreground">Button will be enabled once all items are satisfied.</div>
                     </div>
-                    <ul className="space-y-1">
-                      {missingItems.length === 0 ? (
-                        <li className="text-green-500">✅ All required fields filled — ready to verify</li>
-                      ) : (
-                        missingItems.map((it) => (
-                          <li key={it} className="text-orange-400">❌ {it}</li>
-                        ))
-                      )}
-                    </ul>
-                    <div className="mt-2 text-xs text-muted-foreground">Button will be enabled once all items are satisfied.</div>
                   </div>
-                </div>
-              ) : (
-                <Button size="lg" onClick={handlePublish} disabled={!canPublish}>
-                  {id ? 'Save Changes' : 'Publish Role'}
-                </Button>
-              )}
+                ) : (
+                  // After verification: require payment if repo flow
+                  (assignmentMode === 'repo' && hasRepoAccess && !hasPaymentConfirmed) ? (
+                    <div>
+                      <Button size="lg" onClick={handleMakePayment} disabled={paymentProcessing}>
+                          {paymentProcessing ? 'Processing...' : `Make Payment (₹${platformFee.toFixed(2)})`}
+                        </Button>
+                      <div className="mt-3 text-xs text-muted-foreground">Payments are processed securely. This will confirm your assessment provisioning.</div>
+                    </div>
+                  ) : (
+                    <Button size="lg" onClick={handlePublish} disabled={!canPublish}>
+                      {id ? 'Save Changes' : 'Publish Role'}
+                    </Button>
+                  )
+                )}
             </div>
             <Button variant="outline" size="lg" onClick={() => navigate('/company/dashboard')}>Cancel</Button>
           </div>
