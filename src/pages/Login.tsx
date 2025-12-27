@@ -38,7 +38,16 @@ export default function Login() {
 
       if (profileError) throw profileError;
 
-      // Allow admins to login from any tab
+
+      // Allow admins and superadmins to login from any tab
+      if (profile.role === 'superadmin') {
+        navigate('/superadmin/dashboard');
+        toast({
+          title: 'Login successful',
+          description: 'Welcome, Superadmin!'
+        });
+        return;
+      }
       if (profile.role !== 'admin' && profile.role !== loginType) {
         await supabase.auth.signOut();
         throw new Error(`This account is not registered as a ${loginType}`);

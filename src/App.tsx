@@ -22,6 +22,8 @@ import CandidateOpportunities from "./pages/candidate/Opportunities";
 import CandidateProfile from "./pages/candidate/Profile";
 import Assessment from "./pages/candidate/Assessment";
 import AdminDashboard from "./pages/admin/Dashboard";
+import SuperadminDashboard from "./pages/superadmin/Dashboard";
+import AdminProfile from "./pages/admin/Profile";
 import ViewAsCompany from "./pages/admin/ViewAsCompany";
 import ViewAsCandidate from "./pages/admin/ViewAsCandidate";
 import AssessmentSetup from "./pages/admin/AssessmentSetup";
@@ -134,6 +136,22 @@ const App = () => (
                   <AdminDashboard />
                 </ProtectedRoute>
               } 
+            />
+            <Route
+              path="/admin/profile"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/superadmin/dashboard"
+              element={
+                <ProtectedRoute requiredRole="superadmin">
+                  <SuperadminDashboard />
+                </ProtectedRoute>
+              }
             />
             <Route 
               path="/admin/view-as/company/:userId" 
