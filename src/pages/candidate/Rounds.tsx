@@ -92,13 +92,18 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
     return () => { mounted = false; };
   }, [profile?.id]);
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, start_at?: string | null) => {
+    // If the round has a future start time, treat it as Upcoming regardless of status value
+    if (start_at && new Date(start_at) > new Date()) {
+      return <Badge variant="secondary">Upcoming</Badge>;
+    }
+
     const variants: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
       invited: { label: "Invited", variant: "secondary" },
       in_progress: { label: "In Progress", variant: "default" },
       under_review: { label: "Under Review", variant: "outline" },
     };
-    
+
     const config = variants[status] || { label: status, variant: "secondary" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -136,7 +141,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                         <CardTitle className="font-mono">{round.title}</CardTitle>
                         <CardDescription className="font-mono mt-1">{round.company}</CardDescription>
                       </div>
-                      {getStatusBadge(round.status)}
+                      {getStatusBadge(round.status, round.start_at)}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -181,7 +186,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                         <CardTitle className="font-mono">{round.title}</CardTitle>
                         <CardDescription className="font-mono mt-1">{round.company}</CardDescription>
                       </div>
-                      {getStatusBadge(round.status)}
+                      {getStatusBadge(round.status, round.start_at)}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -228,7 +233,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                           {round.company}
                         </CardDescription>
                       </div>
-                      {getStatusBadge(round.status)}
+                      {getStatusBadge(round.status, round.start_at)}
                     </div>
                   </CardHeader>
                   <CardContent>
