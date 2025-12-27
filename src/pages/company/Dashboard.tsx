@@ -107,11 +107,11 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
   const handleDeleteCompany = async () => {
     if (!ownerId) return;
     const hasUpcoming = (upcomingCount || 0) > 0;
-    if (hasUpcoming) {
-      const ok = window.confirm('Deleting your company will remove upcoming rounds and incur a $1000 fee (simulated). Proceed?');
+      if (hasUpcoming) {
+      const ok = window.confirm('Deleting your company will remove upcoming rounds and incur a ₹1000 fee (simulated). Proceed?');
       if (!ok) return;
       // simulate payment flow
-      toast({ title: 'Payment required', description: 'Charging $1000 (simulation).' });
+      toast({ title: 'Payment required', description: 'Charging ₹1000 (simulation).' });
       await new Promise((r) => setTimeout(r, 800));
     } else {
       const ok = window.confirm('Delete your company and upcoming rounds? This cannot be undone.');
