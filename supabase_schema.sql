@@ -529,7 +529,7 @@ CREATE POLICY "Candidates can update own data" ON "public"."candidates" FOR UPDA
 
 
 
-CREATE POLICY "Companies and admins can update assessments" ON "public"."assessments" FOR UPDATE TO "authenticated" USING ((("company_user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"()))) WITH CHECK ((("company_user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
+CREATE POLICY "Companies and admins can update assessments" ON "public"."assessments" FOR UPDATE TO "authenticated" USING ((("company_user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"()))) WITH CHECK ((("company_user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())) AND (("start_at" IS NULL) OR ("start_at" >= now() + interval '3 days')));
 
 
 
@@ -541,7 +541,7 @@ CREATE POLICY "Companies can delete own data" ON "public"."companies" FOR DELETE
 
 
 
-CREATE POLICY "Companies can insert assessments" ON "public"."assessments" FOR INSERT TO "authenticated" WITH CHECK (("company_user_id" = "auth"."uid"()));
+CREATE POLICY "Companies can insert assessments" ON "public"."assessments" FOR INSERT TO "authenticated" WITH CHECK (("company_user_id" = "auth"."uid"()) AND (("start_at" IS NULL) OR ("start_at" >= now() + interval '3 days')));
 
 
 
@@ -567,11 +567,11 @@ CREATE POLICY "Owners and admins can delete assessments" ON "public"."assessment
 
 
 
-CREATE POLICY "Owners and admins can insert assessments" ON "public"."assessments" FOR INSERT TO "authenticated" WITH CHECK ((("company_user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
+CREATE POLICY "Owners and admins can insert assessments" ON "public"."assessments" FOR INSERT TO "authenticated" WITH CHECK ((("company_user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())) AND (("start_at" IS NULL) OR ("start_at" >= now() + interval '3 days')));
 
 
 
-CREATE POLICY "Owners and admins can update assessments" ON "public"."assessments" FOR UPDATE TO "authenticated" USING ((("company_user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"()))) WITH CHECK ((("company_user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
+CREATE POLICY "Owners and admins can update assessments" ON "public"."assessments" FOR UPDATE TO "authenticated" USING ((("company_user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"()))) WITH CHECK ((("company_user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())) AND (("start_at" IS NULL) OR ("start_at" >= now() + interval '3 days')));
 
 
 
