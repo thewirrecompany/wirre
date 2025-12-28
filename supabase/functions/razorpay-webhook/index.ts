@@ -64,30 +64,126 @@ serve(async (req) => {
       headers: { 'Authorization': 'Basic ' + btoa(`${RAZOR_KEY}:${RAZOR_SECRET}`) }
     })
     const order = await orderResp.json()
-    const assessment_id = order.notes && order.notes.assessment_id
-
-    if (!assessment_id) {
-      return new Response(JSON.stringify({ ok: false, error: 'No assessment_id on order notes' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
+    console.log('Fetched order from Razorpay:', order)
+    const notes = order.notes || {}
+    const assessment_id = notes.assessment_id
+    const company_id = notes.company_id
+    const action = notes.action || null
 
     // only act on payment captured
     if (eventType === 'payment.captured' || (payload.payment && payload.payment.entity && payload.payment.entity.status === 'captured')) {
-      // Mark assessment as paid in Supabase
       const amount = (payload.payment.entity.amount || 0) / 100
-      const url = `${SUPABASE_URL}/rest/v1/assessments?id=eq.${assessment_id}`
-      const patch = { payment_confirmed: true, payment_amount: amount, payment_confirmed_at: new Date().toISOString() }
-      const resp = await fetch(url, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SERVICE_KEY,
-          'Authorization': `Bearer ${SERVICE_KEY}`,
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(patch)
-      })
-      const updated = await resp.json()
-      return new Response(JSON.stringify({ ok: true, updated }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const confirmedAt = new Date().toISOString()
+
+      // If this order was for deleting a company, ensure we have a company_id.
+      // If missing, try to resolve it from the assessment referenced on the order.
+      if (action === 'delete_company') {
+        let targetCompanyId = company_id;
+        if (!targetCompanyId && assessment_id) {
+          try {
+            console.log('No company_id in notes; fetching assessment to resolve company_user_id', assessment_id)
+            const aResp = await fetch(`${SUPABASE_URL}/rest/v1/assessments?id=eq.${assessment_id}&select=company_user_id`, {
+              method: 'GET',
+              headers: {
+                'apikey': SERVICE_KEY,
+                'Authorization': `Bearer ${SERVICE_KEY}`
+              }
+            })
+            const aText = await aResp.text().catch(() => '')
+            console.log('Assessment fetch status:', aResp.status, 'body:', aText)
+            try {
+              const aJson = JSON.parse(aText)
+              if (Array.isArray(aJson) && aJson[0] && aJson[0].company_user_id) targetCompanyId = aJson[0].company_user_id
+            } catch (e) {
+              console.warn('Failed to parse assessment fetch response', e)
+            }
+          } catch (err) {
+            console.error('Failed to fetch assessment to resolve company id', String(err))
+          }
+        }
+
+        if (targetCompanyId && targetCompanyId === '') targetCompanyId = null
+        if (targetCompanyId) {
+          // proceed with deletion using resolved company id
+          company_id = targetCompanyId
+        } else {
+          console.warn('Unable to determine company_id for delete_company action; aborting deletion', { notes, assessment_id })
+          return new Response(JSON.stringify({ ok: false, error: 'Unable to determine company_id for delete_company action', notes, assessment_id }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+      }
+
+      if (action === 'delete_company' && company_id) {
+        // Perform deletion using REST endpoints with service role key to ensure proper privilege
+        try {
+          console.log('delete_company action detected for company_id=', company_id)
+          // 1) Delete assessments belonging to this company (will cascade related rows)
+          const delAssess = await fetch(`${SUPABASE_URL}/rest/v1/assessments?company_user_id=eq.${company_id}`, {
+            method: 'DELETE',
+            headers: {
+              'apikey': SERVICE_KEY,
+              'Authorization': `Bearer ${SERVICE_KEY}`,
+              'Prefer': 'return=representation'
+            }
+          })
+          const delAssessText = await delAssess.text().catch(() => '')
+          console.log('Deleted assessments response status:', delAssess.status, 'body:', delAssessText)
+          let deletedAssess = null
+          try { deletedAssess = JSON.parse(delAssessText) } catch(e) { deletedAssess = delAssessText }
+
+          // 2) Delete companies record
+          const delCompany = await fetch(`${SUPABASE_URL}/rest/v1/companies?user_id=eq.${company_id}`, {
+            method: 'DELETE',
+            headers: {
+              'apikey': SERVICE_KEY,
+              'Authorization': `Bearer ${SERVICE_KEY}`,
+              'Prefer': 'return=representation'
+            }
+          })
+          const delCompanyText = await delCompany.text().catch(() => '')
+          console.log('Deleted company response status:', delCompany.status, 'body:', delCompanyText)
+          let deletedCompany = null
+          try { deletedCompany = JSON.parse(delCompanyText) } catch(e) { deletedCompany = delCompanyText }
+
+          // 3) Delete profile (remove company from profiles table)
+          const delProfile = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${company_id}`, {
+            method: 'DELETE',
+            headers: {
+              'apikey': SERVICE_KEY,
+              'Authorization': `Bearer ${SERVICE_KEY}`,
+              'Prefer': 'return=representation'
+            }
+          })
+          const delProfileText = await delProfile.text().catch(() => '')
+          console.log('Deleted profile response status:', delProfile.status, 'body:', delProfileText)
+          let deletedProfile = null
+          try { deletedProfile = JSON.parse(delProfileText) } catch(e) { deletedProfile = delProfileText }
+
+          return new Response(JSON.stringify({ ok: true, action: 'company_deleted', deletedAssess, deletedCompany, deletedProfile, notes }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        } catch (err) {
+          console.error('Company delete via REST failed', String(err))
+          return new Response(JSON.stringify({ ok: false, error: 'Company delete via REST failed', detail: String(err), notes }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+      }
+
+      // Otherwise, handle assessment payment
+      if (assessment_id) {
+        const url = `${SUPABASE_URL}/rest/v1/assessments?id=eq.${assessment_id}`
+        const patch = { payment_confirmed: true, payment_amount: amount, payment_confirmed_at: confirmedAt }
+        const resp = await fetch(url, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SERVICE_KEY,
+            'Authorization': `Bearer ${SERVICE_KEY}`,
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(patch)
+        })
+        const updated = await resp.json()
+        return new Response(JSON.stringify({ ok: true, updated }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
+      return new Response(JSON.stringify({ ok: false, error: 'No target found in order notes' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     return new Response(JSON.stringify({ ok: true, note: 'event ignored' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })

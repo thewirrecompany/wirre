@@ -120,9 +120,9 @@ BEGIN
     RAISE EXCEPTION 'not authorized';
   END IF;
 
-  -- delete upcoming assessments (status='ready' and start_at in future)
+  -- delete all assessments belonging to this company (will cascade to registrations, audits, notifications)
   DELETE FROM assessments
-  WHERE company_user_id = p_user_id AND status = 'ready' AND (start_at IS NULL OR start_at > now());
+  WHERE company_user_id = p_user_id;
 
   GET DIAGNOSTICS deleted_count = row_count;
 
