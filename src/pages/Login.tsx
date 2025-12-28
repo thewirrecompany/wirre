@@ -30,14 +30,29 @@ export default function Login() {
       if (error) throw error;
 
       // Check if user's role matches selected login type
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
+      // Fetch profile role; use maybeSingle and fallback to a safe query if the DB returns an unexpected shape
+      let profile: any = null
+      try {
+        const { data: profData, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .maybeSingle();
+        if (profileError) throw profileError;
+        profile = profData;
+      } catch (err) {
+        // fallback: try a plain select with limit to avoid single/coercion errors
+        const { data: profData2, error: profileError2 } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .limit(1)
+          .maybeSingle();
+        if (profileError2) throw profileError2;
+        profile = profData2;
+      }
 
-      if (profileError) throw profileError;
-
+      if (!profile || !profile.role) throw new Error('Profile not found or missing role');
 
       // Allow admins and superadmins to login from any tab
       if (profile.role === 'superadmin') {
