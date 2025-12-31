@@ -30,39 +30,15 @@ export default function Login() {
       if (error) throw error;
 
       // Check if user's role matches selected login type
-      // Fetch profile role; use maybeSingle and fallback to a safe query if the DB returns an unexpected shape
-      let profile: any = null
-      try {
-        const { data: profData, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .maybeSingle();
-        if (profileError) throw profileError;
-        profile = profData;
-      } catch (err) {
-        // fallback: try a plain select with limit to avoid single/coercion errors
-        const { data: profData2, error: profileError2 } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .limit(1)
-          .maybeSingle();
-        if (profileError2) throw profileError2;
-        profile = profData2;
-      }
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
 
-      if (!profile || !profile.role) throw new Error('Profile not found or missing role');
+      if (profileError) throw profileError;
 
-      // Allow admins and superadmins to login from any tab
-      if (profile.role === 'superadmin') {
-        navigate('/superadmin/dashboard');
-        toast({
-          title: 'Login successful',
-          description: 'Welcome, Superadmin!'
-        });
-        return;
-      }
+      // Allow admins to login from any tab
       if (profile.role !== 'admin' && profile.role !== loginType) {
         await supabase.auth.signOut();
         throw new Error(`This account is not registered as a ${loginType}`);
@@ -163,7 +139,7 @@ export default function Login() {
 
           <p className="mt-8 text-sm text-muted-foreground font-mono text-center">
             Don't have an account?{" "}
-            <Link to="/signup" className="text-foreground hover:underline">
+            <Link to="/waitlist" className="text-foreground hover:underline">
               Sign up
             </Link>
           </p>

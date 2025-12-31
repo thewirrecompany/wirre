@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
-  requiredRole?: 'company' | 'candidate' | 'admin' | 'superadmin';
+  requiredRole?: 'company' | 'candidate' | 'admin';
 };
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
@@ -24,20 +24,11 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/" replace />;
   }
 
-  if (requiredRole) {
-    // Allow superadmins to access admin routes
-    const allowed = profile.role === requiredRole || (requiredRole === 'admin' && profile.role === 'superadmin');
-    if (!allowed) {
-      let dashboardPath = '';
-      if (profile.role === 'superadmin') {
-        dashboardPath = '/superadmin/dashboard';
-      } else if (profile.role === 'admin') {
-        dashboardPath = '/admin/dashboard';
-      } else {
-        dashboardPath = `/${profile.role}/dashboard`;
-      }
-      return <Navigate to={dashboardPath} replace />;
-    }
+  if (requiredRole && profile.role !== requiredRole) {
+    const dashboardPath = profile.role === 'admin' 
+      ? '/admin/dashboard' 
+      : `/${profile.role}/dashboard`;
+    return <Navigate to={dashboardPath} replace />;
   }
 
   return <>{children}</>;

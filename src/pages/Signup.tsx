@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 
+type SignupType = "company" | "candidate";
+
 export default function Signup() {
-  const [signupType, setSignupType] = useState<"company" | "candidate">("company");
+  const [signupType, setSignupType] = useState<SignupType>("company");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -22,27 +23,40 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      // Pass 'role' and 'name' as metadata. 
-      // The DB Trigger will catch these and create your profiles/companies automatically.
-      const { error } = await supabase.auth.signUp({
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            role: signupType,
-            name: name,
-          },
-        },
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('User creation failed');
+
+      // Complete signup with role-specific data using RPC functions
+      if (signupType === 'company') {
+        const { error: companyError } = await supabase.rpc('complete_company_signup', {
+          p_user_id: authData.user.id,
+          p_email: email,
+          p_name: name,
+        });
+
+        if (companyError) throw companyError;
+      } else {
+        const { error: candidateError } = await supabase.rpc('complete_candidate_signup', {
+          p_user_id: authData.user.id,
+          p_email: email,
+          p_full_name: name,
+        });
+
+        if (candidateError) throw candidateError;
+      }
 
       toast({
         title: "Account created successfully",
-        description: "Please check your email to verify your account.",
+        description: "You can now login with your credentials.",
       });
 
-      navigate('/login');
+      navigate('/waitlist');
     } catch (error: any) {
       toast({
         title: "Signup failed",
@@ -56,23 +70,33 @@ export default function Signup() {
 
   return (
     <Layout>
-      <section className="min-h-[calc(100vh-14rem)] flex items-center justify-center">
-        <div className="container max-w-md py-12">
-          <h1 className="text-3xl font-bold font-mono text-center mb-8 uppercase tracking-tighter">Sign Up</h1>
+      <section className="min-h-[calc(100vh-14rem)] flex items-center">
+        <div className="container max-w-md py-24">
+          <h1 className="text-3xl font-bold font-mono tracking-tight mb-2">
+            Sign Up
+          </h1>
+          <p className="text-muted-foreground font-mono text-sm mb-8">
+            Create your WIRRE account
+          </p>
 
-          <div className="flex border border-foreground mb-8">
+          {/* Signup Type Tabs */}
+          <div className="flex border border-border mb-8">
             <button
               onClick={() => setSignupType("company")}
-              className={`flex-1 py-3 font-mono text-xs uppercase tracking-widest transition-all ${
-                signupType === "company" ? "bg-foreground text-background" : "text-muted-foreground"
+              className={`flex-1 py-3 px-4 font-mono text-sm uppercase tracking-wider transition-colors ${
+                signupType === "company"
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Company
             </button>
             <button
               onClick={() => setSignupType("candidate")}
-              className={`flex-1 py-3 font-mono text-xs uppercase tracking-widest border-l border-foreground transition-all ${
-                signupType === "candidate" ? "bg-foreground text-background" : "text-muted-foreground"
+              className={`flex-1 py-3 px-4 font-mono text-sm uppercase tracking-wider transition-colors border-l border-border ${
+                signupType === "candidate"
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Candidate
@@ -81,29 +105,57 @@ export default function Signup() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label className="font-mono text-xs uppercase text-muted-foreground">
+              <Label htmlFor="name" className="font-mono text-sm">
                 {signupType === "company" ? "Company Name" : "Full Name"}
               </Label>
-              <Input required value={name} onChange={(e) => setName(e.target.value)} className="font-mono rounded-none border-foreground" />
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={signupType === "company" ? "Acme Inc." : "Jane Doe"}
+                className="font-mono"
+              />
             </div>
 
             <div className="space-y-2">
-              <Label className="font-mono text-xs uppercase text-muted-foreground">Email</Label>
-              <Input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="font-mono rounded-none border-foreground" />
+              <Label htmlFor="email" className="font-mono text-sm">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="font-mono"
+              />
             </div>
 
             <div className="space-y-2">
-              <Label className="font-mono text-xs uppercase text-muted-foreground">Password</Label>
-              <Input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="font-mono rounded-none border-foreground" />
+              <Label htmlFor="password" className="font-mono text-sm">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="font-mono"
+              />
             </div>
 
-            <Button type="submit" className="w-full rounded-none uppercase font-mono tracking-widest" size="lg" disabled={loading}>
-              {loading ? "Processing..." : `Join as ${signupType}`}
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? "Creating account..." : `Sign Up as ${signupType === "company" ? "Company" : "Candidate"}`}
             </Button>
           </form>
 
-          <p className="mt-8 text-xs font-mono text-center uppercase text-muted-foreground">
-            Already have an account? <Link to="/login" className="text-foreground underline">Login</Link>
+          <p className="mt-8 text-sm text-muted-foreground font-mono text-center">
+            Already have an account?{" "}
+            <Link to="/waitlist" className="text-foreground hover:underline">
+              Login
+            </Link>
           </p>
         </div>
       </section>
