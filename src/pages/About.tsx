@@ -43,7 +43,7 @@ export default function About() {
               </h2>
               <p className="text-muted-foreground font-mono leading-relaxed">
                 When measurement is unreliable, decisions are unreliable. Engineering 
-                teams make million-dollar hiring decisions based on signals that barely 
+                teams make million-rupee hiring decisions based on signals that barely 
                 correlate with the work that needs to be done.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
@@ -74,7 +74,7 @@ export default function About() {
                 made by people who were incorrectly rejected.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                WIRRE applies infrastructure principles to hiring: documentation, 
+                WIRRE applies infrastructure principles to hiring: reproducibility, 
                 determinism, observability, governance. We build primitives that 
                 teams can trust to produce reliable signals about engineering capability.
               </p>
@@ -85,10 +85,35 @@ export default function About() {
                 Contribution-based evaluation
               </h2>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                WIRRE is not a test platform or a coding playground. It's a controlled, contribution-based hiring system built around real repositories and submission-based evaluation.
+                WIRRE is not a test platform or a coding playground. It's a controlled, contribution-based hiring system built around real repositories, reproducible environments, and PR-based evaluation.
               </p>
+              <div className="mt-6">
+                <h3 className="text-xl font-bold font-mono mb-3">The Method — Real Engineering, Not Brainteasers</h3>
+                <p className="text-muted-foreground font-mono leading-relaxed">
+                  We assess candidates where they do their best work: locally, in their IDE, using standard Git workflows. Instead of contrived puzzles, candidates fix, implement, and test real code; they then open a Pull Request that becomes the primary signal for evaluation.
+                </p>
+              </div>
+
+              <div className="mt-8 grid md:grid-cols-2 gap-6">
+                <div className="border border-border p-6">
+                  <h4 className="font-mono font-bold mb-2">The 4 Pillars of Engineering Truth</h4>
+                  <ul className="text-sm text-muted-foreground font-mono space-y-2">
+                    <li><strong>Functional Correctness:</strong> Does the code work and pass tests?</li>
+                    <li><strong>Code Quality & Maintainability:</strong> Is it structured for teams and future work?</li>
+                    <li><strong>Production Readiness:</strong> Considerations for logging, security, and performance.</li>
+                    <li><strong>Collaboration Signal:</strong> PR descriptions, commit hygiene, and communication.</li>
+                  </ul>
+                </div>
+                <div className="border border-border p-6">
+                  <h4 className="font-mono font-bold mb-2">The Promise — The Feedback Loop</h4>
+                  <p className="text-sm text-muted-foreground font-mono">
+                    Every submission receives automated, line-by-line feedback and a capability report. Candidates always get meaningful insight into their performance — whether they progress or not.
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground font-mono">We intentionally keep weights and hidden test cases private to preserve evaluation integrity; we do, however, publish the pillars and the signals we measure.</p>
+                </div>
+              </div>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                Companies create challenge repositories—real codebases with bugs, missing features, failing tests, and architectural issues. Candidates run the repo locally, make changes, and submit their solution through the platform.
+                Companies create challenge repositories—real codebases with bugs, missing features, failing tests, and architectural issues. Candidates run the repo locally in the provided environment, make real changes, commit, and open a Pull Request.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
                 Evaluation is based on code quality, commit history, design decisions, tests added, PR descriptions, and how candidates reason about tradeoffs. This mirrors how engineering work is reviewed in production.
@@ -113,11 +138,11 @@ export default function About() {
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-foreground">→</span>
-                  <span>Clear environment instructions reduce "works on my machine" issues</span>
+                  <span>Environment parity via reproducible setups eliminates "works on my machine" excuses</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-foreground">→</span>
-                  <span>Submission-based evaluation captures how engineers actually reason and make decisions</span>
+                  <span>PR-based evaluation captures how engineers actually reason and make decisions</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-foreground">→</span>
@@ -132,7 +157,7 @@ export default function About() {
               If this resonates, we should talk.
             </p>
             <Button asChild size="lg">
-              <Link to="/waitlist">Sign Up</Link>
+              <Link to="/signup">Sign Up</Link>
             </Button>
           </div>
         </div>

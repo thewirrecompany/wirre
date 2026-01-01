@@ -60,11 +60,9 @@ export function Header() {
     if (profile?.role === 'admin') {
       loadForAdmin();
     } else if (profile?.role) {
-      const storageKey = `notifications_${profile.role}`;
-      const stored = localStorage.getItem(storageKey);
-      const items = stored ? JSON.parse(stored) : [];
-      setNotifications(items);
-      setHasUnread(items.some((n: any) => !n.read));
+      // Do not persist notifications in localStorage to avoid exposing data via Inspect Element
+      setNotifications([]);
+      setHasUnread(false);
     }
 
     return () => { mounted = false; };
@@ -91,7 +89,9 @@ export function Header() {
     })();
   };
 
-  const dashboardLink = profile?.role === 'admin'
+  const dashboardLink = profile?.role === 'superadmin'
+    ? '/superadmin/dashboard'
+    : profile?.role === 'admin'
     ? '/admin/dashboard'
     : profile?.role === 'company'
     ? '/company/dashboard'
@@ -148,6 +148,19 @@ export function Header() {
                 Dashboard
               </Link>
 
+              {/* Admin Profile link (shown to admins) */}
+              {profile?.role === 'admin' && (
+                <Link
+                  to="/admin/profile"
+                  className={cn(
+                    "text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground",
+                    location.pathname === '/admin/profile' ? "text-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  Profile
+                </Link>
+              )}
+
               {profile?.role === 'candidate' && (
                 <>
                   <Link to="/candidate/rounds" className={cn("text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground", location.pathname === '/candidate/rounds' ? "text-foreground" : "text-muted-foreground")}>My Rounds</Link>
@@ -202,10 +215,10 @@ export function Header() {
             </>
           ) : (
             <Link
-              to="/waitlist"
+              to="/login"
               className={cn(
                 "text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground",
-                location.pathname === '/waitlist' ? "text-foreground" : "text-muted-foreground"
+                location.pathname === '/login' ? "text-foreground" : "text-muted-foreground"
               )}
             >
               Login
