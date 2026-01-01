@@ -71,6 +71,9 @@ export default function AssessmentBuilder() {
   const [repoInstallUrl, setRepoInstallUrl] = useState<string | null>(null);
   const [repoVerifyError, setRepoVerifyError] = useState<string | null>(null);
 
+  // Store original max salary for edit comparison
+  const [originalMaxSalary, setOriginalMaxSalary] = useState<number>(0);
+
   const finalRole = customRole.trim() || selectedRole;
   const maxSalaryNum = parseFloat(maxSalary) || 0;
   const minSalaryNum = parseFloat(minSalary) || 0;
@@ -140,6 +143,7 @@ export default function AssessmentBuilder() {
             }
         setMinSalary(String(data.min_salary || ''));
         setMaxSalary(String(data.max_salary || ''));
+        setOriginalMaxSalary(data.max_salary || 0);
         setHasRepoAccess(data.github_repo_verified || false);
         setHasCheckedStatus(true);
         setHasPaymentConfirmed(Boolean(data.payment_confirmed));
@@ -192,6 +196,38 @@ export default function AssessmentBuilder() {
 
   const handlePublish = async () => {
     try {
+      // Check if this is an edit and salary changed
+      if (id && originalMaxSalary > 0) {
+        // Check if salary decreased
+        if (maxSalaryNum < originalMaxSalary) {
+          toast({ 
+            title: 'Cannot decrease salary', 
+            description: 'Please contact customer service to reduce the salary range.', 
+            variant: 'destructive' 
+          });
+          return;
+        }
+        
+        // Check if salary increased - requires payment of difference
+        if (maxSalaryNum > originalMaxSalary) {
+          const salaryDifference = maxSalaryNum - originalMaxSalary;
+          const additionalFee = positions * 0.20 * salaryDifference;
+          
+          const confirmed = window.confirm(
+            `Salary increased by ₹${salaryDifference.toLocaleString('en-IN')}.\n` +
+            `Additional payment required: ₹${additionalFee.toFixed(2)}\n\n` +
+            `Continue to payment?`
+          );
+          
+          if (!confirmed) return;
+          
+          // Trigger payment for the difference
+          await handleMakePaymentForDifference(additionalFee);
+          return;
+        }
+      }
+
+      // No salary change or new assessment - proceed with save
       const parts = githubRepo.split('/');
       const insertPayload: any = {
         company_user_id: profile?.id,
@@ -309,6 +345,101 @@ export default function AssessmentBuilder() {
           // Payment succeeded client-side; final confirmation will arrive via webhook.
           setHasPaymentConfirmed(true);
           toast({ title: 'Payment submitted', description: 'Payment processed — awaiting confirmation.' });
+        }
+      }
+
+      const rzp = new (window as any).Razorpay(options)
+      rzp.open()
+    } catch (err: any) {
+      setRepoVerifyError(err.message);
+      toast({ title: 'Payment error', description: err.message, variant: 'destructive' });
+    } finally {
+      setPaymentProcessing(false);
+    }
+  };
+
+  const handleMakePaymentForDifference = async (amount: number) => {
+    setPaymentProcessing(true);
+    setRepoVerifyError(null);
+    try {
+      // Create Razorpay order for the salary difference
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ amount, assessment_id: id })
+      });
+
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Failed to create payment order');
+
+      // Load Razorpay script if not present
+      if (!(window as any).Razorpay) {
+        await new Promise<void>((resolve, reject) => {
+          const s = document.createElement('script')
+          s.src = 'https://checkout.razorpay.com/v1/checkout.js'
+          s.onload = () => resolve()
+          s.onerror = () => reject(new Error('Failed to load Razorpay SDK'))
+          document.head.appendChild(s)
+        })
+      }
+
+      const options: any = {
+        key: json.key,
+        amount: Math.round(amount * 100),
+        currency: 'INR',
+        name: 'WIRRE - Salary Increase',
+        description: 'Additional payment for salary increase',
+        order_id: json.order_id,
+        config: {
+          display: {
+            blocks: {
+              banks: {
+                name: 'Pay via UPI/RuPay',
+                instruments: [
+                  { method: 'upi' },
+                  { method: 'card', networks: ['RuPay'] }
+                ]
+              }
+            },
+            sequence: ['block.banks'],
+            preferences: { show_default_blocks: false }
+          }
+        },
+        handler: async (resp: any) => {
+          // Payment succeeded - now save the changes
+          toast({ title: 'Payment successful', description: 'Updating assessment...' });
+          
+          // Update the assessment with new values
+          const parts = githubRepo.split('/');
+          const insertPayload: any = {
+            company_user_id: profile?.id,
+            title: finalRole,
+            github_repo_owner: assignmentMode === 'repo' ? parts[0] : null,
+            github_repo_name: assignmentMode === 'repo' ? parts[1] : null,
+            github_repo_verified: hasRepoAccess,
+            assignment_mode: assignmentMode === 'repo' ? 'company repo' : 'make repo',
+            assignment_level: selectedLevel || null,
+            status: 'awaiting_classroom_setup',
+            positions,
+            technologies: selectedTechs,
+            duration_minutes: durationMinutes,
+            start_at: (startDate && startTime) ? (isNaN(new Date(`${startDate}T${startTime}`).getTime()) ? null : new Date(`${startDate}T${startTime}`).toISOString()) : null,
+            min_salary: parseFloat(minSalary),
+            max_salary: parseFloat(maxSalary),
+            description
+          };
+
+          const { error } = await supabase.from('assessments').update(insertPayload).eq('id', id).select().single();
+          
+          if (error) {
+            toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
+          } else {
+            toast({ title: 'Updated', description: 'Assessment updated successfully.' });
+            navigate('/company/dashboard');
+          }
         }
       }
 
@@ -441,8 +572,8 @@ export default function AssessmentBuilder() {
                     </div>
                   </div>
                 ) : (
-                  // After verification: require payment if repo flow
-                  (assignmentMode === 'repo' && hasRepoAccess && !hasPaymentConfirmed) ? (
+                  // After verification: require payment only for NEW assessments (not edits)
+                  (assignmentMode === 'repo' && hasRepoAccess && !hasPaymentConfirmed && !id) ? (
                     <div>
                       <Button size="lg" onClick={handleMakePayment} disabled={paymentProcessing}>
                           {paymentProcessing ? 'Processing...' : `Make Payment (₹${platformFee.toFixed(2)})`}
@@ -451,7 +582,7 @@ export default function AssessmentBuilder() {
                     </div>
                   ) : (
                     <Button size="lg" onClick={handlePublish} disabled={!canPublish}>
-                      {id ? 'Save Changes' : 'Publish Role'}
+                      {id ? (maxSalaryNum === originalMaxSalary ? 'Commit Changes' : 'Save Changes') : 'Publish Role'}
                     </Button>
                   )
                 )}
