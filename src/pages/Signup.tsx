@@ -6,13 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Signup() {
-  const [signupType, setSignupType] = useState<"company" | "candidate">("company");
+  const [signupType, setSignupType] = useState<"company" | "candidate">("candidate");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -88,13 +90,24 @@ export default function Signup() {
             </div>
 
             <div className="space-y-2">
-              <Label className="font-mono text-xs uppercase text-muted-foreground">Email</Label>
+              <Label className="font-mono text-xs uppercase text-muted-foreground">
+                Email <span className="text-red-500 normal-case text-[10px]">[email cannot be changed]</span>
+              </Label>
               <Input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="font-mono rounded-none border-foreground" />
             </div>
 
             <div className="space-y-2">
               <Label className="font-mono text-xs uppercase text-muted-foreground">Password</Label>
-              <Input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="font-mono rounded-none border-foreground" />
+              <div className="relative">
+                <Input required type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="font-mono rounded-none border-foreground pr-10" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <Button type="submit" className="w-full rounded-none uppercase font-mono tracking-widest" size="lg" disabled={loading}>

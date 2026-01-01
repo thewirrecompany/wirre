@@ -164,6 +164,23 @@ export default function AssessmentBuilder() {
       if (parts.length !== 2) throw new Error('Repository must be owner/name');
       const [owner, repo] = parts;
 
+      // Check if this repository is already used in another assessment
+      const { data: existingAssessments, error: checkError } = await supabase
+        .from('assessments')
+        .select('id, title')
+        .eq('github_repo_owner', owner)
+        .eq('github_repo_name', repo);
+
+      if (checkError) throw checkError;
+
+      // Filter out current assessment if editing
+      const duplicates = existingAssessments?.filter((a: any) => a.id !== id) || [];
+      
+      if (duplicates.length > 0) {
+        const duplicateTitle = duplicates[0].title;
+        throw new Error(`This repository is already used in "${duplicateTitle}". Please use a different repository.`);
+      }
+
       const res = await fetch('https://***REMOVED***.supabase.co/functions/v1/verify-repo', {
           method: 'POST',
           headers: {
@@ -255,7 +272,11 @@ export default function AssessmentBuilder() {
       if (error) throw error;
 
       toast({ title: id ? "Updated" : "Published", description: "Assessment is being provisioned." });
-      navigate('/company/dashboard');
+      if (id) {
+        navigate(`/company/assessments/${id}`);
+      } else {
+        navigate('/company/dashboard');
+      }
     } catch (err: any) {
       toast({ title: 'Action failed', description: err.message, variant: 'destructive' });
     }
@@ -438,7 +459,7 @@ export default function AssessmentBuilder() {
             toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
           } else {
             toast({ title: 'Updated', description: 'Assessment updated successfully.' });
-            navigate('/company/dashboard');
+            navigate(`/company/assessments/${id}`);
           }
         }
       }
@@ -587,7 +608,13 @@ export default function AssessmentBuilder() {
                   )
                 )}
             </div>
-            <Button variant="outline" size="lg" onClick={() => navigate('/company/dashboard')}>Cancel</Button>
+            <Button variant="outline" size="lg" onClick={() => {
+              if (id) {
+                navigate(`/company/assessments/${id}`);
+              } else {
+                navigate('/company/dashboard');
+              }
+            }}>Cancel</Button>
           </div>
 
           {/* --- ENHANCED VERIFICATION UI --- */}

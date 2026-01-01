@@ -108,10 +108,34 @@ export function Header() {
         <div className="flex items-center gap-4">
           {location.pathname !== '/' && (
             <Button variant="ghost" size="sm" onClick={() => {
-              // try to navigate back; fallback to home
-              try {
-                navigate(-1);
-              } catch {
+              // Hierarchical navigation
+              if (location.pathname.includes('/company/assessments/') && location.pathname.includes('/edit')) {
+                // From edit page -> assessment detail
+                const assessmentId = location.pathname.split('/')[3];
+                navigate(`/company/assessments/${assessmentId}`);
+              } else if (location.pathname.includes('/company/assessments/')) {
+                // From assessment detail -> company dashboard
+                navigate('/company/dashboard');
+              } else if (location.pathname === '/company/dashboard') {
+                // From company dashboard -> home
+                navigate('/');
+              } else if (location.pathname === '/candidate/dashboard') {
+                // From candidate dashboard -> home
+                navigate('/');
+              } else if (location.pathname === '/admin/dashboard') {
+                // From admin dashboard -> home
+                navigate('/');
+              } else if (location.pathname.includes('/admin/')) {
+                // From any admin page -> admin dashboard
+                navigate('/admin/dashboard');
+              } else if (location.pathname.includes('/candidate/')) {
+                // From any candidate page -> candidate dashboard
+                navigate('/candidate/dashboard');
+              } else if (location.pathname.includes('/company/')) {
+                // From any company page -> company dashboard
+                navigate('/company/dashboard');
+              } else {
+                // Default -> home
                 navigate('/');
               }
             }}>
