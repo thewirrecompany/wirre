@@ -58,9 +58,9 @@ export default function AssessmentDetail() {
     if (!assessment || !profile?.id) return;
     const regsCount = registrants.length;
     if (regsCount >= 1) {
-      const ok = window.confirm(`This assessment has ${regsCount} registrant(s). Deleting it will charge ₹1000 (simulation). Proceed?`);
+      const ok = window.confirm(`This assessment has ${regsCount} registrant(s). Deleting it will charge $1000 (simulation). Proceed?`);
       if (!ok) return;
-      toast({ title: 'Payment required', description: 'Charging ₹1000 (simulation).' });
+      toast({ title: 'Payment required', description: 'Charging $1000 (simulation).' });
       await new Promise(r => setTimeout(r, 800));
     } else {
       const ok = window.confirm('Delete this upcoming assessment? This cannot be undone.');
@@ -111,7 +111,7 @@ export default function AssessmentDetail() {
               if (min == null && max == null) return null;
               const fmt = (v: any) => {
                 try {
-                  return Number(v).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+                  return Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
                 } catch (e) { return String(v); }
               };
               return (

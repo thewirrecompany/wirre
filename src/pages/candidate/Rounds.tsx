@@ -34,54 +34,40 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
         // ensure due assessments are started
         try { await supabase.rpc('mark_due_assessments_started'); } catch(e) { /* ignore */ }
 
-        // 1) Fetch public upcoming assessments (status='ready' and start_at in future)
-        const nowIso = new Date().toISOString();
-        const { data: upcomingData } = await supabase
-          .from('assessments')
-          .select('id,title,status,start_at,duration_minutes,positions,company_user_id,created_at')
-          .eq('status', 'ready')
-          .gt('start_at', nowIso)
-          .order('start_at', { ascending: true });
-
-        // 2) Fetch this user's registrations (IDs) and then load assessments by id (two-step avoids RLS recursion)
-        const { data: regs, error: regsErr } = await supabase
+        // fetch registrations for the current user and include assessment details
+        const { data, error } = await supabase
           .from('assessment_registrations')
-          .select('assessment_id,created_at')
+          .select('assessment:assessments(id,title,status,start_at,duration_minutes,positions,company_user_id,created_at)')
           .eq('user_id', targetId)
           .order('created_at', { ascending: false });
 
-        let registeredAssessments: any[] = [];
-        if (!regsErr && regs && regs.length > 0) {
-          const ids = Array.from(new Set(regs.map((r: any) => r.assessment_id)));
-          const { data: asses } = await supabase
-            .from('assessments')
-            .select('id,title,status,start_at,duration_minutes,positions,company_user_id,created_at')
-            .in('id', ids as any[])
-            .order('created_at', { ascending: false });
-          registeredAssessments = asses || [];
+        if (error) {
+          console.error('Error loading my rounds:', error);
+          return;
         }
 
-        // build companies map for all referenced company_user_id values
-        const allCompanyIds = Array.from(new Set([...(upcomingData || []).map((a:any)=>a.company_user_id).filter(Boolean), ...(registeredAssessments || []).map((a:any)=>a.company_user_id).filter(Boolean)]));
+        const assessments = (data || []).map((r: any) => r.assessment).filter(Boolean);
+
+        const userIds = Array.from(new Set(assessments.map((a: any) => a.company_user_id).filter(Boolean)));
         let companiesMap: Record<string,string> = {};
-        if (allCompanyIds.length > 0) {
+        if (userIds.length > 0) {
           const { data: companies } = await supabase
             .from('companies')
             .select('user_id,name')
-            .in('user_id', allCompanyIds as any[]);
+            .in('user_id', userIds as any[]);
           if (companies) companiesMap = Object.fromEntries((companies as any[]).map(c => [c.user_id, c.name]));
         }
 
-        // split registered assessments into active/completed based on status & start time
+        // split upcoming, active and completed by status & start time
         const now = new Date();
-        const completed = registeredAssessments.filter((a:any) => a.status === 'completed' || a.status === 'under_review');
-        const upcomingRegistered = registeredAssessments.filter((a:any) => a.status === 'ready' && a.start_at && new Date(a.start_at) > now);
-        const active = registeredAssessments.filter((a:any) => !completed.includes(a) && !upcomingRegistered.includes(a));
+        const upcoming = assessments.filter((a: any) => a.status === 'ready' && a.start_at && new Date(a.start_at) > now);
+        const completed = assessments.filter((a: any) => a.status === 'completed' || a.status === 'under_review');
+        const active = assessments.filter((a: any) => !completed.includes(a) && !upcoming.includes(a));
 
         if (mounted) {
-          setUpcomingRounds((upcomingData || []).map((a:any) => ({ ...a, company: companiesMap[a.company_user_id] || '' })));
-          setActiveRounds(active.map((a:any) => ({ ...a, company: companiesMap[a.company_user_id] || '' })));
-          setCompletedRounds(completed.map((a:any) => ({ ...a, company: companiesMap[a.company_user_id] || '' })));
+          setUpcomingRounds(upcoming.map((a: any) => ({ ...a, company: companiesMap[a.company_user_id] || '' })));
+          setActiveRounds(active.map((a: any) => ({ ...a, company: companiesMap[a.company_user_id] || '' })));
+          setCompletedRounds(completed.map((a: any) => ({ ...a, company: companiesMap[a.company_user_id] || '' })));
         }
       } catch (err) {
         console.error('Error loading rounds:', err);
@@ -92,18 +78,13 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
     return () => { mounted = false; };
   }, [profile?.id]);
 
-  const getStatusBadge = (status: string, start_at?: string | null) => {
-    // If the round has a future start time, treat it as Upcoming regardless of status value
-    if (start_at && new Date(start_at) > new Date()) {
-      return <Badge variant="secondary">Upcoming</Badge>;
-    }
-
+  const getStatusBadge = (status: string) => {
     const variants: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
       invited: { label: "Invited", variant: "secondary" },
       in_progress: { label: "In Progress", variant: "default" },
       under_review: { label: "Under Review", variant: "outline" },
     };
-
+    
     const config = variants[status] || { label: status, variant: "secondary" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -141,7 +122,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                         <CardTitle className="font-mono">{round.title}</CardTitle>
                         <CardDescription className="font-mono mt-1">{round.company}</CardDescription>
                       </div>
-                      {getStatusBadge(round.status, round.start_at)}
+                      {getStatusBadge(round.status)}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -186,7 +167,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                         <CardTitle className="font-mono">{round.title}</CardTitle>
                         <CardDescription className="font-mono mt-1">{round.company}</CardDescription>
                       </div>
-                      {getStatusBadge(round.status, round.start_at)}
+                      {getStatusBadge(round.status)}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -233,7 +214,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                           {round.company}
                         </CardDescription>
                       </div>
-                      {getStatusBadge(round.status, round.start_at)}
+                      {getStatusBadge(round.status)}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -249,7 +230,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                     <Button size="sm" variant="outline" asChild>
                       <a href={round.prLink} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        View Pull Request
+                        View Submission
                       </a>
                     </Button>
                   </CardContent>

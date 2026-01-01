@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 const footerLinks = [
   { href: "/platform", label: "Platform" },
   { href: "/about", label: "About" },
-  { href: "/login", label: "Login" },
-  { href: "/signup", label: "Signup" },
+  { href: "/waitlist", label: "Login" },
+  { href: "/waitlist", label: "Signup" },
 ];
 
 export function Footer() {

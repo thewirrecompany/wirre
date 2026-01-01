@@ -59,18 +59,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle();
+        .single();
 
       if (error) throw error;
-      if (!data) {
-        console.debug('No profile row found for user:', userId);
-        setProfile(null);
-      } else {
-        setProfile(data);
-      }
+      setProfile(data);
     } catch (error) {
       console.error('Error loading profile:', error);
-      setProfile(null);
     } finally {
       setLoading(false);
     }

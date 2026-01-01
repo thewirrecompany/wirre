@@ -14,15 +14,9 @@ export default function Platform() {
             Controlled, contribution-based hiring system
           </h1>
           <p className="mt-6 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            Built around real repositories, reproducible environments, and PR-based evaluation.
+            Built around real repositories and submission-based evaluation.
             Not a test platform. Not an interview tool. Infrastructure for measuring real engineering work.
           </p>
-          <div className="mt-6 max-w-2xl">
-            <h3 className="text-lg font-bold font-mono mb-2">The Method — Real Engineering, Not Brainteasers</h3>
-            <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-              WIRRE evaluates candidates by recreating a real engineering workflow: we provision a private working copy, candidates clone, branch, and open a Pull Request. Our evaluation is driven by artifacts — PRs, commits, tests and explanations — not isolated puzzles.
-            </p>
-          </div>
         </div>
       </section>
 
@@ -181,19 +175,17 @@ interface ScoringConfig {
 $ git clone git@wirre.dev:assess/abc123.git
 $ cd abc123
 
-# Start development environment (managed)
-$ ./scripts/setup-dev.sh
-
-# Work in familiar local environment
+# Open the project in your local environment
 $ code .
 
-# Submit via standard Git workflow
-$ git add -A
-$ git commit -m "Implementation complete"
-$ git push origin solution
+# Follow the project's README to install dependencies 
+and run tests locally
+$ npm install
+$ npm test
 
-# Automated evaluation triggers on push
-# Results available in dashboard`}
+# When ready, just push the changes.
+# Results and feedback will be available in the dashboard in 
+30 mins.`}
               </pre>
             </div>
             <div className="order-1 md:order-2">
@@ -201,7 +193,7 @@ $ git push origin solution
               <p className="text-muted-foreground font-mono leading-relaxed mb-8">
                 Engineers work in their own environment using familiar tools. 
                 No browser-based editors. No artificial time pressure. 
-                Just real engineering work with standard Git workflows.
+                Just real engineering work using your normal local tools.
               </p>
               <ul className="space-y-4 font-mono text-sm">
                 <li className="flex items-start gap-3">
@@ -210,11 +202,11 @@ $ git push origin solution
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
-                  <span>Reproducible environments for consistency</span>
+                  <span>Clear environment instructions for consistency</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
-                  <span>Submit through standard PR workflow</span>
+                  <span>Submit solutions through the platform</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
@@ -273,7 +265,7 @@ $ git push origin solution
               Sign up to start building assessments that measure what matters.
             </p>
             <Button asChild size="lg">
-              <Link to="/signup">Sign Up</Link>
+              <Link to="/waitlist">Sign Up</Link>
             </Button>
           </div>
         </div>

@@ -11,14 +11,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
 const predefinedRoles = [
-  'Accessibility Engineer', 'Android Engineer', 'Backend Engineer', 'Build/Release Engineer',
-  'Cloud Engineer', 'Computer Vision Engineer', 'Data Engineer', 'Database Engineer',
-  'Developer Advocate', 'DevOps Engineer', 'Embedded Systems Engineer', 'Frontend Engineer',
-  'Full Stack Engineer', 'Game Developer', 'Graphics Engineer', 'Infrastructure Engineer',
-  'iOS Engineer', 'Machine Learning Engineer', 'Mobile Engineer', 'Network Engineer',
-  'Performance Engineer', 'Platform Architect', 'QA Engineer', 'Security Engineer',
-  'Site Reliability Engineer', 'Test Automation Engineer'
+  "Backend Engineer",
+  "Senior Backend Engineer",
+  "Staff Backend Engineer",
+  "Platform Engineer",
+  "Senior Platform Engineer",
+  "Systems Engineer",
+  "Staff Systems Engineer",
+  "Infrastructure Engineer",
+  "Frontend Engineer",
+  "Full Stack Engineer",
 ];
+
+// Removed template/fault placeholder lists — only core inputs remain
 
 export default function AssessmentBuilder() {
   const navigate = useNavigate();
@@ -32,605 +37,452 @@ export default function AssessmentBuilder() {
   const [githubRepo, setGithubRepo] = useState("");
   const [positions, setPositions] = useState(1);
   const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
-  const [description, setDescription] = useState<string>('');
-  const [durationMinutes, setDurationMinutes] = useState(180);
-  const [customTechInput, setCustomTechInput] = useState("");
-  const [additionalTechs, setAdditionalTechs] = useState<string[]>([]);
-  const [startDate, setStartDate] = useState<string>('');
-  const [startTime, setStartTime] = useState<string>('');
-  const [assignmentMode, setAssignmentMode] = useState<'repo' | 'wirre'>('repo');
-  const [selectedLevel, setSelectedLevel] = useState("");
-
-  const levels = ['Intern', 'New Grad', 'Level 1', 'Level 2', 'Level 3', 'Junior', 'Mid', 'Senior', 'Staff', 'Principal', 'Lead'];
+  const [durationMinutes, setDurationMinutes] = useState(48 * 60); // default 48 hours
+  const [startAt, setStartAt] = useState<string>('');
   const [minSalary, setMinSalary] = useState("");
   const [maxSalary, setMaxSalary] = useState("");
+  const [selectedFaults, setSelectedFaults] = useState<string[]>([]);
+  
+  // removed scoring weight placeholders
 
   const topTechnologies = [
-    'Ansible', 'Angular', 'AWS', 'Azure', 'C', 'C#', 'C++', 'CSS', 'Django', 'Docker', 
-    'Docker Compose', 'Dotnet', 'ElasticSearch', 'Elixir', 'Electron', 'Express', 
-    'FastAPI', 'Flask', 'Flutter', 'GCP', 'Grafana', 'GraphQL', 'gRPC', 'Go', 
-    'Hadoop', 'HTML', 'InfluxDB', 'Jest', 'Java', 'JavaScript', 'Kafka', 'Kotlin', 
-    'Kubernetes', 'Laravel', 'MariaDB', 'MongoDB', 'MySQL', 'NestJS', 'Neo4j', 
-    'Next.js', 'Node.js', 'NumPy', 'Pandas', 'PHP', 'Playwright', 'PostCSS', 
-    'PostgreSQL', 'Prometheus', 'PyTorch', 'Python', 'React', 'React Native', 
-    'Redux', 'Redis', 'REST', 'Rollup', 'Ruby', 'Rails', 'RxJS', 'Rust', 'SASS', 
-    'Scala', 'Scikit-learn', 'Svelte', 'SolidJS', 'Spark', 'Spring', 'Storybook', 
-    'SQL', 'Swift', 'Tailwind CSS', 'TensorFlow', 'TypeScript', 'Vite', 'Vitest', 
-    'Vue', 'Webpack'
+    'JavaScript','TypeScript','React','Vue','Angular','Node.js','Express','Next.js','NestJS','Python','Django','Flask','FastAPI','Java','Spring','Kotlin','Go','Rust','C#','Dotnet','PHP','Laravel','Ruby','Rails','SQL','PostgreSQL','MySQL','MongoDB','Redis','GraphQL','Docker','Kubernetes','AWS','GCP','Azure','Terraform','HTML','CSS','Tailwind CSS','SASS','Webpack','Vite','Jest','Cypress','Playwright','Electron','Redux','MobX','RxJS','Elixir','Phoenix','Scala'
   ];
 
-  const displayedTechnologies = [...topTechnologies, ...additionalTechs];
-
-  // --- REPO VERIFICATION STATES ---
+  // Status check states
   const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [hasRepoAccess, setHasRepoAccess] = useState(false);
   const [hasPaymentConfirmed, setHasPaymentConfirmed] = useState(false);
-  const [localAssessmentId, setLocalAssessmentId] = useState<string | null>(null);
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [repoInstallUrl, setRepoInstallUrl] = useState<string | null>(null);
-  const [repoVerifyError, setRepoVerifyError] = useState<string | null>(null);
 
-  // Store original max salary for edit comparison
-  const [originalMaxSalary, setOriginalMaxSalary] = useState<number>(0);
+  // removed fault helpers
 
   const finalRole = customRole.trim() || selectedRole;
+  const finalTemplate = selectedTemplate;
+  const allFaults: any[] = [];
+  
   const maxSalaryNum = parseFloat(maxSalary) || 0;
   const minSalaryNum = parseFloat(minSalary) || 0;
   const platformFee = positions * 0.20 * maxSalaryNum;
   
-  const repoProvided = githubRepo.trim().includes('/');
-  const salaryValid = (minSalaryNum > 0) && (minSalaryNum < maxSalaryNum) && (maxSalaryNum <= 10000000);
-  const allFieldsFilled = Boolean(
-    finalRole &&
-    selectedLevel &&
-    (assignmentMode === 'wirre' || repoProvided) &&
-    salaryValid &&
-    selectedTechs.length >= 1 &&
-    selectedTechs.length <= 10 &&
-    durationMinutes > 0 &&
-    startDate !== '' &&
-    startTime !== ''
-  );
-  const canPublish = allFieldsFilled && hasCheckedStatus && (assignmentMode === 'wirre' || hasRepoAccess);
+  const allFieldsFilled = finalRole && githubRepo.trim() && minSalaryNum > 0 && maxSalaryNum > 0 && maxSalaryNum >= minSalaryNum && selectedTechs.length >= 3 && selectedTechs.length <= 5 && durationMinutes > 0 && !!startAt;
+  const canPublish = allFieldsFilled && hasCheckedStatus && hasRepoAccess && hasPaymentConfirmed;
 
-  // --- MISSING ITEMS CHECKLIST (for Verify button) ---
-  const getMissingItems = () => {
-    const items: string[] = [];
-    if (!finalRole) items.push('Role name');
-    if (!selectedLevel) items.push('Level');
-    if (assignmentMode === 'repo' && !repoProvided) items.push('Repository (owner/name)');
-    if (!salaryValid) items.push('Valid salary range (min < max)');
-    if (selectedTechs.length < 1) items.push('At least 1 technology');
-    if (selectedTechs.length > 10) items.push('No more than 10 technologies');
-    if (durationMinutes <= 0) items.push('Duration (minutes)');
-    // Simplified checks: require both date and time strings to be present
-    if (!startDate) items.push('Start date');
-    if (!startTime) items.push('Start time');
-    return items;
-  };
-
-  const missingItems = getMissingItems();
-
-  const [descriptionColumnExists, setDescriptionColumnExists] = useState(false);
+  // keep a copy of original data when editing to detect changes (optional)
+  const [originalLoaded, setOriginalLoaded] = useState(false);
   const [salaryColumnsExist, setSalaryColumnsExist] = useState(false);
 
+  // If editing an existing assessment, load it and prefill fields
   useEffect(() => {
     if (!id) return;
+    let mounted = true;
     (async () => {
       try {
         const { data, error } = await supabase.from('assessments').select('*').eq('id', id).single();
         if (error) throw error;
-        if (!data) return;
+        if (!mounted || !data) return;
+        // populate fields
+        setSelectedRole('');
         setCustomRole(data.title || '');
-        setGithubRepo(data.github_repo_owner ? `${data.github_repo_owner}/${data.github_repo_name}` : '');
+        setGithubRepo(data.github_repo || '');
         setPositions(data.positions || 1);
         setSelectedTechs(data.technologies || []);
-        setDescription(data.description || '');
-        setAssignmentMode(data.github_repo_owner ? 'repo' : 'wirre');
-        setSelectedLevel(data.assignment_level || '');
-        setDurationMinutes(data.duration_minutes || 180);
-            if (data.start_at) {
-              const d = new Date(data.start_at);
-              const pad = (n: number) => String(n).padStart(2, '0');
-              const localDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-              const localTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-              setStartDate(localDate);
-              setStartTime(localTime);
-            } else {
-              setStartDate('');
-              setStartTime('');
-            }
-        setMinSalary(String(data.min_salary || ''));
-        setMaxSalary(String(data.max_salary || ''));
-        setOriginalMaxSalary(data.max_salary || 0);
-        setHasRepoAccess(data.github_repo_verified || false);
+        setDurationMinutes(data.duration_minutes || 48 * 60);
+        setStartAt(data.start_at ? new Date(data.start_at).toISOString().slice(0,16) : '');
+        // prefill salary fields if present on the record (as strings)
+        const minVal = (data as any).min_salary ?? (data as any).minSalary ?? '';
+        const maxVal = (data as any).max_salary ?? (data as any).maxSalary ?? '';
+        setMinSalary(minVal !== null && minVal !== undefined ? String(minVal) : '');
+        setMaxSalary(maxVal !== null && maxVal !== undefined ? String(maxVal) : '');
+        // detect whether salary columns exist in this DB schema
+        const hasSalaryCols = Object.prototype.hasOwnProperty.call(data, 'min_salary') || Object.prototype.hasOwnProperty.call(data, 'max_salary') || Object.prototype.hasOwnProperty.call(data, 'minSalary') || Object.prototype.hasOwnProperty.call(data, 'maxSalary');
+        setSalaryColumnsExist(Boolean(hasSalaryCols));
+        // indicate checks already passed for existing assessment
         setHasCheckedStatus(true);
-        setHasPaymentConfirmed(Boolean(data.payment_confirmed));
+        setHasRepoAccess(true);
+        setHasPaymentConfirmed(true);
+        setOriginalLoaded(true);
       } catch (err) {
+        console.error('Failed to load assessment for edit', err);
         toast({ title: 'Load failed', description: String(err), variant: 'destructive' });
       }
     })();
+    return () => { mounted = false; };
   }, [id]);
 
-  // --- NEW VERIFICATION LOGIC ---
+  // Detect whether salary columns exist for new assessments (create flow)
+  useEffect(() => {
+    if (id) return; // already handled in edit loader
+    let mounted = true;
+    (async () => {
+      try {
+        // try selecting the salary column; will error if column doesn't exist
+        const { data, error } = await supabase.from('assessments').select('min_salary').limit(1).maybeSingle();
+        if (!error && mounted) setSalaryColumnsExist(true);
+      } catch (err) {
+        // column likely doesn't exist
+        if (mounted) setSalaryColumnsExist(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [id]);
+
   const handleCheckStatus = async () => {
     setCheckingStatus(true);
-    setRepoInstallUrl(null);
-    setRepoVerifyError(null);
     
-    try {
-      const parts = githubRepo.trim().split('/');
-      if (parts.length !== 2) throw new Error('Repository must be owner/name');
-      const [owner, repo] = parts;
+    // Simulate requesting repo access and payment
+    toast({
+      title: "Verification Initiated",
+      description: "Repository access request sent. Please complete payment to continue.",
+    });
 
-      // Check if this repository is already used in another assessment
-      const { data: existingAssessments, error: checkError } = await supabase
-        .from('assessments')
-        .select('id, title')
-        .eq('github_repo_owner', owner)
-        .eq('github_repo_name', repo);
-
-      if (checkError) throw checkError;
-
-      // Filter out current assessment if editing
-      const duplicates = existingAssessments?.filter((a: any) => a.id !== id) || [];
-      
-      if (duplicates.length > 0) {
-        const duplicateTitle = duplicates[0].title;
-        throw new Error(`This repository is already used in "${duplicateTitle}". Please use a different repository.`);
-      }
-
-      const res = await fetch('https://***REMOVED***.supabase.co/functions/v1/verify-repo', {
-          method: 'POST',
-          headers: {
-           'Content-Type': 'application/json',
-           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify({ owner, repo })
+    // Simulate checking - in production, this would be real API calls
+    setTimeout(() => {
+      setHasRepoAccess(true);
+      toast({
+        title: "Repository Access Granted",
+        description: `WIRRE now has access to ${githubRepo}`,
       });
-      
-      const data = await res.json();
-      
-      if (data.ok) {
-        setHasRepoAccess(true);
-        setHasCheckedStatus(true);
-        toast({ title: 'Access Granted', description: `WIRRE verified access to ${githubRepo}` });
-      } else {
-        setHasRepoAccess(false);
-        setHasCheckedStatus(true);
-        if (data.install_url) setRepoInstallUrl(data.install_url);
-        setRepoVerifyError(data.error || 'Verification failed');
-        toast({ title: 'Access Denied', description: 'Please install the GitHub App.', variant: 'destructive' });
-      }
-    } catch (err: any) {
-      setRepoVerifyError(err.message);
-      toast({ title: 'Verification error', description: err.message, variant: 'destructive' });
-    } finally {
+    }, 2000);
+
+    setTimeout(() => {
+      setHasPaymentConfirmed(true);
+      toast({
+        title: "Payment Confirmed",
+        description: `$${platformFee.toLocaleString()} received. You can now publish the role.`,
+      });
       setCheckingStatus(false);
-    }
+      setHasCheckedStatus(true);
+    }, 4000);
   };
 
-  const handlePublish = async () => {
-    try {
-      // Check if this is an edit and salary changed
-      if (id && originalMaxSalary > 0) {
-        // Check if salary decreased
-        if (maxSalaryNum < originalMaxSalary) {
-          toast({ 
-            title: 'Cannot decrease salary', 
-            description: 'Please contact customer service to reduce the salary range.', 
-            variant: 'destructive' 
-          });
+  const handlePublish = () => {
+    (async () => {
+      try {
+        if (!finalRole || !githubRepo) {
+          toast({ title: 'Missing fields', description: 'Role and repository required', variant: 'destructive' });
           return;
         }
-        
-        // Check if salary increased - requires payment of difference
-        if (maxSalaryNum > originalMaxSalary) {
-          const salaryDifference = maxSalaryNum - originalMaxSalary;
-          const additionalFee = positions * 0.20 * salaryDifference;
-          
-          const confirmed = window.confirm(
-            `Salary increased by ₹${salaryDifference.toLocaleString('en-IN')}.\n` +
-            `Additional payment required: ₹${additionalFee.toFixed(2)}\n\n` +
-            `Continue to payment?`
-          );
-          
-          if (!confirmed) return;
-          
-          // Trigger payment for the difference
-          await handleMakePaymentForDifference(additionalFee);
-          return;
-        }
-      }
 
-      // No salary change or new assessment - proceed with save
-      const parts = githubRepo.split('/');
-      const insertPayload: any = {
-        company_user_id: profile?.id,
-        title: finalRole,
-        github_repo_owner: assignmentMode === 'repo' ? parts[0] : null,
-        github_repo_name: assignmentMode === 'repo' ? parts[1] : null,
-        github_repo_verified: hasRepoAccess,
-        assignment_mode: assignmentMode === 'repo' ? 'company repo' : 'make repo',
-        assignment_level: selectedLevel || null,
-        status: 'awaiting_classroom_setup',
-        positions,
-        technologies: selectedTechs,
-        duration_minutes: durationMinutes,
-        start_at: (startDate && startTime) ? (isNaN(new Date(`${startDate}T${startTime}`).getTime()) ? null : new Date(`${startDate}T${startTime}`).toISOString()) : null,
-        min_salary: parseFloat(minSalary),
-        max_salary: parseFloat(maxSalary),
-        description
-      };
-
-      const targetId = id || localAssessmentId;
-      const { data, error } = targetId
-        ? await supabase.from('assessments').update(insertPayload).eq('id', targetId).select().single()
-        : await supabase.from('assessments').insert([insertPayload]).select().single();
-
-      if (error) throw error;
-
-      toast({ title: id ? "Updated" : "Published", description: "Assessment is being provisioned." });
-      if (id) {
-        navigate(`/company/assessments/${id}`);
-      } else {
-        navigate('/company/dashboard');
-      }
-    } catch (err: any) {
-      toast({ title: 'Action failed', description: err.message, variant: 'destructive' });
-    }
-  };
-
-  const handleMakePayment = async () => {
-    setPaymentProcessing(true);
-    setRepoVerifyError(null);
-    try {
-      const amount = Math.round(platformFee * 100) / 100;
-
-      // If we already have an assessment id (editing existing), tell the confirm-payment function to mark it paid
-      const targetId = id || localAssessmentId;
-
-      // If no existing assessment, prepare payload to create a draft assessment server-side
-      let payload: any = undefined;
-      if (!targetId) {
-        const parts = githubRepo.split('/');
-        payload = {
-          company_user_id: profile?.id,
-          title: finalRole,
-          github_repo_owner: assignmentMode === 'repo' ? (parts[0] || null) : null,
-          github_repo_name: assignmentMode === 'repo' ? (parts[1] || null) : null,
-          github_repo_verified: hasRepoAccess,
-          assignment_mode: assignmentMode === 'repo' ? 'company repo' : 'make repo',
-          assignment_level: selectedLevel || null,
-          status: 'awaiting_classroom_setup',
-          positions,
-          technologies: selectedTechs,
-          duration_minutes: durationMinutes,
-          start_at: (startDate && startTime) ? (isNaN(new Date(`${startDate}T${startTime}`).getTime()) ? null : new Date(`${startDate}T${startTime}`).toISOString()) : null,
-          min_salary: parseFloat(minSalary) || null,
-          max_salary: parseFloat(maxSalary) || null,
-          description
-        };
-      }
-
-      // Create Razorpay order (this will create a draft assessment if needed)
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({ amount, assessment_id: targetId, payload })
-      });
-
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'Failed to create payment order');
-
-      // if the function returned an assessment_id (created draft), keep local copy
-      if (json.assessment_id) setLocalAssessmentId(json.assessment_id);
-
-      // Load Razorpay script if not present
-      if (!(window as any).Razorpay) {
-        await new Promise<void>((resolve, reject) => {
-          const s = document.createElement('script')
-          s.src = 'https://checkout.razorpay.com/v1/checkout.js'
-          s.onload = () => resolve()
-          s.onerror = () => reject(new Error('Failed to load Razorpay SDK'))
-          document.head.appendChild(s)
-        })
-      }
-
-      const options: any = {
-        key: json.key,
-        amount: Math.round(amount * 100),
-        currency: 'INR',
-        name: 'WIRRE',
-        order_id: json.order_id,
-        config: {
-          display: {
-            blocks: {
-              banks: {
-                name: 'Pay via UPI/RuPay',
-                instruments: [
-                  { method: 'upi' },
-                  { method: 'card', networks: ['RuPay'] }
-                ]
-              }
-            },
-            sequence: ['block.banks'],
-            preferences: { show_default_blocks: false }
-          }
-        },
-        handler: function (resp: any) {
-          // Payment succeeded client-side; final confirmation will arrive via webhook.
-          setHasPaymentConfirmed(true);
-          toast({ title: 'Payment submitted', description: 'Payment processed — awaiting confirmation.' });
-        }
-      }
-
-      const rzp = new (window as any).Razorpay(options)
-      rzp.open()
-    } catch (err: any) {
-      setRepoVerifyError(err.message);
-      toast({ title: 'Payment error', description: err.message, variant: 'destructive' });
-    } finally {
-      setPaymentProcessing(false);
-    }
-  };
-
-  const handleMakePaymentForDifference = async (amount: number) => {
-    setPaymentProcessing(true);
-    setRepoVerifyError(null);
-    try {
-      // Create Razorpay order for the salary difference
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({ amount, assessment_id: id })
-      });
-
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'Failed to create payment order');
-
-      // Load Razorpay script if not present
-      if (!(window as any).Razorpay) {
-        await new Promise<void>((resolve, reject) => {
-          const s = document.createElement('script')
-          s.src = 'https://checkout.razorpay.com/v1/checkout.js'
-          s.onload = () => resolve()
-          s.onerror = () => reject(new Error('Failed to load Razorpay SDK'))
-          document.head.appendChild(s)
-        })
-      }
-
-      const options: any = {
-        key: json.key,
-        amount: Math.round(amount * 100),
-        currency: 'INR',
-        name: 'WIRRE - Salary Increase',
-        description: 'Additional payment for salary increase',
-        order_id: json.order_id,
-        config: {
-          display: {
-            blocks: {
-              banks: {
-                name: 'Pay via UPI/RuPay',
-                instruments: [
-                  { method: 'upi' },
-                  { method: 'card', networks: ['RuPay'] }
-                ]
-              }
-            },
-            sequence: ['block.banks'],
-            preferences: { show_default_blocks: false }
-          }
-        },
-        handler: async (resp: any) => {
-          // Payment succeeded - now save the changes
-          toast({ title: 'Payment successful', description: 'Updating assessment...' });
-          
-          // Update the assessment with new values
-          const parts = githubRepo.split('/');
-          const insertPayload: any = {
-            company_user_id: profile?.id,
+        if (id) {
+          // update existing assessment
+          const updates: any = {
             title: finalRole,
-            github_repo_owner: assignmentMode === 'repo' ? parts[0] : null,
-            github_repo_name: assignmentMode === 'repo' ? parts[1] : null,
-            github_repo_verified: hasRepoAccess,
-            assignment_mode: assignmentMode === 'repo' ? 'company repo' : 'make repo',
-            assignment_level: selectedLevel || null,
-            status: 'awaiting_classroom_setup',
+            github_repo: githubRepo,
             positions,
             technologies: selectedTechs,
             duration_minutes: durationMinutes,
-            start_at: (startDate && startTime) ? (isNaN(new Date(`${startDate}T${startTime}`).getTime()) ? null : new Date(`${startDate}T${startTime}`).toISOString()) : null,
-            min_salary: parseFloat(minSalary),
-            max_salary: parseFloat(maxSalary),
-            description
+            start_at: startAt ? new Date(startAt).toISOString() : null,
           };
-
-          const { error } = await supabase.from('assessments').update(insertPayload).eq('id', id).select().single();
-          
-          if (error) {
-            toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
-          } else {
-            toast({ title: 'Updated', description: 'Assessment updated successfully.' });
-            navigate(`/company/assessments/${id}`);
+          if (salaryColumnsExist) {
+            updates.min_salary = minSalary ? parseFloat(minSalary) : null;
+            updates.max_salary = maxSalary ? parseFloat(maxSalary) : null;
           }
-        }
-      }
+          const { data, error } = await supabase.from('assessments').update(updates).eq('id', id).select().single();
+          if (error) {
+            console.error('Error updating assessment:', error);
+            toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
+            return;
+          }
 
-      const rzp = new (window as any).Razorpay(options)
-      rzp.open()
-    } catch (err: any) {
-      setRepoVerifyError(err.message);
-      toast({ title: 'Payment error', description: err.message, variant: 'destructive' });
-    } finally {
-      setPaymentProcessing(false);
-    }
+          toast({ title: 'Saved', description: 'Assessment updated.' });
+
+          // audit
+          try {
+            await supabase.from('assessment_audits').insert([{
+              assessment_id: data.id,
+              actor_id: profile?.id,
+              actor_role: profile?.role || 'company',
+              action: 'edited',
+              details: { title: finalRole, github_repo: githubRepo, positions, technologies: selectedTechs, duration_minutes: durationMinutes, start_at: startAt }
+            }]);
+          } catch (err) { console.error('Failed to write audit record:', err); }
+
+          navigate(`/company/assessments/${id}`);
+          return;
+        }
+
+        // insert assessment row so admins are notified
+        const insertPayload: any = {
+          company_user_id: profile?.id,
+          title: finalRole,
+          github_repo: githubRepo,
+          status: 'awaiting_classroom_setup',
+          positions: positions,
+          technologies: selectedTechs,
+          duration_minutes: durationMinutes,
+          start_at: startAt ? new Date(startAt).toISOString() : null,
+        };
+        if (salaryColumnsExist) {
+          insertPayload.min_salary = minSalary ? parseFloat(minSalary) : null;
+          insertPayload.max_salary = maxSalary ? parseFloat(maxSalary) : null;
+        }
+        const { data, error } = await supabase.from('assessments').insert([ insertPayload ]).select().single();
+
+        if (error) {
+          console.error('Error creating assessment:', error);
+          toast({ title: 'Publish failed', description: error.message, variant: 'destructive' });
+          return;
+        }
+
+        toast({
+          title: "Role Published",
+          description: `${finalRole} is now live for candidates to register. Admins have been notified to create the Classroom assignment.`,
+        });
+
+        // create an audit record for this publish action
+        try {
+          await supabase.from('assessment_audits').insert([{
+            assessment_id: data.id,
+            actor_id: profile?.id,
+            actor_role: profile?.role || 'company',
+            action: 'published',
+            details: {
+              title: finalRole,
+              github_repo: githubRepo,
+              positions,
+              platformFee,
+              technologies: selectedTechs,
+              duration_minutes: durationMinutes,
+              start_at: startAt
+            }
+          }]);
+        } catch (err) {
+          console.error('Failed to write audit record:', err);
+        }
+
+        // create a notification for admins (recipient_role='admin')
+        try {
+          await supabase.from('assessment_notifications').insert([{
+            assessment_id: data.id,
+            recipient_role: 'admin',
+            message: `New assessment published: ${finalRole}`,
+            payload: { assessment_id: data.id, title: finalRole, github_repo: githubRepo }
+          }]);
+        } catch (err) {
+          console.error('Failed to create admin notification:', err);
+        }
+
+        navigate('/company/dashboard');
+      } catch (err) {
+        console.error(err);
+      }
+    })();
   };
 
   return (
     <Layout>
       <div className="py-12">
         <div className="container max-w-4xl">
-          <h1 className="text-3xl font-bold font-mono tracking-tight mb-2">Hire</h1>
-          <p className="text-muted-foreground font-mono text-sm mb-12">Configure assessment round for candidates</p>
+          <h1 className="text-3xl font-bold font-mono tracking-tight mb-2">
+            Hire
+          </h1>
+          <p className="text-muted-foreground font-mono text-sm mb-12">
+            Configure assessment round for candidates
+          </p>
 
+          {/* Role Selection */}
           <section className="mb-12">
-            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">Select Role</Label>
+            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">
+              Select Role
+            </Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
               {predefinedRoles.map((role) => (
-                <button key={role} onClick={() => { setSelectedRole(role); setCustomRole(""); setSelectedLevel(""); }}
-                  className={`p-3 border font-mono text-xs text-left transition-colors ${selectedRole === role && !customRole ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground"}`}>{role}</button>
+                <button
+                  key={role}
+                  onClick={() => {
+                    setSelectedRole(role);
+                    setCustomRole("");
+                  }}
+                  className={`p-3 border font-mono text-xs text-left transition-colors ${
+                    selectedRole === role && !customRole
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-border hover:border-foreground"
+                  }`}
+                >
+                  {role}
+                </button>
               ))}
             </div>
-            <Input placeholder="Enter custom role name..." value={customRole} onChange={(e) => { setCustomRole(e.target.value); setSelectedRole(""); }} className="font-mono" />
+            <div className="mt-4">
+              <Label className="font-mono text-xs mb-2 block">Custom Role</Label>
+              <Input
+                placeholder="Enter custom role name..."
+                value={customRole}
+                onChange={(e) => {
+                  setCustomRole(e.target.value);
+                  setSelectedRole("");
+                }}
+                className="font-mono"
+              />
+            </div>
           </section>
 
-          {finalRole && (
-            <section className="mb-6">
-              <Label className="font-mono text-sm uppercase tracking-wider mb-2 block">Level</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-                {levels.map((lvl) => (
-                  <button key={lvl} type="button" onClick={() => setSelectedLevel(lvl)}
-                    className={`p-2 border font-mono text-xs text-left transition-colors ${selectedLevel === lvl ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground"}`}>{lvl}</button>
-                ))}
-              </div>
-            </section>
-          )}
-
+          {/* GitHub Repository */}
+          <section className="mb-12">
+            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">
+              GitHub Repository
+            </Label>
+            <Input
+              placeholder="owner/repository"
+              value={githubRepo}
+              onChange={(e) => setGithubRepo(e.target.value)}
+              className="font-mono mb-2"
+            />
+            <p className="text-xs text-muted-foreground font-mono">
+              Provide the repository URL. Ensure WIRRE has access before publishing. The README should specify what candidates need to solve.
+            </p>
+          </section>
           <section className="mb-6">
-            <Label className="font-mono text-sm uppercase tracking-wider mb-2 block">Technologies (select 1–10)</Label>
-            <div className="mb-3 flex gap-2">
-              <Input placeholder="Add custom tech..." value={customTechInput} onChange={(e) => setCustomTechInput(e.target.value)} className="font-mono flex-1" />
-              <Button onClick={() => { if(customTechInput) { setAdditionalTechs(p => [customTechInput, ...p]); setCustomTechInput(''); }}}>Add</Button>
-            </div>
+            <Label className="font-mono text-sm uppercase tracking-wider mb-2 block">Technologies (select 3–5)</Label>
             <div className="border border-border p-3 max-h-48 overflow-auto grid grid-cols-2 gap-2">
-              {displayedTechnologies.map((tech) => (
-                <label key={tech} className="flex items-center gap-2 text-sm font-mono">
-                  <input type="checkbox" checked={selectedTechs.includes(tech)} onChange={(e) => e.target.checked ? (selectedTechs.length < 10 && setSelectedTechs(p => [...p, tech])) : setSelectedTechs(p => p.filter(t => t !== tech))} />
-                  {tech}
+              {topTechnologies.map((tech) => (
+                <label key={tech} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={selectedTechs.includes(tech)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        if (selectedTechs.length < 5) setSelectedTechs(prev => [...prev, tech]);
+                      } else {
+                        setSelectedTechs(prev => prev.filter(t => t !== tech));
+                      }
+                    }}
+                  />
+                  <span className="font-mono">{tech}</span>
                 </label>
               ))}
             </div>
+            {selectedTechs.length < 3 && <p className="text-xs text-destructive mt-2">Select at least 3 technologies.</p>}
+            {selectedTechs.length > 5 && <p className="text-xs text-destructive mt-2">You can select at most 5 technologies.</p>}
           </section>
 
-          <section className="mb-6">
-            <Label className="font-mono text-sm uppercase tracking-wider mb-2 block">Description</Label>
-            <Textarea placeholder="Markdown supported..." value={description} onChange={(e) => setDescription(e.target.value)} className="font-mono w-full" rows={6} />
-          </section>
-
+          {/* Duration and Start time */}
           <section className="mb-6 grid grid-cols-2 gap-4">
             <div>
-              <Label className="font-mono text-sm mb-2 block">Duration (mins)</Label>
-              <Input type="number" value={durationMinutes} onChange={(e) => setDurationMinutes(parseInt(e.target.value))} className="font-mono" />
+              <Label className="font-mono text-sm mb-2 block">Duration (minutes)</Label>
+              <Input type="number" min={10} value={durationMinutes} onChange={(e) => setDurationMinutes(parseInt(e.target.value || '0'))} className="font-mono w-48" />
+              <p className="text-xs text-muted-foreground mt-1">Specify how long candidates have to complete the assessment.</p>
             </div>
-              <div>
-                <Label className="font-mono text-sm mb-2 block">Start Date</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="font-mono" />
-              </div>
-              <div>
-                <Label className="font-mono text-sm mb-2 block">Start Time</Label>
-                <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="font-mono" />
-                <div className="mt-2 text-xs font-mono text-muted-foreground">Raw value: {startDate && startTime ? `${startDate}T${startTime}` : '<empty>'}</div>
-              </div>
+            <div>
+              <Label className="font-mono text-sm mb-2 block">Start Time</Label>
+              <Input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} className="font-mono w-full" />
+              <p className="text-xs text-muted-foreground mt-1">When the assessment will be available to candidates.</p>
+            </div>
           </section>
 
+          {/* Positions Available */}
           <section className="mb-12">
-            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">Salary Range (INR)</Label>
+            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">
+              Positions Available
+            </Label>
+            <Input
+              type="number"
+              min="1"
+              value={positions}
+              onChange={(e) => {
+                const val = e.target.value;
+                setPositions(val === '' ? 1 : parseInt(val) || 1);
+              }}
+              onFocus={(e) => e.target.select()}
+              className="font-mono w-32"
+            />
+          </section>
+
+          {/* Salary Range */}
+          <section className="mb-12">
+            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">
+              Salary Range (Annual, in USD)
+            </Label>
             <div className="flex gap-4 items-center">
-              <Input type="number" placeholder="Min" value={minSalary} onChange={(e) => setMinSalary(e.target.value)} className="font-mono" />
-              <span className="text-muted-foreground">—</span>
-              <Input type="number" placeholder="Max" value={maxSalary} onChange={(e) => setMaxSalary(e.target.value)} className="font-mono" />
+              <div className="flex-1">
+                <Label className="font-mono text-xs mb-2 block">Min Salary (USD)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="80000"
+                  value={minSalary}
+                  onChange={(e) => setMinSalary(e.target.value)}
+                  className="font-mono"
+                />
+              </div>
+              <span className="text-muted-foreground mt-6">—</span>
+              <div className="flex-1">
+                <Label className="font-mono text-xs mb-2 block">Max Salary (USD)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="150000"
+                  value={maxSalary}
+                  onChange={(e) => setMaxSalary(e.target.value)}
+                  className="font-mono"
+                />
+              </div>
             </div>
             {maxSalaryNum > 0 && (
-              <div className="mt-4 p-4 border border-border bg-secondary/30 flex justify-between items-center font-mono">
-                <span className="text-sm">Platform Fee (20%)</span>
-                <span className="text-lg font-bold">₹{platformFee.toLocaleString('en-IN')}</span>
+              <div className="mt-4 p-4 border border-border bg-secondary/30">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-mono text-sm">Platform Fee (20% × Max Salary × Positions)</span>
+                  <span className="font-mono text-lg font-bold">
+                    ${platformFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground font-mono">
+                  Partial refunds available. Fee refunded for unhired positions (e.g., if 1 of 5 hired, 4/5 of fee refunded).
+                </p>
               </div>
             )}
           </section>
 
-          <section className="mb-6">
-            <Label className="font-mono text-sm uppercase tracking-wider mb-4 block">Assessment Source</Label>
-            <div className="flex gap-6 mb-3 font-mono text-sm">
-              <label className="flex items-center gap-2"><input type="radio" checked={assignmentMode === 'repo'} onChange={() => setAssignmentMode('repo')} /> Provide my GitHub repo</label>
-              <label className="flex items-center gap-2"><input type="radio" checked={assignmentMode === 'wirre'} onChange={() => setAssignmentMode('wirre')} /> Make assignment for me</label>
-            </div>
-            {assignmentMode === 'repo' && (
-              <Input placeholder="owner/repository" value={githubRepo} onChange={(e) => setGithubRepo(e.target.value)} className="font-mono" />
+          {/* Removed template/fault/weight placeholder sections — kept minimal inputs only */}
+
+          {/* Actions */}
+          <div className="flex gap-4">
+            {!hasCheckedStatus ? (
+              <Button 
+                size="lg" 
+                onClick={handleCheckStatus}
+                disabled={!allFieldsFilled || checkingStatus}
+              >
+                {checkingStatus ? "Checking..." : "Check Status"}
+              </Button>
+            ) : (
+              <Button 
+                size="lg" 
+                onClick={handlePublish}
+                disabled={id ? !allFieldsFilled : !canPublish}
+              >
+                {id ? 'Save Changes' : 'Publish Role'}
+              </Button>
             )}
-          </section>
-
-          <div className="flex gap-4 border-t pt-8">
-            <div className="flex-1">
-              {!hasCheckedStatus && assignmentMode === 'repo' ? (
-                  <div>
-                    <Button size="lg" onClick={handleCheckStatus} disabled={!allFieldsFilled || checkingStatus}>
-                      {checkingStatus ? "Verifying..." : "Verify Repository Access"}
-                    </Button>
-
-                    <div className="mt-3 p-3 border border-border bg-secondary/5 font-mono text-sm">
-                      <div className="uppercase tracking-wider text-xs mb-2">Requirements to verify</div>
-                      <div className="mb-2 text-[11px] text-red-400 font-mono">
-                        DEBUG: role:{String(!!finalRole)} level:{String(!!selectedLevel)} repo:{String(repoProvided)} salary:{String(salaryValid)} tech:{selectedTechs.length} date:{String(!!startDate)} time:{String(!!startTime)}
-                      </div>
-                      <ul className="space-y-1">
-                        {missingItems.length === 0 ? (
-                          <li className="text-green-500">✅ All required fields filled — ready to verify</li>
-                        ) : (
-                          missingItems.map((it) => (
-                            <li key={it} className="text-orange-400">❌ {it}</li>
-                          ))
-                        )}
-                      </ul>
-                      <div className="mt-2 text-xs text-muted-foreground">Button will be enabled once all items are satisfied.</div>
-                    </div>
-                  </div>
-                ) : (
-                  // After verification: require payment only for NEW assessments (not edits)
-                  (assignmentMode === 'repo' && hasRepoAccess && !hasPaymentConfirmed && !id) ? (
-                    <div>
-                      <Button size="lg" onClick={handleMakePayment} disabled={paymentProcessing}>
-                          {paymentProcessing ? 'Processing...' : `Make Payment (₹${platformFee.toFixed(2)})`}
-                        </Button>
-                      <div className="mt-3 text-xs text-muted-foreground">Payments are processed securely. This will confirm your assessment provisioning.</div>
-                    </div>
-                  ) : (
-                    <Button size="lg" onClick={handlePublish} disabled={!canPublish}>
-                      {id ? (maxSalaryNum === originalMaxSalary ? 'Commit Changes' : 'Save Changes') : 'Publish Role'}
-                    </Button>
-                  )
-                )}
-            </div>
-            <Button variant="outline" size="lg" onClick={() => {
-              if (id) {
-                navigate(`/company/assessments/${id}`);
-              } else {
-                navigate('/company/dashboard');
-              }
-            }}>Cancel</Button>
+            <Button 
+              variant="outline" 
+              size="lg"
+              onClick={() => navigate('/company/dashboard')}
+            >
+              Cancel
+            </Button>
           </div>
+          
+          {/* Status Messages */}
+          {!allFieldsFilled && (
+            <div className="mt-4 p-3 border border-border bg-secondary/50">
+              <p className="text-xs text-muted-foreground font-mono">
+                Required: Role, GitHub repository, Salary range (max ≥ min), Template, at least one Fault, and weights summing to 100%
+              </p>
+            </div>
+          )}
 
-          {/* --- ENHANCED VERIFICATION UI --- */}
-          {hasCheckedStatus && assignmentMode === 'repo' && (
-            <div className="mt-6 space-y-3 font-mono text-sm">
-              <div className={`p-4 border flex justify-between items-center ${hasRepoAccess ? 'border-green-500 bg-green-500/10' : 'border-orange-500 bg-orange-500/10'}`}>
-                <span>{hasRepoAccess ? '✅ Access Verified' : '❌ Access Required'} ({githubRepo})</span>
-                {!hasRepoAccess && repoInstallUrl && (
-                  <Button variant="outline" size="sm" onClick={() => window.open(repoInstallUrl, '_blank')}>Grant Access</Button>
-                )}
+          {hasCheckedStatus && (
+            <div className="mt-4 space-y-2">
+              <div className={`p-3 border font-mono text-sm ${hasRepoAccess ? 'border-foreground bg-foreground/10' : 'border-border bg-secondary/50'}`}>
+                <span className="mr-2">{hasRepoAccess ? '✓' : '○'}</span>
+                Repository Access: {hasRepoAccess ? `Granted to ${githubRepo}` : 'Pending'}
               </div>
-              {!hasRepoAccess && (
-                <Button variant="ghost" size="sm" className="text-xs" onClick={handleCheckStatus} disabled={checkingStatus}>
-                  {checkingStatus ? "Checking..." : "Try again after installing"}
-                </Button>
-              )}
+              <div className={`p-3 border font-mono text-sm ${hasPaymentConfirmed ? 'border-foreground bg-foreground/10' : 'border-border bg-secondary/50'}`}>
+                <span className="mr-2">{hasPaymentConfirmed ? '✓' : '○'}</span>
+                Payment: {hasPaymentConfirmed ? `Confirmed ($${platformFee.toLocaleString()})` : 'Pending'}
+              </div>
             </div>
           )}
         </div>

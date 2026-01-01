@@ -1,5 +1,6 @@
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export default function GetInvolved() {
   return (
@@ -16,6 +17,52 @@ export default function GetInvolved() {
             WIRRE is redefining how engineering teams evaluate talent. 
             We're looking for partners and contributors who share our vision.
           </p>
+        </div>
+      </section>
+
+      {/* For Contributors */}
+      <section className="py-24 border-b border-border">
+        <div className="container">
+          <div className="max-w-3xl">
+            <h2 className="text-2xl font-bold font-mono mb-6">For Contributors</h2>
+            <p className="text-muted-foreground font-mono leading-relaxed mb-8">
+              Want to contribute to WIRRE's development? We welcome engineers, 
+              designers, and technical writers who want to help build the future 
+              of engineering evaluation.
+            </p>
+            
+            <div className="space-y-6 mb-12">
+              <div>
+                <h3 className="font-mono font-bold mb-2">Open Source Development</h3>
+                <p className="text-sm text-muted-foreground font-mono">
+                  Help us build the platform, improve our evaluation algorithms, or 
+                  contribute to our assessment templates and tooling.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-mono font-bold mb-2">Documentation & Content</h3>
+                <p className="text-sm text-muted-foreground font-mono">
+                  Create guides, tutorials, and documentation to help others use 
+                  WIRRE effectively. Share your expertise in technical writing.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-mono font-bold mb-2">Community Building</h3>
+                <p className="text-sm text-muted-foreground font-mono">
+                  Help us build a community around better engineering evaluation. 
+                  Organize events, create content, or support other contributors.
+                </p>
+              </div>
+            </div>
+
+            <Button size="lg" asChild>
+              <Link to="/waitlist">
+                Join Waitlist as Contributor
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
 
