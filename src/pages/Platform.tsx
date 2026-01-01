@@ -17,6 +17,12 @@ export default function Platform() {
             Built around real repositories and submission-based evaluation.
             Not a test platform. Not an interview tool. Infrastructure for measuring real engineering work.
           </p>
+          <div className="mt-6 max-w-2xl">
+            <h3 className="text-lg font-bold font-mono mb-2">The Method — Real Engineering, Not Brainteasers</h3>
+            <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+              WIRRE evaluates candidates by recreating a real engineering workflow: we provision a private working copy, candidates clone, branch, and open a Pull Request. Our evaluation is driven by artifacts — PRs, commits, tests and explanations — not isolated puzzles.
+            </p>
+          </div>
         </div>
       </section>
 
