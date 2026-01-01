@@ -11,6 +11,8 @@ import Waitlist from "./pages/Waitlist";
 // Login and Signup pages are kept in the repo but not exposed via routes.
 import About from "./pages/About";
 import GetInvolved from "./pages/GetInvolved";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import CompanyDashboard from "./pages/company/Dashboard";
 import RoleDetails from "./pages/company/RoleDetails";
 import AssessmentBuilder from "./pages/company/AssessmentBuilder";
@@ -21,6 +23,8 @@ import CandidateOpportunities from "./pages/candidate/Opportunities";
 import CandidateProfile from "./pages/candidate/Profile";
 import Assessment from "./pages/candidate/Assessment";
 import AdminDashboard from "./pages/admin/Dashboard";
+import SuperadminDashboard from "./pages/superadmin/Dashboard";
+import AdminProfile from "./pages/admin/Profile";
 import ViewAsCompany from "./pages/admin/ViewAsCompany";
 import ViewAsCandidate from "./pages/admin/ViewAsCandidate";
 import AssessmentSetup from "./pages/admin/AssessmentSetup";
@@ -33,7 +37,10 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename="/wirre">
+      <BrowserRouter
+        basename={import.meta.env.BASE_URL}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -41,7 +48,6 @@ const App = () => (
             <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/about" element={<About />} />
             <Route path="/get-involved" element={<GetInvolved />} />
-            {/* /login and /signup routes intentionally removed to keep pages non-routable */}
             <Route 
               path="/company/dashboard" 
               element={
@@ -130,6 +136,22 @@ const App = () => (
                   <AdminDashboard />
                 </ProtectedRoute>
               } 
+            />
+            <Route
+              path="/admin/profile"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/superadmin/dashboard"
+              element={
+                <ProtectedRoute requiredRole="superadmin">
+                  <SuperadminDashboard />
+                </ProtectedRoute>
+              }
             />
             <Route 
               path="/admin/view-as/company/:userId" 

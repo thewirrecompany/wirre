@@ -19,6 +19,8 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const ownerId = companyUserId || profile?.id;
   const [upcomingCount, setUpcomingCount] = useState<number | null>(null);
   const [assessments, setAssessments] = useState<any[]>([]);
@@ -108,17 +110,18 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
     if (!ownerId) return;
     const hasUpcoming = (upcomingCount || 0) > 0;
     if (hasUpcoming) {
-      const ok = window.confirm('Deleting your company will remove upcoming rounds and incur a $1000 fee (simulated). Proceed?');
+      const ok = window.confirm('Deleting your company will remove upcoming rounds and requires payment of ₹1000. Proceed to payment?');
       if (!ok) return;
-      // simulate payment flow
-      toast({ title: 'Payment required', description: 'Charging $1000 (simulation).' });
-      await new Promise((r) => setTimeout(r, 800));
-    } else {
-      const ok = window.confirm('Delete your company and upcoming rounds? This cannot be undone.');
-      if (!ok) return;
+      // start payment flow for deletion
+      await handleMakeDeletePayment();
+      return;
     }
 
+    const ok = window.confirm('Delete your company and upcoming rounds? This cannot be undone.');
+    if (!ok) return;
+
     try {
+      setDeleting(true);
       const { data, error } = await supabase.rpc('company_delete_self', { p_user_id: ownerId });
       if (error) throw error;
       toast({ title: 'Company deleted', description: 'Company and upcoming rounds removed.' });
@@ -128,6 +131,73 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
     } catch (err: any) {
       console.error('Error deleting company:', err);
       toast({ title: 'Delete failed', description: err?.message || String(err), variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleMakeDeletePayment = async () => {
+    if (!ownerId) return;
+    try {
+      setPaymentProcessing(true);
+      const amountRupees = 1000; // fixed deletion fee
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order-company`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ amount: amountRupees, company_id: ownerId })
+      });
+
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Failed to create razorpay order');
+
+      // Load Razorpay script
+      if (!(window as any).Razorpay) {
+        await new Promise<void>((resolve, reject) => {
+          const s = document.createElement('script')
+          s.src = 'https://checkout.razorpay.com/v1/checkout.js'
+          s.onload = () => resolve()
+          s.onerror = () => reject(new Error('Failed to load Razorpay SDK'))
+          document.head.appendChild(s)
+        })
+      }
+
+      const options: any = {
+        key: json.key,
+        amount: Math.round(amountRupees * 100),
+        currency: 'INR',
+        name: 'WIRRE',
+        order_id: json.order_id,
+        handler: async function (resp: any) {
+          toast({ title: 'Payment submitted', description: 'Payment processed — attempting deletion.' });
+          // after client-side success, call delete RPC
+          try {
+            setDeleting(true);
+            const { data, error } = await supabase.rpc('company_delete_self', { p_user_id: ownerId });
+            if (error) throw error;
+            toast({ title: 'Company deleted', description: 'Company and upcoming rounds removed.' });
+            await supabase.auth.signOut();
+            navigate('/');
+          } catch (err: any) {
+            console.error('Delete after payment failed', err);
+            toast({ title: 'Delete failed', description: String(err), variant: 'destructive' });
+          } finally {
+            setDeleting(false);
+          }
+        }
+      }
+
+      const rzp = new (window as any).Razorpay(options)
+      rzp.open()
+
+    } catch (err: any) {
+      console.error('Delete payment error', err);
+      toast({ title: 'Payment error', description: err?.message || String(err), variant: 'destructive' });
+    } finally {
+      setPaymentProcessing(false);
     }
   };
 
