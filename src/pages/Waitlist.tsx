@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Waitlist() {
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"candidate" | "company">("candidate");
+  const [role, setRole] = useState<"candidate" | "company" | "contributor">("candidate");
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -45,6 +45,7 @@ export default function Waitlist() {
             <select value={role} onChange={(e) => setRole(e.target.value as any)} className="bg-input border border-border p-2 rounded">
               <option value="candidate">Candidate</option>
               <option value="company">Company</option>
+              <option value="contributor">Contributor</option>
             </select>
 
             <div>

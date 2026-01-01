@@ -29,7 +29,7 @@ export default function Index() {
             WIRRE
           </h1>
           <h2 className="mt-6 text-3xl md:text-5xl font-extrabold tracking-tight text-rose-600 font-mono">
-            Launches on 26TH January 2026
+            Launches on 1st March 2026
           </h2>
           <p className="mt-4 text-xl md:text-2xl text-muted-foreground font-mono">
             Hiring is infrastructure.
