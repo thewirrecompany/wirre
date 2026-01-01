@@ -15,7 +15,7 @@ export function Footer() {
           <div>
             <span className="font-mono text-sm font-bold tracking-widest">WIRRE</span>
             <p className="mt-2 text-sm text-muted-foreground font-mono">
-              Hiring is infrastructure.
+              Work. Hire.
             </p>
           </div>
           

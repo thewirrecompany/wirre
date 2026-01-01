@@ -62,7 +62,7 @@ export default function About() {
                 Infrastructure thinking
               </h2>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                Hiring is infrastructure. Like databases, authentication, and 
+                Work. Hire. Like databases, authentication, and 
                 deployment pipelines, it is foundational machinery that most 
                 organizations treat as someone else's problem.
               </p>
@@ -74,7 +74,7 @@ export default function About() {
                 made by people who were incorrectly rejected.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                WIRRE applies infrastructure principles to hiring: documentation, 
+                WIRRE applies infrastructure principles to hiring: reproducibility, 
                 determinism, observability, governance. We build primitives that 
                 teams can trust to produce reliable signals about engineering capability.
               </p>
@@ -85,7 +85,7 @@ export default function About() {
                 Contribution-based evaluation
               </h2>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                WIRRE is not a test platform or a coding playground. It's a controlled, contribution-based hiring system built around real repositories and submission-based evaluation.
+                WIRRE is not a test platform or a coding playground. It's a controlled, contribution-based hiring system built around real repositories, reproducible environments, and PR-based evaluation.
               </p>
               <div className="mt-6">
                 <h3 className="text-xl font-bold font-mono mb-3">The Method — Real Engineering, Not Brainteasers</h3>
@@ -113,7 +113,7 @@ export default function About() {
                 </div>
               </div>
               <p className="text-muted-foreground font-mono leading-relaxed">
-                Companies create challenge repositories—real codebases with bugs, missing features, failing tests, and architectural issues. Candidates run the repo locally, make changes, and submit their solution through the platform.
+                Companies create challenge repositories—real codebases with bugs, missing features, failing tests, and architectural issues. Candidates run the repo locally in the provided environment, make real changes, commit, and open a Pull Request.
               </p>
               <p className="text-muted-foreground font-mono leading-relaxed">
                 Evaluation is based on code quality, commit history, design decisions, tests added, PR descriptions, and how candidates reason about tradeoffs. This mirrors how engineering work is reviewed in production.
@@ -138,11 +138,11 @@ export default function About() {
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-foreground">→</span>
-                  <span>Clear environment instructions reduce "works on my machine" issues</span>
+                  <span>Environment parity via reproducible setups eliminates "works on my machine" excuses</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-foreground">→</span>
-                  <span>Submission-based evaluation captures how engineers actually reason and make decisions</span>
+                  <span>PR-based evaluation captures how engineers actually reason and make decisions</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-foreground">→</span>
@@ -157,7 +157,7 @@ export default function About() {
               If this resonates, we should talk.
             </p>
             <Button asChild size="lg">
-              <Link to="/waitlist">Sign Up</Link>
+              <Link to="/signup">Sign Up</Link>
             </Button>
           </div>
         </div>

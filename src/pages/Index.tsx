@@ -1,3 +1,5 @@
+
+
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -5,9 +7,9 @@ import { ArrowRight, GitBranch, Terminal, Shield, Gauge, CheckCircle } from "luc
 
 const steps = [
   { num: "01", title: "Company prepares a challenge", desc: "A curated repo with real bugs, missing features, failing tests, and architecture to evaluate" },
-  { num: "02", title: "Delivered with clear setup", desc: "Challenges arrive ready-to-run with clear setup instructions so environments behave consistently" },
+  { num: "02", title: "Delivered with reproducibility", desc: "Challenges arrive ready-to-run via our managed delivery layer so environments behave the same for everyone" },
   { num: "03", title: "Solve and iterate locally", desc: "Use your normal dev tools — run, debug, refactor, and add tests locally" },
-  { num: "04", title: "Push and Explain", desc: "Get the task, make changes and push - easy as that" },
+  { num: "04", title: "Push, PR, explain", desc: "Create a branch, push changes, open a PR, and explain your tradeoffs" },
   { num: "05", title: "Signals that matter", desc: "We score diffs, commits, tests, and rationale — the signals that predict real engineering success" },
 ];
 
@@ -29,18 +31,18 @@ export default function Index() {
             WIRRE
           </h1>
           <h2 className="mt-6 text-3xl md:text-5xl font-extrabold tracking-tight text-rose-600 font-mono">
-            Launches on 1st March 2026
+            Launches on 1ST March 2026
           </h2>
           <p className="mt-4 text-xl md:text-2xl text-muted-foreground font-mono">
-            Hiring is infrastructure.
+            Work. Hire.
           </p>
           <p className="mt-8 max-w-2xl text-muted-foreground font-mono leading-relaxed">
             No DSA rounds. No whiteboard theater. No contrived puzzles.
-            We built something a little crazy — a battle-tested delivery layer that prepares challenge repositories. Candidates run the code locally, iterate like they would at work, and submit their solutions through the platform. We score real engineering output — not interview theater.
+            We built something a little crazy — a battle-tested delivery layer that spins up reproducible challenge repos. Candidates run the code locally, iterate like they would at work, and submit changes through standard Git workflows. We score real engineering output — not interview theater.
           </p>
           <div className="mt-12 flex flex-wrap gap-4">
             <Button asChild size="lg">
-              <Link to="/waitlist">Sign Up</Link>
+              <Link to="/signup">Sign Up</Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
               <Link to="/platform">
@@ -102,21 +104,21 @@ export default function Index() {
               <GitBranch className="h-6 w-6 mb-4" />
               <h3 className="font-mono font-bold mb-2">Run, iterate, repeat</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Clear setup instructions reduce "works on my machine" issues. Use your IDE, run locally, and iterate until it ships.
+                Reproducible repos remove "works on my machine" excuses. Use your IDE, run locally, and iterate until it ships.
               </p>
             </div>
             <div className="p-6 border border-border">
               <Gauge className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Consistent setups</h3>
+              <h3 className="font-mono font-bold mb-2">Deterministic dev</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Clear environment instructions help reviewers reproduce candidate setups — improving fairness and reducing setup friction.
+                Deterministic environments let reviewers see exactly what candidates see — stable, fair evaluation with no setup friction.
               </p>
             </div>
             <div className="p-6 border border-border">
               <Shield className="h-6 w-6 mb-4" />
               <h3 className="font-mono font-bold mb-2">Signals, not quizzes</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                We evaluate the artifacts that matter — code, tests, and written tradeoffs. That's how hiring reflects real work.
+                We evaluate the artifacts that matter — diffs, commits, tests, and written tradeoffs. That's how hiring reflects real work.
               </p>
             </div>
           </div>
@@ -235,7 +237,7 @@ export default function Index() {
             </div>
             <div className="mt-12">
               <Button asChild size="lg">
-                <Link to="/waitlist">Sign Up</Link>
+                <Link to="/signup">Sign Up</Link>
               </Button>
             </div>
           </div>

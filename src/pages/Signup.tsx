@@ -1,3 +1,5 @@
+//singup
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -44,7 +46,7 @@ export default function Signup() {
         description: "Please check your email to verify your account.",
       });
 
-      navigate('/waitlist');
+      navigate('/login');
     } catch (error: any) {
       toast({
         title: "Signup failed",

@@ -1,3 +1,5 @@
+//lgiin
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -174,7 +176,7 @@ export default function Login() {
 
           <p className="mt-8 text-sm text-muted-foreground font-mono text-center">
             Don't have an account?{" "}
-            <Link to="/waitlist" className="text-foreground hover:underline">
+            <Link to="/signup" className="text-foreground hover:underline">
               Sign up
             </Link>
           </p>
@@ -183,3 +185,4 @@ export default function Login() {
     </Layout>
   );
 }
+	

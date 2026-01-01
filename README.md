@@ -1,6 +1,6 @@
 # WIRRE
 
-**Hiring is Infrastructure**
+**Work. Hire.**
 
 WIRRE is infrastructure for evaluating real engineering work using production-grade workflows. Stop measuring interview performance. Start measuring engineering capability.
 

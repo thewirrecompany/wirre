@@ -48,8 +48,6 @@ const App = () => (
             <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/about" element={<About />} />
             <Route path="/get-involved" element={<GetInvolved />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
             <Route 
               path="/company/dashboard" 
               element={
