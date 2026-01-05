@@ -44,7 +44,7 @@ export default function Index() {
           </p>
           <div className="mt-12 flex flex-wrap gap-4">
             <Button asChild size="lg">
-              <Link to="/signup">Start</Link>
+              <Link to="/waitlist">Start</Link>
             </Button>
           </div>
         </div>
