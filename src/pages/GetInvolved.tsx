@@ -11,11 +11,12 @@ export default function GetInvolved() {
             Get Involved
           </p>
           <h1 className="text-4xl md:text-5xl font-bold font-mono tracking-tight">
-            Build the future of technical hiring
+            Join the development contest movement
           </h1>
           <p className="mt-6 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            WIRRE is redefining how engineering teams evaluate talent. 
-            We're looking for partners and contributors who share our vision.
+            WIRRE is building infrastructure for real-world coding practice and development contests. 
+            We're looking for students, organizers, contributors, and partners who share our vision of 
+            bridging the gap between LeetCode and real engineering.
           </p>
         </div>
       </section>
@@ -24,81 +25,86 @@ export default function GetInvolved() {
       <section className="py-24 border-b border-border">
         <div className="container">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-bold font-mono mb-6">For Contributors</h2>
+            <h2 className="text-2xl font-bold font-mono mb-6">For Students & Contributors</h2>
             <p className="text-muted-foreground font-mono leading-relaxed mb-8">
-              Want to contribute to WIRRE's development? We welcome engineers, 
-              designers, and technical writers who want to help build the future 
-              of engineering evaluation.
+              Want to practice real engineering skills or contribute to WIRRE's development? 
+              We welcome students preparing for open source programs, engineers building their portfolios, 
+              and technical contributors who want to help build the future of engineering practice platforms.
             </p>
             
             <div className="space-y-6 mb-12">
               <div>
-                <h3 className="font-mono font-bold mb-2">Open Source Development</h3>
+                <h3 className="font-mono font-bold mb-2">Practice on Real Challenges</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  Help us build the platform, improve our evaluation algorithms, or 
-                  contribute to our assessment templates and tooling.
+                  Access our library of real-world challenges: fix bugs, optimize performance, 
+                  add features, refactor code. Build your portfolio with work that mirrors real 
+                  open-source contributions — not LeetCode scores.
                 </p>
               </div>
               
               <div>
-                <h3 className="font-mono font-bold mb-2">Documentation & Content</h3>
+                <h3 className="font-mono font-bold mb-2">Contribute to WIRRE's Development</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  Create guides, tutorials, and documentation to help others use 
-                  WIRRE effectively. Share your expertise in technical writing.
+                  Help us build the platform itself. Work on infrastructure, evaluation algorithms, 
+                  challenge templates, and tooling. Real open-source contribution experience.
                 </p>
               </div>
               
               <div>
-                <h3 className="font-mono font-bold mb-2">Community Building</h3>
+                <h3 className="font-mono font-bold mb-2">Create Challenges for the Community</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  Help us build a community around better engineering evaluation. 
-                  Organize events, create content, or support other contributors.
+                  Design challenges based on real bugs you've encountered or interesting optimization 
+                  problems. Share your engineering expertise with the community.
                 </p>
               </div>
             </div>
 
             <Button size="lg" asChild>
-              <Link to="/waitlist">
-                Join Waitlist as Contributor
+              <Link to="/signup">
+                Start Practicing
               </Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* For Companies, Organizers & Investors */}
+      {/* For Organizers, Companies & Investors */}
       <section className="py-24 border-b border-border">
         <div className="container">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-bold font-mono mb-6">For Companies, Organizers & Investors</h2>
+            <h2 className="text-2xl font-bold font-mono mb-6">For Organizers, Universities & Partners</h2>
             <p className="text-muted-foreground font-mono leading-relaxed mb-8">
-              We're building infrastructure for technical evaluation and practice. 
-              If you're a company hiring engineers, a contest organizer (like Codeforces), an early-stage investor, 
-              or incubator interested in partnering with us, we'd like to hear from you.
+              We're building infrastructure for development contests and engineering practice. 
+              If you run a university coding club, organize hackathons, manage a technical community, 
+              or are a company looking to evaluate engineering talent differently, we'd like to hear from you.
             </p>
             
             <div className="space-y-6 mb-12">
               <div>
-                <h3 className="font-mono font-bold mb-2">Strategic Partnerships</h3>
+                <h3 className="font-mono font-bold mb-2">University Clubs & Contest Organizers</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  Collaborate with us to integrate WIRRE into your hiring workflow or contest platform. 
-                  Whether you're hiring engineers or running coding competitions, early partners get priority access and influence on roadmap direction.
+                  Like running Codeforces rounds for your university? Now you can host development contests — 
+                  where participants fix memory leaks, optimize latency, refactor code, and build features under time pressure. 
+                  Perfect for hackathons, club events, and open-source preparation workshops. Early organizers get priority access 
+                  and influence on features.
                 </p>
               </div>
               
               <div>
-                <h3 className="font-mono font-bold mb-2">Funding & Investment</h3>
+                <h3 className="font-mono font-bold mb-2">Companies & Technical Recruiters</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  We're backed by conviction in our mission to standardize engineering evaluation. 
-                  Interested in supporting infrastructure that matters? Let's talk.
+                  Hire based on real engineering work instead of whiteboard puzzles. The same infrastructure 
+                  students use for practice can be used for technical hiring. Evaluate candidates on actual codebases, 
+                  performance optimization, and engineering judgment.
                 </p>
               </div>
               
               <div>
-                <h3 className="font-mono font-bold mb-2">Incubation & Acceleration</h3>
+                <h3 className="font-mono font-bold mb-2">Investors & Incubators</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  If you run an incubator or accelerator focused on developer tools, 
-                  infrastructure, or future of work, reach out for partnership opportunities.
+                  We're backed by conviction in our mission to bridge the gap between algorithmic practice 
+                  and real engineering. If you run an incubator focused on developer tools, education tech, 
+                  or future of work, let's talk about partnership opportunities.
                 </p>
               </div>
             </div>
@@ -132,11 +138,12 @@ export default function GetInvolved() {
         <div className="container">
           <div className="max-w-2xl">
             <h2 className="text-2xl font-bold font-mono mb-4">
-              Start a conversation
+              Let's build this together
             </h2>
             <p className="text-muted-foreground font-mono mb-8">
-              Whether you're looking to partner, invest, contribute, or just want to learn more 
-              about what we're building, we'd like to hear from you.
+              Whether you're a student looking to practice, an organizer planning dev contests, 
+              a company rethinking technical hiring, or an investor interested in education infrastructure, 
+              we'd like to hear from you.
             </p>
             <div className="border border-border p-6">
               <div className="font-mono text-sm space-y-2">

@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, GitBranch, Terminal, Shield, Gauge, CheckCircle } from "lucide-react";
 
 const steps = [
-  { num: "01", title: "Organizer prepares a challenge", desc: "A curated repo with real bugs, missing features, failing tests, and architecture to evaluate" },
-  { num: "02", title: "Delivered with reproducibility", desc: "Challenges arrive ready-to-run via our managed delivery layer so environments behave the same for everyone" },
-  { num: "03", title: "Solve and iterate locally", desc: "Use your normal dev tools — run, debug, refactor, and add tests locally" },
-  { num: "04", title: "Push and explain", desc: "Push your changes to the provided repository and explain your approach and tradeoffs" },
-  { num: "05", title: "Signals that matter", desc: "We score diffs, commits, tests, and rationale — the signals that predict real engineering success" },
+  { num: "01", title: "Choose or create a challenge", desc: "Students pick from a library of real-world challenges, or organizers create custom contests for their communities" },
+  { num: "02", title: "Clone your own repo", desc: "Each participant gets their own private repository — reproducible environments ensure everyone starts from the same baseline" },
+  { num: "03", title: "Code like you're contributing", desc: "Work in your IDE, debug locally, run tests, refactor — use the same tools you'd use for real open source contributions" },
+  { num: "04", title: "Push and iterate", desc: "Commit your changes, push to your repo, get real-time feedback. Iterate until your solution works and performs well" },
+  { num: "05", title: "Get evaluated on what matters", desc: "Scored on functionality, performance, code quality, and engineering judgment — the skills that matter in real projects" },
 ];
 
 const metrics = [
@@ -34,15 +34,17 @@ export default function Index() {
             Launches on 1ST March 2026
           </h2>
           <p className="mt-4 text-xl md:text-2xl text-muted-foreground font-mono">
-            Work. Hire.
+            Compete in Commits.
           </p>
           <p className="mt-8 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            No DSA rounds. No whiteboard theater. No contrived puzzles.
-            We built something a little crazy — a battle-tested delivery layer that spins up reproducible challenge repos. Whether you're a company hiring engineers or an organizer (like Codeforces admins) creating practice rounds, students receive a repo to push code onto. Work locally, iterate, and push — just like real engineering. Your gateway to GSoC, open source contributions, and real-world coding experience.
+            No DSA riddles. No whiteboard theater. No algorithm memorization.
+            We built the infrastructure for real-world coding practice — a platform where students work on actual codebases, just like open source contributions. 
+            Clone repos, fix bugs, add features, optimize performance, and push your code. Whether you're preparing for competitive programming, building your engineering portfolio, 
+            or organizing development contests for your university club, WIRRE gives you the infrastructure used by real engineering teams.
           </p>
           <div className="mt-12 flex flex-wrap gap-4">
             <Button asChild size="lg">
-              <Link to="/signup">Sign Up</Link>
+              <Link to="/signup">Start Practicing</Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
               <Link to="/platform">
@@ -61,20 +63,21 @@ export default function Index() {
               The Problem
             </p>
             <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight">
-              Technical interviews measure the wrong thing
+              LeetCode doesn't prepare you for real engineering
             </h2>
             <div className="mt-8 space-y-6 text-muted-foreground font-mono leading-relaxed">
               <p>
-                DSA puzzles test algorithmic recall under artificial time pressure. 
-                Take-home assignments lack standardization and are trivially gamed. 
-                System design interviews reward verbal fluency over actual engineering judgment.
+                Students grind DSA problems to pass interviews, but that's not how real software gets built. 
+                Open source programs like GSoC don't ask you to invert a binary tree — they ask you to understand existing codebases, 
+                fix real bugs, and make meaningful contributions.
               </p>
               <p>
-                The result: false positives who interview well but underperform on real work, 
-                and false negatives who build excellent systems but struggle with whiteboard theater.
+                University coding clubs run contests on Codeforces and CodeChef, which are excellent for algorithms. 
+                But there's no platform for development contests — where you clone a broken repo, optimize performance, 
+                fix memory leaks, or refactor legacy code under time pressure.
               </p>
               <p>
-                This is a measurement problem. The instruments are miscalibrated.
+                The gap between "solving puzzles" and "shipping code" is massive. WIRRE bridges that gap.
               </p>
             </div>
           </div>
@@ -89,36 +92,36 @@ export default function Index() {
               The Solution
             </p>
             <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight">
-              Contribution-based evaluation, like GSoC
+              Practice like you're contributing to open source
             </h2>
           </div>
           <div className="mt-12 grid md:grid-cols-2 gap-8">
             <div className="p-6 border border-border">
               <Terminal className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Shipable challenges</h3>
+              <h3 className="font-mono font-bold mb-2">Real-World Challenges</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Real engineering problems — not interview contrivances. Fix issues you'd actually encounter on the job.
+                Clone real codebases with actual bugs and missing features. Fix issues, add functionality, optimize performance — just like open source contributions.
               </p>
             </div>
             <div className="p-6 border border-border">
               <GitBranch className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Run, iterate, repeat</h3>
+              <h3 className="font-mono font-bold mb-2">Your IDE, Your Tools</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Reproducible repos remove "works on my machine" excuses. Use your IDE, run locally, and iterate until it ships.
+                Work locally with your preferred editor and debugger. No browser-based editors. Use Git like a real developer — commit, push, iterate.
               </p>
             </div>
             <div className="p-6 border border-border">
               <Gauge className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Deterministic dev</h3>
+              <h3 className="font-mono font-bold mb-2">Performance Matters</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Deterministic environments let reviewers see exactly what candidates see — stable, fair evaluation with no setup friction.
+                Get scored not just on correctness, but on latency, memory usage, and code quality. Build the habits that matter in production systems.
               </p>
             </div>
             <div className="p-6 border border-border">
               <Shield className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Signals, not quizzes</h3>
+              <h3 className="font-mono font-bold mb-2">For Organizers Too</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                We evaluate the artifacts that matter — diffs, commits, tests, and written tradeoffs. That's how hiring reflects real work.
+                University clubs and contest organizers can create development contests. Like Codeforces, but for real engineering — not just algorithms.
               </p>
             </div>
           </div>
@@ -132,7 +135,7 @@ export default function Index() {
             How It Works
           </p>
           <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-12">
-            Five steps to engineering truth
+            Five steps from practice to mastery
           </h2>
           <div className="space-y-0">
             {steps.map((step, i) => (
@@ -157,7 +160,7 @@ export default function Index() {
             What We Measure*
           </p>
           <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-12">
-            Engineering capability, not interview performance*
+            Real engineering skills, not puzzle-solving*
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {metrics.map((metric) => (
@@ -171,9 +174,9 @@ export default function Index() {
 
           {/* The Method */}
           <div className="mt-12 max-w-3xl">
-            <h3 className="text-xl font-bold font-mono mb-3">The Method — Real Engineering, Not Brainteasers</h3>
+            <h3 className="text-xl font-bold font-mono mb-3">The Method — Like Contributing to Open Source</h3>
             <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-              We evaluate candidates where they do their best work: in their local IDE using standard Git workflows. No algorithmic riddles, no whiteboard theater — just Clone → Code → Push. Candidates receive their own repository, make real changes to real code, push their work, and organizers/companies can evaluate the work themselves or let our AI* handle it.
+              We evaluate you where you do your best work: in your local IDE using standard Git workflows. No algorithmic riddles, no whiteboard pressure — just Clone → Code → Push. You get your own repository, make real changes to real code, push your work, and get evaluated on what matters. Perfect preparation for open source programs, hackathons, and real software engineering work. Companies can also use this infrastructure for hiring.
             </p>
             <p className="mt-2 text-xs text-muted-foreground font-mono italic opacity-60">*AI evaluation is a future feature, not expected in the March 2026 launch</p>
           </div>
@@ -210,28 +213,32 @@ export default function Index() {
               Who It's For
             </p>
             <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-8">
-              For teams and organizers that take engineering seriously
+              For students, organizers, and anyone building real engineering skills
             </h2>
             <div className="space-y-6 text-muted-foreground font-mono leading-relaxed">
               <p>
-                <span className="text-foreground font-bold">Companies hiring engineers</span> — Building teams 
-                where reliability, security, and performance matter. Hire based on real engineering capability, 
-                not interview theater.
+                <span className="text-foreground font-bold">Students preparing for open source</span> — Practice 
+                on real codebases with actual bugs and missing features. Build the skills that matter for programs like GSoC, 
+                Outreachy, and meaningful contributions to real projects. Your portfolio shows real engineering work, not LeetCode scores.
               </p>
               <p>
-                <span className="text-foreground font-bold">Contest organizers and educators</span> — Like Codeforces, 
-                CodeChef, or university clubs. Create practice rounds and challenges where students work on real codebases. 
-                Perfect preparation for GSoC, open source contributions, and industry work.
+                <span className="text-foreground font-bold">Contest organizers and university clubs</span> — Like Codeforces 
+                admins but for development contests. Host competitions where participants fix memory leaks, optimize latency, 
+                refactor legacy code, or build features under time pressure. Perfect for hackathons, club events, and coding competitions.
               </p>
               <p>
-                <span className="text-foreground font-bold">Students and engineers</span> who want to 
-                demonstrate real capability rather than rehearsed performance. Build your portfolio with 
-                real engineering work that matters.
+                <span className="text-foreground font-bold">Engineers who want to practice real skills</span> — Build your 
+                engineering muscles on challenges that mirror production work. Learn debugging, performance optimization, 
+                and systems thinking — not algorithm memorization.
+              </p>
+              <p className="text-sm italic">
+                <span className="text-foreground font-bold">Companies hiring developers</span> can also leverage this same 
+                infrastructure to evaluate candidates on real engineering work instead of whiteboard puzzles.
               </p>
             </div>
             <div className="mt-12">
               <Button asChild size="lg">
-                <Link to="/signup">Sign Up</Link>
+                <Link to="/signup">Start Practicing</Link>
               </Button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 # WIRRE
 
-**Work. Hire.**
+**Compete in Commits.**
 
 WIRRE is infrastructure for evaluating real engineering work using production-grade workflows. Stop measuring interview performance. Start measuring engineering capability.
 
