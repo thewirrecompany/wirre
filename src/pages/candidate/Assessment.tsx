@@ -110,35 +110,13 @@ export default function Assessment() {
                 ) : null}
               </div>
 
-              {/* Problem Description (only show if present) */}
-              {description && description.trim() ? (
-                <div className="border border-border p-6 mb-8">
-                  <div className="prose prose-invert max-w-none">
-                    <div className="font-mono text-sm whitespace-pre-wrap leading-relaxed">
-                      {description.split('\n').map((line: string, i: number) => {
-                        if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-bold mt-8 mb-4 first:mt-0">{line.replace('## ', '')}</h2>;
-                        if (line.startsWith('### ')) return <h3 key={i} className="text-lg font-bold mt-6 mb-3">{line.replace('### ', '')}</h3>;
-                        if (line.startsWith('- **')) {
-                          const [label, ...rest] = line.replace('- **', '').split('**:');
-                          return <p key={i} className="my-2"><strong>{label}</strong>:{rest.join('')}</p>;
-                        }
-                        if (line.match(/^\d+\./)) return <p key={i} className="my-1 ml-4">{line}</p>;
-                        return <p key={i} className={line ? 'my-2 text-muted-foreground' : 'my-4'}>{line}</p>;
-                      })}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {/* Submission instructions removed (in repo README) */}
-
-              {/* Repository URL */}
-              <div className="border border-border p-6">
+              {/* Repository URL (moved above description) */}
+              <div className="border border-border p-6 mb-6">
                 <div className="flex items-center gap-3 mb-4">
                   <GitBranch className="h-5 w-5" />
                   <h2 className="font-mono font-bold">Repository</h2>
                 </div>
-                  <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4">
                   {isRegistered && assessment.start_at && new Date(assessment.start_at) <= new Date() ? (
                     <>
                       <code className="flex-1 p-3 bg-secondary font-mono text-sm">{classroomUrl || 'Assignment link will be available'}</code>
@@ -150,36 +128,28 @@ export default function Assessment() {
                 </div>
               </div>
 
-              {/* Details: show technologies and other metadata */}
-              <div className="border border-border p-6 mt-6">
-                <h3 className="font-mono font-bold mb-3">Details</h3>
-                 <div className="grid grid-cols-2 gap-4">
-                   {companyName ? (
-                     <div>
-                       <p className="text-sm text-muted-foreground">Company</p>
-                       <p className="font-medium">{companyName}</p>
-                     </div>
-                   ) : null}
-                   {assessment.positions && assessment.positions.length ? (
-                     <div>
-                       <p className="text-sm text-muted-foreground">Roles</p>
-                       <p className="font-medium">{assessment.positions.join(', ')}</p>
-                     </div>
-                   ) : null}
-                   {typeof assessment.duration_minutes === 'number' ? (
-                     <div>
-                       <p className="text-sm text-muted-foreground">Duration</p>
-                       <p className="font-medium">{assessment.duration_minutes ? `${assessment.duration_minutes} minutes` : '-'}</p>
-                     </div>
-                   ) : null}
-                   {Array.isArray(assessment.technologies) && assessment.technologies.length ? (
-                     <div>
-                       <p className="text-sm text-muted-foreground">Technologies</p>
-                       <p className="font-medium">{assessment.technologies.join(', ')}</p>
-                     </div>
-                   ) : null}
-                 </div>
-              </div>
+              {/* Problem Description (only show if present) */}
+              {description && description.trim() ? (
+                <div>
+                  <h2 className="font-mono font-bold mb-4">Description:</h2>
+                  <div className="border border-border p-6 mb-8">
+                    <div className="prose prose-invert max-w-none">
+                      <div className="font-mono text-sm whitespace-pre-wrap leading-relaxed">
+                        {description.split('\n').map((line: string, i: number) => {
+                          if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-bold mt-8 mb-4 first:mt-0">{line.replace('## ', '')}</h2>;
+                          if (line.startsWith('### ')) return <h3 key={i} className="text-lg font-bold mt-6 mb-3">{line.replace('### ', '')}</h3>;
+                          if (line.startsWith('- **')) {
+                            const [label, ...rest] = line.replace('- **', '').split('**:');
+                            return <p key={i} className="my-2"><strong>{label}</strong>:{rest.join('')}</p>;
+                          }
+                          if (line.match(/^\d+\./)) return <p key={i} className="my-1 ml-4">{line}</p>;
+                          return <p key={i} className={line ? 'my-2 text-muted-foreground' : 'my-4'}>{line}</p>;
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {/* Sidebar */}
@@ -193,11 +163,9 @@ export default function Assessment() {
                 <div className="space-y-3 font-mono text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status</span>
-                    <span className="uppercase text-xs tracking-wider">{assessment.status}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">ID</span>
-                    <span>{assessment.id}</span>
+                    <span className="uppercase text-xs tracking-wider">
+                      {assessment.start_at && new Date(assessment.start_at) > new Date() ? 'UPCOMING' : (assessment.status || '').toUpperCase()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -213,49 +181,79 @@ export default function Assessment() {
                 <p className="font-mono text-sm mt-2">Positions: {assessment.positions || 1}</p>
               </div>
 
+              {/* Technologies (moved to sidebar under Schedule) */}
+              {Array.isArray(assessment.technologies) && assessment.technologies.length ? (
+                <div className="border border-border p-4">
+                  <p className="text-sm text-muted-foreground">Technologies</p>
+                  <p className="font-medium text-sm mt-1 text-right">{assessment.technologies.join(', ')}</p>
+                </div>
+              ) : null}
+
               {/* Actions */}
               <div className="space-y-2">
-                {/* Finish: only enabled once assessment has started and user is registered */}
-                <Button
-                  className="w-full"
-                  size="lg"
-                  disabled={!(isRegistered && assessment.start_at && new Date(assessment.start_at) <= new Date())}
-                  onClick={async () => {
-                    if (!id) return;
-                    try {
-                      const { data, error } = await supabase.rpc('candidate_finish_assessment', { p_assessment_id: id });
-                      if (error) throw error;
-                      setAssessment((a: any) => ({ ...a, status: 'completed' }));
-                      toast({ title: 'Finished', description: 'Assessment marked completed.' });
-                    } catch (err: any) {
-                      console.error('Finish failed', err);
-                      toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
-                    }
-                  }}
-                >
-                  Finish
-                </Button>
-
-                {/* Unregister: delete registration so it shows back in Opportunities */}
-                {isRegistered && (
-                  <Button variant="outline" className="w-full" onClick={async () => {
-                    if (!id || !profile?.id) return;
-                    const ok = window.confirm('Unregister from this assessment? This will return it to Opportunities.');
-                    if (!ok) return;
-                    try {
-                      const { error } = await supabase
-                        .from('assessment_registrations')
-                        .delete()
-                        .eq('assessment_id', id)
-                        .eq('user_id', profile.id);
-                      if (error) throw error;
-                      setIsRegistered(false);
-                      toast({ title: 'Unregistered', description: 'You have been unregistered from this assessment.' });
-                    } catch (err: any) {
-                      console.error('Unregister failed', err);
-                      toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
-                    }
-                  }}>Unregister</Button>
+                {(!isRegistered) ? (
+                  // Not registered -> show Register button (if start is in future or no start provided)
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={async () => {
+                      if (!id || !profile?.id) return;
+                      try {
+                        const { error } = await supabase.from('assessment_registrations').insert([{ assessment_id: id, user_id: profile.id }]);
+                        if (error) throw error;
+                        setIsRegistered(true);
+                        toast({ title: 'Registered', description: 'You are registered for this assessment.' });
+                      } catch (err: any) {
+                        console.error('Register failed', err);
+                        toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+                      }
+                    }}
+                  >
+                    Register
+                  </Button>
+                ) : (
+                  // Registered: if assessment started allow Finish, otherwise show Unregister
+                  <>
+                    {assessment.start_at && new Date(assessment.start_at) <= new Date() ? (
+                      <Button
+                        className="w-full"
+                        size="lg"
+                        onClick={async () => {
+                          if (!id) return;
+                          try {
+                            const { data, error } = await supabase.rpc('candidate_finish_assessment', { p_assessment_id: id });
+                            if (error) throw error;
+                            setAssessment((a: any) => ({ ...a, status: 'completed' }));
+                            toast({ title: 'Finished', description: 'Assessment marked completed.' });
+                          } catch (err: any) {
+                            console.error('Finish failed', err);
+                            toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        Finish
+                      </Button>
+                    ) : (
+                      <Button variant="outline" className="w-full" onClick={async () => {
+                        if (!id || !profile?.id) return;
+                        const ok = window.confirm('Unregister from this assessment? This will return it to Opportunities.');
+                        if (!ok) return;
+                        try {
+                          const { error } = await supabase
+                            .from('assessment_registrations')
+                            .delete()
+                            .eq('assessment_id', id)
+                            .eq('user_id', profile.id);
+                          if (error) throw error;
+                          setIsRegistered(false);
+                          toast({ title: 'Unregistered', description: 'You have been unregistered from this assessment.' });
+                        } catch (err: any) {
+                          console.error('Unregister failed', err);
+                          toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+                        }
+                      }}>Unregister</Button>
+                    )}
+                  </>
                 )}
               </div>
 

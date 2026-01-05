@@ -15,7 +15,6 @@ import {
 
 const publicNavLinks = [
   { href: "/platform", label: "Platform" },
-  { href: "/about", label: "About" },
   { href: "/get-involved", label: "Get Involved" },
 ];
 
@@ -89,7 +88,9 @@ export function Header() {
     })();
   };
 
-  const dashboardLink = profile?.role === 'admin'
+  const dashboardLink = profile?.role === 'superadmin'
+    ? '/superadmin/dashboard'
+    : profile?.role === 'admin'
     ? '/admin/dashboard'
     : profile?.role === 'company'
     ? '/company/dashboard'
@@ -106,10 +107,34 @@ export function Header() {
         <div className="flex items-center gap-4">
           {location.pathname !== '/' && (
             <Button variant="ghost" size="sm" onClick={() => {
-              // try to navigate back; fallback to home
-              try {
-                navigate(-1);
-              } catch {
+              // Hierarchical navigation
+              if (location.pathname.includes('/company/assessments/') && location.pathname.includes('/edit')) {
+                // From edit page -> assessment detail
+                const assessmentId = location.pathname.split('/')[3];
+                navigate(`/company/assessments/${assessmentId}`);
+              } else if (location.pathname.includes('/company/assessments/')) {
+                // From assessment detail -> company dashboard
+                navigate('/company/dashboard');
+              } else if (location.pathname === '/company/dashboard') {
+                // From company dashboard -> home
+                navigate('/');
+              } else if (location.pathname === '/candidate/dashboard') {
+                // From candidate dashboard -> home
+                navigate('/');
+              } else if (location.pathname === '/admin/dashboard') {
+                // From admin dashboard -> home
+                navigate('/');
+              } else if (location.pathname.includes('/admin/')) {
+                // From any admin page -> admin dashboard
+                navigate('/admin/dashboard');
+              } else if (location.pathname.includes('/candidate/')) {
+                // From any candidate page -> candidate dashboard
+                navigate('/candidate/dashboard');
+              } else if (location.pathname.includes('/company/')) {
+                // From any company page -> company dashboard
+                navigate('/company/dashboard');
+              } else {
+                // Default -> home
                 navigate('/');
               }
             }}>
@@ -145,6 +170,19 @@ export function Header() {
               >
                 Dashboard
               </Link>
+
+              {/* Admin Profile link (shown to admins) */}
+              {profile?.role === 'admin' && (
+                <Link
+                  to="/admin/profile"
+                  className={cn(
+                    "text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground",
+                    location.pathname === '/admin/profile' ? "text-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  Profile
+                </Link>
+              )}
 
               {profile?.role === 'candidate' && (
                 <>
@@ -200,10 +238,10 @@ export function Header() {
             </>
           ) : (
             <Link
-              to="/login"
+              to="/waitlist"
               className={cn(
                 "text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground",
-                location.pathname === '/login' ? "text-foreground" : "text-muted-foreground"
+                location.pathname === '/waitlist' ? "text-foreground" : "text-muted-foreground"
               )}
             >
               Login
