@@ -61,7 +61,7 @@ export default function GetInvolved() {
             </div>
 
             <Button size="lg" asChild>
-              <Link to="/signup">
+              <Link to="/waitlist">
                 Join the Arena
               </Link>
             </Button>
