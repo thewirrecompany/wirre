@@ -15,7 +15,6 @@ import {
 
 const publicNavLinks = [
   { href: "/platform", label: "Platform" },
-  { href: "/about", label: "About" },
   { href: "/get-involved", label: "Get Involved" },
 ];
 

@@ -66,23 +66,23 @@ export default function GetInvolved() {
         </div>
       </section>
 
-      {/* For Companies & Investors */}
+      {/* For Companies, Organizers & Investors */}
       <section className="py-24 border-b border-border">
         <div className="container">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-bold font-mono mb-6">For Companies & Investors</h2>
+            <h2 className="text-2xl font-bold font-mono mb-6">For Companies, Organizers & Investors</h2>
             <p className="text-muted-foreground font-mono leading-relaxed mb-8">
-              We're building infrastructure for the future of technical hiring. 
-              If you're an early-stage investor, incubator, or company interested in 
-              partnering with us, we'd like to hear from you.
+              We're building infrastructure for technical evaluation and practice. 
+              If you're a company hiring engineers, a contest organizer (like Codeforces), an early-stage investor, 
+              or incubator interested in partnering with us, we'd like to hear from you.
             </p>
             
             <div className="space-y-6 mb-12">
               <div>
                 <h3 className="font-mono font-bold mb-2">Strategic Partnerships</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  Collaborate with us to integrate WIRRE into your hiring workflow. 
-                  Early partners get priority access and influence on roadmap direction.
+                  Collaborate with us to integrate WIRRE into your hiring workflow or contest platform. 
+                  Whether you're hiring engineers or running coding competitions, early partners get priority access and influence on roadmap direction.
                 </p>
               </div>
               
@@ -103,15 +103,24 @@ export default function GetInvolved() {
               </div>
             </div>
 
-            <a 
-              href="https://www.linkedin.com/company/wirre/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <Button size="lg">
-                Connect on LinkedIn
-              </Button>
-            </a>
+            <div className="flex flex-wrap gap-4">
+              <a 
+                href="mailto:thewirrecompany@gmail.com"
+              >
+                <Button size="lg" variant="default">
+                  Connect by Email
+                </Button>
+              </a>
+              <a 
+                href="https://www.linkedin.com/company/wirre/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Button size="lg" variant="outline">
+                  Connect on LinkedIn
+                </Button>
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -131,6 +140,7 @@ export default function GetInvolved() {
             </p>
             <div className="border border-border p-6">
               <div className="font-mono text-sm space-y-2">
+                <p className="text-muted-foreground">→ Email: <a href="mailto:thewirrecompany@gmail.com" className="text-foreground hover:underline">thewirrecompany@gmail.com</a></p>
                 <p className="text-muted-foreground">→ LinkedIn: <a href="https://www.linkedin.com/company/wirre/" target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">linkedin.com/company/wirre</a></p>
                 <p className="text-muted-foreground">→ We typically respond within 24-48 hours</p>
               </div>

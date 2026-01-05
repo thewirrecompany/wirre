@@ -1,165 +1,26 @@
 import { Layout } from "@/components/layout/Layout";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function About() {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    navigate("/");
+  }, [navigate]);
+
   return (
     <Layout>
       <article className="py-24">
         <div className="container max-w-3xl">
           <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-4">
-            About
+            Redirecting...
           </p>
           <h1 className="text-4xl md:text-5xl font-bold font-mono tracking-tight mb-12">
-            Why WIRRE exists
+            Redirecting to Home
           </h1>
-
-          <div className="prose prose-invert max-w-none space-y-8">
-            <section className="space-y-6">
-              <h2 className="text-2xl font-bold font-mono mt-16 mb-6">
-                Interviews are broken
-              </h2>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                The modern technical interview is a performance. Candidates rehearse 
-                solutions to known problems. Interviewers evaluate recall speed and 
-                verbal fluency. The entire ritual measures interview preparation, 
-                not engineering capability.
-              </p>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                DSA puzzles select for candidates who have time to grind LeetCode. 
-                System design interviews reward those who can narrate architectural 
-                decisions in real-time. Take-home assignments lack standardization 
-                and are trivially gamed with AI assistance or borrowed solutions.
-              </p>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                The correlation between interview performance and job performance 
-                is weak at best. We have optimized for the wrong metric.
-              </p>
-            </section>
-
-            <section className="space-y-6">
-              <h2 className="text-2xl font-bold font-mono mt-16 mb-6">
-                This is a measurement problem
-              </h2>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                When measurement is unreliable, decisions are unreliable. Engineering 
-                teams make million-rupee hiring decisions based on signals that barely 
-                correlate with the work that needs to be done.
-              </p>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                False positives pass interviews but struggle with production systems. 
-                False negatives build excellent software but fail whiteboard theater. 
-                The selection process systematically miscalibrates.
-              </p>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                To fix hiring, we must fix measurement. Better instruments produce 
-                better signals. Better signals produce better decisions.
-              </p>
-            </section>
-
-            <section className="space-y-6">
-              <h2 className="text-2xl font-bold font-mono mt-16 mb-6">
-                Infrastructure thinking
-              </h2>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                Work. Hire. Like databases, authentication, and 
-                deployment pipelines, it is foundational machinery that most 
-                organizations treat as someone else's problem.
-              </p>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                When infrastructure fails, everything built on top of it fails. 
-                Broken hiring produces broken teams. Broken teams produce broken 
-                systems. The cost compounds across every engineering decision made 
-                by people who should not have been hired, and every decision not 
-                made by people who were incorrectly rejected.
-              </p>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                WIRRE applies infrastructure principles to hiring: reproducibility, 
-                determinism, observability, governance. We build primitives that 
-                teams can trust to produce reliable signals about engineering capability.
-              </p>
-            </section>
-
-            <section className="space-y-6">
-              <h2 className="text-2xl font-bold font-mono mt-16 mb-6">
-                Contribution-based evaluation
-              </h2>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                WIRRE is not a test platform or a coding playground. It's a controlled, contribution-based hiring system built around real repositories, reproducible environments, and PR-based evaluation.
-              </p>
-              <div className="mt-6">
-                <h3 className="text-xl font-bold font-mono mb-3">The Method — Real Engineering, Not Brainteasers</h3>
-                <p className="text-muted-foreground font-mono leading-relaxed">
-                  We assess candidates where they do their best work: locally, in their IDE, using standard Git workflows. Instead of contrived puzzles, candidates fix, implement, and test real code; they then open a Pull Request that becomes the primary signal for evaluation.
-                </p>
-              </div>
-
-              <div className="mt-8 grid md:grid-cols-2 gap-6">
-                <div className="border border-border p-6">
-                  <h4 className="font-mono font-bold mb-2">The 4 Pillars of Engineering Truth</h4>
-                  <ul className="text-sm text-muted-foreground font-mono space-y-2">
-                    <li><strong>Functional Correctness:</strong> Does the code work and pass tests?</li>
-                    <li><strong>Code Quality & Maintainability:</strong> Is it structured for teams and future work?</li>
-                    <li><strong>Production Readiness:</strong> Considerations for logging, security, and performance.</li>
-                    <li><strong>Collaboration Signal:</strong> PR descriptions, commit hygiene, and communication.</li>
-                  </ul>
-                </div>
-                <div className="border border-border p-6">
-                  <h4 className="font-mono font-bold mb-2">The Promise — The Feedback Loop</h4>
-                  <p className="text-sm text-muted-foreground font-mono">
-                    Every submission receives automated, line-by-line feedback and a capability report. Candidates always get meaningful insight into their performance — whether they progress or not.
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground font-mono">We intentionally keep weights and hidden test cases private to preserve evaluation integrity; we do, however, publish the pillars and the signals we measure.</p>
-                </div>
-              </div>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                Companies create challenge repositories—real codebases with bugs, missing features, failing tests, and architectural issues. Candidates run the repo locally in the provided environment, make real changes, commit, and open a Pull Request.
-              </p>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                Evaluation is based on code quality, commit history, design decisions, tests added, PR descriptions, and how candidates reason about tradeoffs. This mirrors how engineering work is reviewed in production.
-              </p>
-              <p className="text-muted-foreground font-mono leading-relaxed">
-                No DSA rounds. No live interviews. No whiteboard coding. No artificial time pressure. Just real engineering work, evaluated the way engineers actually work.
-              </p>
-            </section>
-
-            <section className="space-y-6">
-              <h2 className="text-2xl font-bold font-mono mt-16 mb-6">
-                What we believe
-              </h2>
-              <ul className="space-y-4 text-muted-foreground font-mono">
-                <li className="flex items-start gap-3">
-                  <span className="text-foreground">→</span>
-                  <span>The only way to know if someone can do the work is to have them do the work</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-foreground">→</span>
-                  <span>Interviews should mirror actual job responsibilities, not test tangential skills</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-foreground">→</span>
-                  <span>Environment parity via reproducible setups eliminates "works on my machine" excuses</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-foreground">→</span>
-                  <span>PR-based evaluation captures how engineers actually reason and make decisions</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-foreground">→</span>
-                  <span>Standardized measurement enables fair comparison and reduces bias</span>
-                </li>
-              </ul>
-            </section>
-          </div>
-
-          <div className="mt-16 pt-16 border-t border-border">
-            <p className="text-muted-foreground font-mono mb-6">
-              If this resonates, we should talk.
-            </p>
-            <Button asChild size="lg">
-              <Link to="/signup">Sign Up</Link>
-            </Button>
-          </div>
         </div>
       </article>
     </Layout>

@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, GitBranch, Terminal, Shield, Gauge, CheckCircle } from "lucide-react";
 
 const steps = [
-  { num: "01", title: "Company prepares a challenge", desc: "A curated repo with real bugs, missing features, failing tests, and architecture to evaluate" },
+  { num: "01", title: "Organizer prepares a challenge", desc: "A curated repo with real bugs, missing features, failing tests, and architecture to evaluate" },
   { num: "02", title: "Delivered with reproducibility", desc: "Challenges arrive ready-to-run via our managed delivery layer so environments behave the same for everyone" },
   { num: "03", title: "Solve and iterate locally", desc: "Use your normal dev tools — run, debug, refactor, and add tests locally" },
-  { num: "04", title: "Push, PR, explain", desc: "Create a branch, push changes, open a PR, and explain your tradeoffs" },
+  { num: "04", title: "Push and explain", desc: "Push your changes to the provided repository and explain your approach and tradeoffs" },
   { num: "05", title: "Signals that matter", desc: "We score diffs, commits, tests, and rationale — the signals that predict real engineering success" },
 ];
 
@@ -38,7 +38,7 @@ export default function Index() {
           </p>
           <p className="mt-8 max-w-2xl text-muted-foreground font-mono leading-relaxed">
             No DSA rounds. No whiteboard theater. No contrived puzzles.
-            We built something a little crazy — a battle-tested delivery layer that spins up reproducible challenge repos. Candidates run the code locally, iterate like they would at work, and submit changes through standard Git workflows. We score real engineering output — not interview theater.
+            We built something a little crazy — a battle-tested delivery layer that spins up reproducible challenge repos. Whether you're a company hiring engineers or an organizer (like Codeforces admins) creating practice rounds, students receive a repo to push code onto. Work locally, iterate, and push — just like real engineering. Your gateway to GSoC, open source contributions, and real-world coding experience.
           </p>
           <div className="mt-12 flex flex-wrap gap-4">
             <Button asChild size="lg">
@@ -154,10 +154,10 @@ export default function Index() {
       <section className="py-24 border-b border-border">
         <div className="container">
           <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-4">
-            What We Measure
+            What We Measure*
           </p>
           <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-12">
-            Engineering capability, not interview performance
+            Engineering capability, not interview performance*
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {metrics.map((metric) => (
@@ -173,8 +173,9 @@ export default function Index() {
           <div className="mt-12 max-w-3xl">
             <h3 className="text-xl font-bold font-mono mb-3">The Method — Real Engineering, Not Brainteasers</h3>
             <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-              We evaluate candidates where they do their best work: in their local IDE using standard Git workflows. No algorithmic riddles, no whiteboard theater — just Clone → Branch → Pull Request. Candidates make real changes to real code, submit a PR, and our system evaluates the work that actually matters.
+              We evaluate candidates where they do their best work: in their local IDE using standard Git workflows. No algorithmic riddles, no whiteboard theater — just Clone → Code → Push. Candidates receive their own repository, make real changes to real code, push their work, and organizers/companies can evaluate the work themselves or let our AI* handle it.
             </p>
+            <p className="mt-2 text-xs text-muted-foreground font-mono italic opacity-60">*AI evaluation is a future feature, not expected in the March 2026 launch</p>
           </div>
 
           {/* The 4 Pillars */}
@@ -193,18 +194,11 @@ export default function Index() {
             </div>
             <div className="p-6 border border-border">
               <h4 className="font-mono font-bold mb-2">Collaboration Signal</h4>
-              <p className="text-sm text-muted-foreground font-mono">PR description, commit structure, and how the candidate explains tradeoffs.</p>
+              <p className="text-sm text-muted-foreground font-mono">Commit structure, documentation, and how the candidate explains tradeoffs.</p>
             </div>
           </div>
 
-          {/* The Feedback Loop */}
-          <div className="mt-8 max-w-3xl">
-            <h3 className="text-xl font-bold font-mono mb-3">The Promise — The Feedback Loop</h3>
-            <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-              Every submission receives automated, line-by-line feedback and a clear capability report. Candidates walk away with actionable notes about strengths and areas for growth — no black holes, no silence.
-            </p>
-            <p className="mt-3 text-xs text-muted-foreground font-mono">We keep weighting and hidden tests private to prevent gaming; we do, however, show the pillars and the signals we measure.</p>
-          </div>
+          <p className="mt-6 text-xs text-muted-foreground font-mono italic opacity-60">*AI-powered evaluation features are planned for future releases, not expected in the March 2026 launch</p>
         </div>
       </section>
 
@@ -216,23 +210,23 @@ export default function Index() {
               Who It's For
             </p>
             <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-8">
-              For teams that take engineering seriously
+              For teams and organizers that take engineering seriously
             </h2>
             <div className="space-y-6 text-muted-foreground font-mono leading-relaxed">
               <p>
-                <span className="text-foreground font-bold">Engineering teams</span> building systems 
-                where reliability, security, and performance matter. Teams that ship infrastructure, 
-                not just features.
+                <span className="text-foreground font-bold">Companies hiring engineers</span> — Building teams 
+                where reliability, security, and performance matter. Hire based on real engineering capability, 
+                not interview theater.
               </p>
               <p>
-                <span className="text-foreground font-bold">Backend and systems roles</span> where 
-                algorithmic puzzles don't capture the work. Database design, API architecture, 
-                distributed systems, platform engineering.
+                <span className="text-foreground font-bold">Contest organizers and educators</span> — Like Codeforces, 
+                CodeChef, or university clubs. Create practice rounds and challenges where students work on real codebases. 
+                Perfect preparation for GSoC, open source contributions, and industry work.
               </p>
               <p>
-                <span className="text-foreground font-bold">Serious candidates</span> who want to 
-                demonstrate real capability rather than rehearsed performance. Engineers who build 
-                better than they talk.
+                <span className="text-foreground font-bold">Students and engineers</span> who want to 
+                demonstrate real capability rather than rehearsed performance. Build your portfolio with 
+                real engineering work that matters.
               </p>
             </div>
             <div className="mt-12">
