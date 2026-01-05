@@ -206,7 +206,7 @@ export default function Index() {
             </div>
             <div className="mt-12">
               <Button asChild size="lg">
-                <Link to="/signup">Start Practicing</Link>
+                <Link to="/waitlist">Start Practicing</Link>
               </Button>
             </div>
           </div>
