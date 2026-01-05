@@ -91,11 +91,12 @@ export default function GetInvolved() {
               </div>
               
               <div>
-                <h3 className="font-mono font-bold mb-2">Companies & Technical Recruiters</h3>
+                <h3 className="font-mono font-bold mb-2">Companies & Open Source Programs</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  Hire based on real engineering work instead of whiteboard puzzles. The same infrastructure 
-                  students use for practice can be used for technical hiring. Evaluate candidates on actual codebases, 
-                  performance optimization, and engineering judgment.
+                  Develop engineering talent for your open source initiatives and programs like GSoC. 
+                  Use WIRRE to train developers on real codebases, build a pipeline of contributors who understand 
+                  your projects, and identify engineers who can make meaningful open source contributions. 
+                  The same infrastructure can also be used for technical hiring if needed.
                 </p>
               </div>
               
@@ -142,7 +143,7 @@ export default function GetInvolved() {
             </h2>
             <p className="text-muted-foreground font-mono mb-8">
               Whether you're a student looking to practice, an organizer planning dev contests, 
-              a company rethinking technical hiring, or an investor interested in education infrastructure, 
+              a company developing open source talent, or an investor interested in education infrastructure, 
               we'd like to hear from you.
             </p>
             <div className="border border-border p-6">
