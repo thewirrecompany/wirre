@@ -46,11 +46,6 @@ export default function Index() {
             <Button asChild size="lg">
               <Link to="/signup">Start</Link>
             </Button>
-            <Button variant="outline" size="lg" asChild>
-              <Link to="/platform">
-                How It Works <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
           </div>
         </div>
       </section>
