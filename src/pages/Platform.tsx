@@ -7,27 +7,6 @@ import { Button } from "@/components/ui/button";
 export default function Platform() {
   return (
     <Layout>
-      <section className="py-24 border-b border-border">
-        <div className="container">
-          <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-4">
-            Platform
-          </p>
-          <h1 className="text-4xl md:text-5xl font-bold font-mono tracking-tight">
-            Controlled, contribution-based hiring system
-          </h1>
-          <p className="mt-6 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            Built around real repositories, reproducible environments, and PR-based evaluation.
-            Not a test platform. Not an interview tool. Infrastructure for measuring real engineering work.
-          </p>
-          <div className="mt-6 max-w-2xl">
-            <h3 className="text-lg font-bold font-mono mb-2">The Method — Real Engineering, Not Brainteasers</h3>
-            <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-              WIRRE evaluates candidates by recreating a real engineering workflow: we provision a private working copy, candidates clone, branch, and open a Pull Request. Our evaluation is driven by artifacts — PRs, commits, tests and explanations — not isolated puzzles.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* Architecture Diagram */}
       <section className="py-24 border-b border-border">
         <div className="container">
@@ -192,10 +171,11 @@ $ code .
 # Submit via standard Git workflow
 $ git add -A
 $ git commit -m "Implementation complete"
-$ git push origin solution
+$ git push origin main
 
-# Automated evaluation triggers on push
-# Results available in dashboard`}
+# Evaluation by organizer/company or AI*
+# Results available in dashboard
+# *AI evaluation: future feature`}
               </pre>
             </div>
             <div className="order-1 md:order-2">
@@ -203,7 +183,7 @@ $ git push origin solution
               <p className="text-muted-foreground font-mono leading-relaxed mb-8">
                 Engineers work in their own environment using familiar tools. 
                 No browser-based editors. No artificial time pressure. 
-                Just real engineering work with standard Git workflows.
+                Just real engineering work with standard Git workflows. Receive your own repo, push code, get evaluated.
               </p>
               <ul className="space-y-4 font-mono text-sm">
                 <li className="flex items-start gap-3">
@@ -216,7 +196,7 @@ $ git push origin solution
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
-                  <span>Submit through standard PR workflow</span>
+                  <span>Push to your own repository — like real engineering</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
