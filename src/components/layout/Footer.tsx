@@ -14,7 +14,7 @@ export function Footer() {
           <div>
             <span className="font-mono text-sm font-bold tracking-widest">WIRRE</span>
             <p className="mt-2 text-sm text-muted-foreground font-mono">
-              Work. Hire.
+              Compete in Commits.
             </p>
           </div>
           
@@ -33,7 +33,7 @@ export function Footer() {
         
         <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <p className="text-xs text-muted-foreground font-mono">
-            © 2025 WIRRE. All rights reserved.
+            © 2026 WIRRE. All rights reserved.
           </p>
           <div className="flex flex-wrap gap-4 items-center">
             <a

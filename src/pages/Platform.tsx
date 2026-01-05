@@ -19,31 +19,31 @@ export default function Platform() {
               <line x1="20" y1="65" x2="780" y2="65" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
               
               {/* Top Row - Three Boxes */}
-              <g id="client-side">
+              <g id="organizer-side">
                 <rect x="50" y="100" width="180" height="140" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
-                <text x="140" y="120" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">CLIENT SIDE</text>
-                <text x="70" y="145" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Dashboard</text>
-                <text x="70" y="165" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Config Builder</text>
-                <text x="70" y="185" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Reports</text>
+                <text x="140" y="120" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">ORGANIZER SIDE</text>
+                <text x="70" y="145" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Challenges</text>
+                <text x="70" y="165" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Contests</text>
+                <text x="70" y="185" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Leaderboards</text>
                 <text x="70" y="205" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Analytics</text>
               </g>
               
-              <g id="governance">
+              <g id="standards">
                 <rect x="310" y="100" width="180" height="140" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
-                <text x="400" y="120" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">GOVERNANCE</text>
+                <text x="400" y="120" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">STANDARDS</text>
                 <text x="330" y="145" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Templates</text>
-                <text x="330" y="165" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Constraints</text>
+                <text x="330" y="165" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Environments</text>
                 <text x="330" y="185" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Scoring Rules</text>
-                <text x="330" y="205" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Audit Logs</text>
+                <text x="330" y="205" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Benchmarks</text>
               </g>
               
-              <g id="candidate-side">
+              <g id="participant-side">
                 <rect x="570" y="100" width="180" height="140" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
-                <text x="660" y="120" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">CANDIDATE SIDE</text>
-                <text x="590" y="145" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Environment</text>
+                <text x="660" y="120" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">PARTICIPANT SIDE</text>
+                <text x="590" y="145" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Local IDE</text>
                 <text x="590" y="165" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Git Workflow</text>
-                <text x="590" y="185" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Submission</text>
-                <text x="590" y="205" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Status</text>
+                <text x="590" y="185" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• Push Code</text>
+                <text x="590" y="205" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">• View Results</text>
               </g>
               
               {/* Arrows between top boxes */}
@@ -77,7 +77,7 @@ export default function Platform() {
               {/* Capability Reports */}
               <g id="capability-reports">
                 <rect x="275" y="500" width="250" height="50" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
-                <text x="400" y="530" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">CAPABILITY REPORTS</text>
+                <text x="400" y="530" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="12" fontFamily="monospace" fontWeight="bold">RESULTS & LEADERBOARDS</text>
               </g>
               
               {/* Arrow marker definition */}
@@ -96,52 +96,55 @@ export default function Platform() {
         <div className="container">
           <div className="grid md:grid-cols-2 gap-16">
             <div>
-              <h2 className="text-2xl font-bold font-mono mb-6">Client Side</h2>
+              <h2 className="text-2xl font-bold font-mono mb-6">Organizer Side</h2>
               <p className="text-muted-foreground font-mono leading-relaxed mb-8">
-                Engineering teams configure assessments through a governed interface. 
-                Define role requirements, select evaluation criteria, and customize 
-                scoring weights while maintaining organizational standards.
+                Contest organizers, university clubs, and open-source communities configure 
+                challenges through our platform. Create development contests like Codeforces does 
+                for algorithms — but for real engineering. Define challenge requirements, set up 
+                test suites, and configure performance benchmarks.
               </p>
               <ul className="space-y-4 font-mono text-sm">
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
-                  <span>Assessment configuration with role-specific templates</span>
+                  <span>Challenge library with real bugs, missing features, and optimization tasks</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
-                  <span>Candidate pipeline management and tracking</span>
+                  <span>Create custom contests for your university club or community</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
-                  <span>Structured capability reports with comparative analytics</span>
+                  <span>Leaderboards with performance metrics, not just correctness</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
-                  <span>Audit trails for compliance and review</span>
+                  <span>Track participant progress and evaluate submissions (manual or AI*)</span>
                 </li>
               </ul>
             </div>
             <div className="border border-border p-6">
               <div className="font-mono text-xs text-muted-foreground mb-4">
-                client/dashboard.tsx
+                organizer/challenge.tsx
               </div>
               <pre className="font-mono text-sm text-muted-foreground">
-{`interface Assessment {
+{`interface Challenge {
   id: string;
-  role: Role;
-  template: Template;
+  title: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  type: 'bug-fix' | 'feature' | 'optimization' | 'refactor';
+  repo: Repository;
+  tests: TestSuite;
   constraints: Constraint[];
   scoring: ScoringConfig;
-  candidates: Candidate[];
+  participants: Participant[];
   status: 'draft' | 'active' | 'closed';
 }
 
 interface ScoringConfig {
   functional: number;  // 0-100 weight
-  performance: number;
-  quality: number;
-  security: number;
-  production: number;
+  performance: number; // latency, memory
+  quality: number;     // code structure
+  collaboration: number; // commits, docs
 }`}
               </pre>
             </div>
@@ -155,48 +158,52 @@ interface ScoringConfig {
           <div className="grid md:grid-cols-2 gap-16">
             <div className="order-2 md:order-1 border border-border p-6">
               <div className="font-mono text-xs text-muted-foreground mb-4">
-                candidate/workflow.sh
+                participant/workflow.sh
               </div>
               <pre className="font-mono text-sm text-muted-foreground">
-{`# Clone assessment repository
-$ git clone git@wirre.dev:assess/abc123.git
-$ cd abc123
+{`# Clone your challenge repository
+$ git clone git@wirre.dev:challenge/dev-contest-123.git
+$ cd dev-contest-123
 
 # Start development environment (managed)
 $ ./scripts/setup-dev.sh
 
-# Work in familiar local environment
-$ code .
+# Work in your preferred IDE
+$ code .  # or vim, emacs, IntelliJ...
+
+# Run tests locally, debug, iterate
+$ npm test
+$ npm run benchmark  # check performance
 
 # Submit via standard Git workflow
 $ git add -A
-$ git commit -m "Implementation complete"
+$ git commit -m "Fix memory leak in cache layer"
 $ git push origin main
 
-# Evaluation by organizer/company or AI*
-# Results available in dashboard
+# Get evaluated on functionality + performance
+# View results in leaderboard
 # *AI evaluation: future feature`}
               </pre>
             </div>
             <div className="order-1 md:order-2">
-              <h2 className="text-2xl font-bold font-mono mb-6">Candidate Side</h2>
+              <h2 className="text-2xl font-bold font-mono mb-6">Student/Participant Side</h2>
               <p className="text-muted-foreground font-mono leading-relaxed mb-8">
-                Engineers work in their own environment using familiar tools. 
-                No browser-based editors. No artificial time pressure. 
-                Just real engineering work with standard Git workflows. Receive your own repo, push code, get evaluated.
+                Students and engineers work in their own local environment using familiar tools. 
+                No browser-based editors. No artificial constraints. 
+                Just real engineering work with standard Git workflows — exactly like contributing to real open source projects.
               </p>
               <ul className="space-y-4 font-mono text-sm">
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
-                  <span>Clone and work locally with preferred tools</span>
+                  <span>Clone and work locally with your preferred IDE and debugger</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
-                  <span>Reproducible environments for consistency</span>
+                  <span>Reproducible environments — everyone gets the same starting point</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
-                  <span>Push to your own repository — like real engineering</span>
+                  <span>Push to your own repository — like real engineering and open source</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-muted-foreground">→</span>
@@ -212,32 +219,33 @@ $ git push origin main
       <section className="py-24 border-b border-border">
         <div className="container">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-bold font-mono mb-6">Governance</h2>
+            <h2 className="text-2xl font-bold font-mono mb-6">Standards & Fairness</h2>
             <p className="text-muted-foreground font-mono leading-relaxed mb-8">
-              Standardization is the foundation of valid measurement. WIRRE enforces organizational 
-              policies across all assessments, ensuring consistency, fairness, and auditability.
+              Reproducibility and fairness are critical for development contests and practice platforms. 
+              WIRRE ensures every participant gets the same starting point, the same tools, and the same evaluation criteria — 
+              whether you're preparing for open source programs or competing in a university hackathon.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 mt-12">
             <div className="border border-border p-6">
-              <h3 className="font-mono font-bold mb-4">Templates</h3>
+              <h3 className="font-mono font-bold mb-4">Challenge Templates</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Pre-approved assessment patterns for different roles and levels. 
-                Ensures assessments align with actual job requirements.
+                Pre-built challenges for different skill levels and types: bug fixes, feature additions, 
+                performance optimization, refactoring. Custom templates for organizers.
               </p>
             </div>
             <div className="border border-border p-6">
-              <h3 className="font-mono font-bold mb-4">Constraints</h3>
+              <h3 className="font-mono font-bold mb-4">Reproducible Environments</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Organizational policies on time limits, allowed resources, and evaluation criteria. 
-                Configurable per team or globally.
+                Deterministic dev environments ensure everyone starts from the same baseline. 
+                No "works on my machine" excuses — just fair, standardized evaluation.
               </p>
             </div>
             <div className="border border-border p-6">
-              <h3 className="font-mono font-bold mb-4">Audit Logs</h3>
+              <h3 className="font-mono font-bold mb-4">Performance Benchmarks</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Complete record of all assessment configurations, candidate interactions, 
-                and evaluation decisions for compliance review.
+                Score not just on correctness but on latency, memory usage, and throughput. 
+                Learn to optimize like production engineers do.
               </p>
             </div>
           </div>
@@ -249,13 +257,13 @@ $ git push origin main
         <div className="container">
           <div className="max-w-2xl">
             <h2 className="text-2xl font-bold font-mono mb-4">
-              Ready to evaluate real engineering work?
+              Ready to practice real engineering?
             </h2>
             <p className="text-muted-foreground font-mono mb-8">
-              Sign up to start building assessments that measure what matters.
+              Sign up to access challenges, compete in contests, or organize your own development competitions.
             </p>
             <Button asChild size="lg">
-              <Link to="/signup">Sign Up</Link>
+              <Link to="/signup">Start Practicing</Link>
             </Button>
           </div>
         </div>
