@@ -37,14 +37,14 @@ export default function Index() {
             Compete in Commits.
           </p>
           <p className="mt-8 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            No DSA riddles. No whiteboard theater. No algorithm memorization.
-            We built the infrastructure for real-world coding practice — a platform where students work on actual codebases, just like open source contributions. 
-            Clone repos, fix bugs, add features, optimize performance, and push your code. Whether you're preparing for competitive programming, building your engineering portfolio, 
-            or organizing development contests for your university club, WIRRE gives you the infrastructure used by real engineering teams.
+            The first arena for Competitive Software Engineering. While platforms like leetcode tests algorithms, WIRRE tests real systems work — 
+            Git workflows, debugging, refactoring, optimization. Host debugging rounds, 
+            refactoring contests, or performance sprints. Clone a repo, fix the bug, push your code, climb the leaderboard. 
+            This isn't practice — it's a sport.
           </p>
           <div className="mt-12 flex flex-wrap gap-4">
             <Button asChild size="lg">
-              <Link to="/signup">Start Practicing</Link>
+              <Link to="/signup">Start</Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
               <Link to="/platform">
@@ -63,21 +63,20 @@ export default function Index() {
               The Problem
             </p>
             <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight">
-              LeetCode doesn't prepare you for real engineering
+              There's no area for real engineering
             </h2>
             <div className="mt-8 space-y-6 text-muted-foreground font-mono leading-relaxed">
               <p>
-                Students grind DSA problems to pass interviews, but that's not how real software gets built. 
-                Open source programs like GSoC don't ask you to invert a binary tree — they ask you to understand existing codebases, 
-                fix real bugs, and make meaningful contributions.
+                Platforms like codeforces have Competitive Programming (algorithms, trees, dynamic programming). 
+                Hackathons are about building new apps from scratch. 
+                But there's no platform for Competitive Software Engineering — debugging, refactoring sprints, latency optimization contests.
               </p>
               <p>
-                University coding clubs run contests on Codeforces and CodeChef, which are excellent for algorithms. 
-                But there's no platform for development contests — where you clone a broken repo, optimize performance, 
-                fix memory leaks, or refactor legacy code under time pressure.
+                No one hosts "Fix the Memory Leak" tournaments. No leaderboards for "Reduce API Latency by 50%" challenges. 
+                No 2-hour rounds where you race to refactor legacy code. The infrastructure to run these at scale doesn't exist.
               </p>
               <p>
-                The gap between "solving puzzles" and "shipping code" is massive. WIRRE bridges that gap.
+                Until now. WIRRE is the first arena where engineering — not just algorithms — becomes a competitive sport.
               </p>
             </div>
           </div>
@@ -92,15 +91,15 @@ export default function Index() {
               The Solution
             </p>
             <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight">
-              Practice like you're contributing to open source
+              Competitive Software Engineering, not just algorithms
             </h2>
           </div>
           <div className="mt-12 grid md:grid-cols-2 gap-8">
             <div className="p-6 border border-border">
               <Terminal className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Real-World Challenges</h3>
+              <h3 className="font-mono font-bold mb-2">Infinite Rounds</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                Clone real codebases with actual bugs and missing features. Fix issues, add functionality, optimize performance — just like open source contributions.
+                 Contests where you race to fix bugs, optimize latency, or refactor legacy code - the possibilities are infintie. Like cf rounds, but for systems work instead of algorithms.
               </p>
             </div>
             <div className="p-6 border border-border">
@@ -119,9 +118,9 @@ export default function Index() {
             </div>
             <div className="p-6 border border-border">
               <Shield className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">For Organizers Too</h3>
+              <h3 className="font-mono font-bold mb-2">Host Engineering Contests</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                University clubs and contest organizers can create development contests. Like Codeforces, but for real engineering — not just algorithms.
+                Run "Latency Optimization Sprints" or "Bug Hunt Tournaments" for your club. Leaderboards, time limits, real infrastructure — engineering as a competitive sport.
               </p>
             </div>
           </div>
@@ -172,34 +171,9 @@ export default function Index() {
             ))}
           </div>
 
-          {/* The Method */}
-          <div className="mt-12 max-w-3xl">
-            <h3 className="text-xl font-bold font-mono mb-3">The Method — Like Contributing to Open Source</h3>
-            <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-              We evaluate you where you do your best work: in your local IDE using standard Git workflows. No algorithmic riddles, no whiteboard pressure — just Clone → Code → Push. You get your own repository, make real changes to real code, push your work, and get evaluated on what matters. Perfect preparation for open source programs, hackathons, and real software engineering work. Companies can also use this infrastructure for hiring.
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground font-mono italic opacity-60">*AI evaluation is a future feature, not expected in the March 2026 launch</p>
-          </div>
+          
 
-          {/* The 4 Pillars */}
-          <div className="mt-8 grid md:grid-cols-2 gap-6">
-            <div className="p-6 border border-border">
-              <h4 className="font-mono font-bold mb-2">Functional Correctness</h4>
-              <p className="text-sm text-muted-foreground font-mono">Does the code solve the problem and pass the test suite?</p>
-            </div>
-            <div className="p-6 border border-border">
-              <h4 className="font-mono font-bold mb-2">Code Quality & Maintainability</h4>
-              <p className="text-sm text-muted-foreground font-mono">Structure, naming, abstractions and long-term maintainability.</p>
-            </div>
-            <div className="p-6 border border-border">
-              <h4 className="font-mono font-bold mb-2">Production Readiness</h4>
-              <p className="text-sm text-muted-foreground font-mono">Logging, security, performance and deployment considerations.</p>
-            </div>
-            <div className="p-6 border border-border">
-              <h4 className="font-mono font-bold mb-2">Collaboration Signal</h4>
-              <p className="text-sm text-muted-foreground font-mono">Commit structure, documentation, and how the candidate explains tradeoffs.</p>
-            </div>
-          </div>
+      
 
           <p className="mt-6 text-xs text-muted-foreground font-mono italic opacity-60">*AI-powered evaluation features are planned for future releases, not expected in the March 2026 launch</p>
         </div>
@@ -213,27 +187,26 @@ export default function Index() {
               Who It's For
             </p>
             <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-8">
-              For students, organizers, and anyone building real engineering skills
+              For competitive engineers and contest organizers
             </h2>
             <div className="space-y-6 text-muted-foreground font-mono leading-relaxed">
               <p>
-                <span className="text-foreground font-bold">Students preparing for open source</span> — Practice 
-                on real codebases with actual bugs and missing features. Build the skills that matter for programs like GSoC, 
-                Outreachy, and meaningful contributions to real projects. Your portfolio shows real engineering work, not LeetCode scores.
+                <span className="text-foreground font-bold">Engineers who compete</span> — If you do Codeforces for algorithms, 
+                do WIRRE for systems. Compete in speed debugging rounds, refactoring contests, and latency optimization sprints. 
+                Climb leaderboards based on real engineering skills: Git, Docker, CI/CD, debugging, performance tuning.
               </p>
               <p>
-                <span className="text-foreground font-bold">Contest organizers and university clubs</span> — Like Codeforces 
-                admins but for development contests. Host competitions where participants fix memory leaks, optimize latency, 
-                refactor legacy code, or build features under time pressure. Perfect for hackathons, club events, and coding competitions.
+                <span className="text-foreground font-bold">Contest organizers and university clubs</span> — Host the first 
+                "Engineering Olympics" for your community. Run 2-hour tournaments where participants race to fix bugs or optimize code. 
+                The infrastructure handles repo provisioning, leaderboards, and evaluation at scale.
               </p>
               <p>
-                <span className="text-foreground font-bold">Engineers who want to practice real skills</span> — Build your 
-                engineering muscles on challenges that mirror production work. Learn debugging, performance optimization, 
-                and systems thinking — not algorithm memorization.
+                <span className="text-foreground font-bold">Students preparing for open source</span> — Build skills that matter 
+                for programs like GSoC through competitive practice. Your portfolio shows real engineering work, not LeetCode scores.
               </p>
               <p className="text-sm italic">
-                <span className="text-foreground font-bold">Companies hiring developers</span> can also leverage this same 
-                infrastructure to evaluate candidates on real engineering work instead of whiteboard puzzles.
+                <span className="text-foreground font-bold">Companies</span> can use this infrastructure to develop open source talent 
+                or evaluate candidates on real work instead of whiteboard puzzles.
               </p>
             </div>
             <div className="mt-12">

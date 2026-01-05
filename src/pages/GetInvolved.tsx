@@ -11,12 +11,12 @@ export default function GetInvolved() {
             Get Involved
           </p>
           <h1 className="text-4xl md:text-5xl font-bold font-mono tracking-tight">
-            Join the development contest movement
+            Join the Competitive Software Engineering movement
           </h1>
           <p className="mt-6 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            WIRRE is building infrastructure for real-world coding practice and development contests. 
-            We're looking for students, organizers, contributors, and partners who share our vision of 
-            bridging the gap between LeetCode and real engineering.
+            WIRRE is building the first arena for engineering as a competitive sport. 
+            While Codeforces tests algorithms, we're creating infrastructure for speed debugging tournaments, 
+            refactoring contests, and latency optimization sprints. Join us as a competitor, organizer, or contributor.
           </p>
         </div>
       </section>
@@ -25,43 +25,44 @@ export default function GetInvolved() {
       <section className="py-24 border-b border-border">
         <div className="container">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-bold font-mono mb-6">For Students & Contributors</h2>
+            <h2 className="text-2xl font-bold font-mono mb-6">For Competitive Engineers & Contributors</h2>
             <p className="text-muted-foreground font-mono leading-relaxed mb-8">
-              Want to practice real engineering skills or contribute to WIRRE's development? 
-              We welcome students preparing for open source programs, engineers building their portfolios, 
-              and technical contributors who want to help build the future of engineering practice platforms.
+              Compete in engineering rounds, climb leaderboards, or help build the platform. 
+              We welcome engineers who want to compete in systems work (not just algorithms), 
+              students preparing for open source, and contributors building the future of competitive engineering.
             </p>
             
             <div className="space-y-6 mb-12">
               <div>
-                <h3 className="font-mono font-bold mb-2">Practice on Real Challenges</h3>
+                <h3 className="font-mono font-bold mb-2">Compete in Engineering Rounds</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  Access our library of real-world challenges: fix bugs, optimize performance, 
-                  add features, refactor code. Build your portfolio with work that mirrors real 
-                  open-source contributions — not LeetCode scores.
+                  Join speed debugging tournaments, refactoring contests, and latency optimization sprints. 
+                  Race against others to fix bugs, optimize code, or refactor legacy systems. 
+                  Leaderboards based on real engineering skills: Git, debugging, performance tuning, code quality.
                 </p>
               </div>
               
               <div>
-                <h3 className="font-mono font-bold mb-2">Contribute to WIRRE's Development</h3>
+                <h3 className="font-mono font-bold mb-2">Contribute to WIRRE's Infrastructure</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  Help us build the platform itself. Work on infrastructure, evaluation algorithms, 
-                  challenge templates, and tooling. Real open-source contribution experience.
+                  Help us build the platform that makes competitive engineering possible at scale. 
+                  Work on container orchestration, evaluation systems, challenge templates, and tooling. 
+                  Solve hard infrastructure problems — the same ones blocking others from building this.
                 </p>
               </div>
               
               <div>
-                <h3 className="font-mono font-bold mb-2">Create Challenges for the Community</h3>
+                <h3 className="font-mono font-bold mb-2">Design Contest Challenges</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  Design challenges based on real bugs you've encountered or interesting optimization 
-                  problems. Share your engineering expertise with the community.
+                  Create speed debugging challenges, refactoring puzzles, or performance optimization problems. 
+                  Turn real bugs you've encountered into competitive rounds for the community.
                 </p>
               </div>
             </div>
 
             <Button size="lg" asChild>
               <Link to="/signup">
-                Start Practicing
+                Join the Arena
               </Link>
             </Button>
           </div>
@@ -72,21 +73,20 @@ export default function GetInvolved() {
       <section className="py-24 border-b border-border">
         <div className="container">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-bold font-mono mb-6">For Organizers, Universities & Partners</h2>
+            <h2 className="text-2xl font-bold font-mono mb-6">For Contest Organizers & Partners</h2>
             <p className="text-muted-foreground font-mono leading-relaxed mb-8">
-              We're building infrastructure for development contests and engineering practice. 
-              If you run a university coding club, organize hackathons, manage a technical community, 
-              or are a company looking to evaluate engineering talent differently, we'd like to hear from you.
+              We're building infrastructure to run engineering contests at scale. 
+              If you run university coding clubs, organize competitive programming events, or manage technical communities, 
+              you can now host the first "Engineering Olympics" — speed debugging rounds, refactoring tournaments, latency sprints.
             </p>
             
             <div className="space-y-6 mb-12">
               <div>
-                <h3 className="font-mono font-bold mb-2">University Clubs & Contest Organizers</h3>
+                <h3 className="font-mono font-bold mb-2">Host Engineering Tournaments</h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  Like running Codeforces rounds for your university? Now you can host development contests — 
-                  where participants fix memory leaks, optimize latency, refactor code, and build features under time pressure. 
-                  Perfect for hackathons, club events, and open-source preparation workshops. Early organizers get priority access 
-                  and influence on features.
+                  Run 2-hour competitive rounds where participants race to fix bugs, optimize latency, or refactor code. 
+                  Like Codeforces, but for systems work instead of algorithms. Our infrastructure handles repo provisioning, 
+                  secure containers, real-time leaderboards, and automated evaluation for hundreds of participants simultaneously.
                 </p>
               </div>
               
@@ -139,11 +139,11 @@ export default function GetInvolved() {
         <div className="container">
           <div className="max-w-2xl">
             <h2 className="text-2xl font-bold font-mono mb-4">
-              Let's build this together
+              Build the first competitive engineering arena
             </h2>
             <p className="text-muted-foreground font-mono mb-8">
-              Whether you're a student looking to practice, an organizer planning dev contests, 
-              a company developing open source talent, or an investor interested in education infrastructure, 
+              Whether you want to compete in engineering rounds, organize tournaments for your community, 
+              develop open source talent, or invest in the future of competitive engineering, 
               we'd like to hear from you.
             </p>
             <div className="border border-border p-6">
