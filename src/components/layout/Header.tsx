@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const publicNavLinks = [
-  { href: "/platform", label: "Platform" },
   { href: "/get-involved", label: "Get Involved" },
 ];
 
