@@ -63,7 +63,7 @@ export default function Index() {
               The Problem
             </p>
             <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight">
-              There's no area for real engineering
+              There's no arena for real engineering
             </h2>
             <div className="mt-8 space-y-6 text-muted-foreground font-mono leading-relaxed">
               <p>
