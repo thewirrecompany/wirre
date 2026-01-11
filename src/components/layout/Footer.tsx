@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 
 const footerLinks = [
-  { href: "/platform", label: "Platform" },
+  { href: "/tnc", label: "Terms & Conditions" },
   { href: "/waitlist", label: "Login" },
   { href: "/waitlist", label: "Signup" },
 ];
