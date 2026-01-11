@@ -1380,7 +1380,7 @@ function ContributorTerms() {
           <li>✗ Subject to liquidated damages up to ₹1 Crore or more</li>
           <li>✗ Subject to injunctive relief (court orders)</li>
           <li>✗ Subject to criminal prosecution under Indian IT Act and IPC</li>
-          <li>✗ Career-ending conduct that will be reported to employers and professional networks</li>
+          
         </ul>
         <p className="mt-3 text-white font-bold">DO NOT ACCESS THE CODE IF YOU DO NOT FULLY AGREE TO THESE TERMS.</p>
       </div>
