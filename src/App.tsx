@@ -12,6 +12,7 @@ import About from "./pages/About";
 import GetInvolved from "./pages/GetInvolved";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import TnC from "./pages/TnC";
 import CompanyDashboard from "./pages/company/Dashboard";
 import RoleDetails from "./pages/company/RoleDetails";
 import AssessmentBuilder from "./pages/company/AssessmentBuilder";
@@ -28,6 +29,7 @@ import ViewAsCompany from "./pages/admin/ViewAsCompany";
 import ViewAsCandidate from "./pages/admin/ViewAsCandidate";
 import AssessmentSetup from "./pages/admin/AssessmentSetup";
 import NotFound from "./pages/NotFound";
+
 
 const queryClient = new QueryClient();
 
@@ -46,6 +48,7 @@ const App = () => (
             <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/about" element={<About />} />
             <Route path="/get-involved" element={<GetInvolved />} />
+            <Route path="/tnc" element={<TnC />} />
             <Route 
               path="/company/dashboard" 
               element={
