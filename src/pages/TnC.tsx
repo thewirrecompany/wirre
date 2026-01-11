@@ -71,10 +71,11 @@ function CandidateTerms() {
       <h2>3. CANDIDATE REGISTRATION AND ACCOUNT</h2>
       <h3>3.1 Eligibility</h3>
       <ul>
-        <li>You must be at least 18 years old</li>
+        <li>Candidates of any age may register and participate in assessment rounds.</li>
+        <li>If you are under 18 years old, you may participate in rounds but are <strong>not eligible for job opportunities or offers</strong> through the Platform.</li>
+        <li>Only Candidates who are at least 18 years old and legally eligible to work in relevant jurisdictions may be considered for job opportunities.</li>
         <li>You must provide accurate and truthful information</li>
         <li>You must have a valid GitHub account</li>
-        <li>You must be legally eligible to work in relevant jurisdictions</li>
       </ul>
       <h3>3.2 Account Creation</h3>
       <ul>
@@ -116,7 +117,6 @@ function CandidateTerms() {
         <li>Assessments use GitHub for code submission</li>
         <li>You must authorize our GitHub App to create forks</li>
         <li>We will create private forks of Organizer repositories for you</li>
-        <li>You submit work via Pull Requests from your fork</li>
       </ul>
       <h3>4.4 Assessment Participation</h3>
       <ul>
@@ -138,7 +138,6 @@ function CandidateTerms() {
       <ul>
         <li>You develop your solution in your private fork</li>
         <li>You create a Pull Request to submit your work</li>
-        <li>Pull Requests are reviewed by the hiring Organizer</li>
         <li>Organizers make all evaluation and hiring decisions</li>
       </ul>
       <h3>5.3 Code Ownership</h3>
@@ -209,8 +208,9 @@ function CandidateTerms() {
       </ul>
       <h3>7.3 Data Sharing</h3>
       <ul>
-        <li>Organizers see your Profile when you apply to Assessments</li>
-        <li>Organizers access your Submissions and GitHub activity</li>
+        <li>For unpaid rounds, Organizers see your Profile when you apply to Assessments</li>
+        <li>For paid rounds (where there is money or a job on the line), all submissions are completely anonymous and Organizers do not see your Profile to prevent cheating</li>
+        <li>Organizers access your Submissions and GitHub activity as permitted by the round type</li>
         <li>We do not sell your personal information to third parties</li>
         <li>We may share anonymized data for analytics</li>
       </ul>
@@ -392,7 +392,6 @@ function CandidateTerms() {
       <h3>14.1 Governing Law</h3>
       <ul>
         <li>These Terms are governed by the laws of India</li>
-        <li>Courts in [City, India] have exclusive jurisdiction</li>
       </ul>
       <h3>14.2 Informal Resolution</h3>
       <ul>
@@ -466,7 +465,7 @@ function CandidateTerms() {
       <ul>
         <li>You may join as a contributor to improve the Platform</li>
         <li>Contributor terms may be specified separately</li>
-        <li>Contributions are voluntary and unpaid</li>
+        <li>Contributions are voluntary.</li>
       </ul>
       <h3>17.2 Feedback</h3>
       <ul>
@@ -523,11 +522,19 @@ function CompanyTerms() {
       <hr />
 
       <h2>2. DEFINITIONS</h2>
-      <p><strong>2.1</strong> "Assessment" means a technical evaluation created by an Organizer to test candidates' skills, typically involving GitHub repository-based coding challenges.</p>
+      <p><strong>2.1</strong> "Assessment" means a technical evaluation created by an Organizer to test candidates' skills, typically involving GitHub repository-based coding challenges. Assessments ("rounds") may be either <strong>paid</strong> (where there is money or a job on the line) or <strong>unpaid</strong> (practice or learning only).</p>
       <p><strong>2.2</strong> "Candidate" means an individual who participates in Assessments through the Platform.</p>
       <p><strong>2.3</strong> "Platform Fee" means the service fee charged to Organizers for conducting Assessments, calculated as 20% of the maximum salary multiplied by the number of positions.</p>
       <p><strong>2.4</strong> "Upcoming Assessment" means any Assessment with a start date in the future that has not been marked as completed.</p>
       <hr />
+      <div className="not-prose bg-black border-l-4 border-yellow-500 p-4 my-6">
+        <p className="font-bold text-lg mb-2 text-yellow-400">IMPORTANT: PAID VS UNPAID ROUNDS</p>
+        <ul className="space-y-1 text-gray-100">
+          <li><strong>Paid rounds:</strong> All candidate submissions are completely anonymous. Organizers cannot see any candidate identities or profiles until after they have made their final selection and hiring decision. This is to prevent bias and cheating.</li>
+          <li><strong>Unpaid rounds:</strong> Organizers may view candidate profiles and submissions. However, if you conduct an unpaid round and then proceed to hire any candidate from that round, you will be subject to a penalty of up to <strong>5 times the CTC (cost to company) offered to the candidate</strong>.</li>
+          <li>Attempting to bypass these rules or misclassify a paid round as unpaid to avoid fees or penalties is a serious violation and will result in permanent ban and legal action.</li>
+        </ul>
+      </div>
 
       <h2>3. ORGANIZER REGISTRATION AND ACCOUNT</h2>
       <h3>3.1 Eligibility</h3>
@@ -577,7 +584,6 @@ function CompanyTerms() {
       <h3>4.4 Pull Request Workflow</h3>
       <ul>
         <li>Candidates will fork the designated repository</li>
-        <li>Submissions are made via Pull Requests</li>
         <li>Organizers are responsible for reviewing and evaluating submissions</li>
         <li>The Platform facilitates the workflow but does not guarantee evaluation outcomes</li>
       </ul>
@@ -643,7 +649,6 @@ function CompanyTerms() {
       <h3>7.1 Candidate Data Access</h3>
       <ul>
         <li>You may access Candidate information submitted through Assessments</li>
-        <li>You may view GitHub profiles and submission Pull Requests</li>
         <li>You must comply with all applicable data protection laws</li>
       </ul>
       <h3>7.2 Data Protection Obligations</h3>
@@ -774,7 +779,6 @@ function CompanyTerms() {
       <h3>14.1 Governing Law</h3>
       <ul>
         <li>These Terms are governed by the laws of India</li>
-        <li>Courts in [City, India] have exclusive jurisdiction</li>
       </ul>
       <h3>14.2 Arbitration</h3>
       <ul>
@@ -819,17 +823,12 @@ function CompanyTerms() {
 
       <h2>16. CONTACT INFORMATION</h2>
       <p>For questions about these Terms, contact us at:</p>
-      <p><strong>Email:</strong> legal@wirre.in<br />
-      <strong>Address:</strong> [Company Address]<br />
-      <strong>Support:</strong> thewirrecompany@gmail.com</p>
+      <p>
+      <strong>thewirrecompany@gmail.com</strong> </p>
       <hr />
 
       <h2>17. ACKNOWLEDGMENT</h2>
-      <p>By clicking "I Accept" or by using the Platform, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.</p>
-      <p><strong>Organizer Name:</strong> ______________________________</p>
-      <p><strong>Authorized Signatory:</strong> ______________________________</p>
-      <p><strong>Date:</strong> ______________________________</p>
-      <p><strong>Signature:</strong> ______________________________</p>
+      <p>By using the Platform, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.</p>
       <hr />
 
       <p className="text-center text-sm text-gray-500 mt-8"><em>© 2026 Wirre. All rights reserved.</em></p>
@@ -1349,10 +1348,7 @@ function ContributorTerms() {
       <h2>16. CONTACT AND LEGAL NOTICES</h2>
       <p>All legal notices, questions, or concerns regarding this agreement should be directed to:</p>
       <p><strong>Legal Department</strong><br />
-      <strong>Email:</strong> legal@wirre.in<br />
-      <strong>Contributors:</strong> contributors@wirre.in<br />
-      <strong>Security:</strong> security@wirre.in<br />
-      <strong>Address:</strong> [Company Address]</p>
+      <strong>Email:</strong>thewirrecompany@gmail.com<br /></p>
       <hr />
 
       <h2>17. ACCEPTANCE AND CERTIFICATION</h2>
@@ -1367,7 +1363,7 @@ function ContributorTerms() {
           <li>I will not copy, share, or misuse any code or confidential information</li>
           <li>I understand that violations may result in legal action and significant financial penalties</li>
           <li>I assign all rights in my contributions to Wirre</li>
-          <li>I am at least 18 years old and have the legal capacity to enter into this agreement</li>
+          <li>If I am a Candidate, I understand that I must be at least 18 years old to be eligible for job opportunities, but may participate in rounds if under 18.</li>
         </ol>
       </div>
 
