@@ -137,8 +137,8 @@ export function Header() {
                 navigate('/');
               }
             }}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
+              <ArrowLeft className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Back</span>
             </Button>
           )}
           <Link to="/" className="font-mono text-lg font-bold tracking-widest">WIRRE</Link>
