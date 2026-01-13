@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const publicNavLinks = [
-  { href: "/get-involved", label: "Get Involved" },
+  { href: "/get-involved", label: "get-involved" },
 ];
 
 export function Header() {
@@ -90,10 +90,10 @@ export function Header() {
   const dashboardLink = profile?.role === 'superadmin'
     ? '/superadmin/dashboard'
     : profile?.role === 'admin'
-    ? '/admin/dashboard'
-    : profile?.role === 'company'
-    ? '/company/dashboard'
-    : '/candidate/dashboard';
+      ? '/admin/dashboard'
+      : profile?.role === 'company'
+        ? '/company/dashboard'
+        : '/candidate/dashboard';
 
   const handleSignOut = async () => {
     await signOut();
@@ -102,8 +102,8 @@ export function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
-      <div className="container flex h-14 items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="container flex h-14 items-center justify-between px-2 md:px-6">
+        <div className="flex items-center gap-1.5 md:gap-4">
           {location.pathname !== '/' && (
             <Button variant="ghost" size="sm" onClick={() => {
               // Hierarchical navigation
@@ -144,7 +144,7 @@ export function Header() {
           <Link to="/" className="font-mono text-lg font-bold tracking-widest">WIRRE</Link>
         </div>
 
-        <nav className="flex items-center gap-8">
+        <nav className="flex items-center gap-2 md:gap-8">
           {!user && publicNavLinks.map((link) => (
             <Link
               key={link.href}
@@ -157,6 +157,9 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+
+
+          {!user && <span className="mx-1 text-muted-foreground/50">|</span>}
 
           {user ? (
             <>
@@ -208,10 +211,10 @@ export function Header() {
                   )}
 
                   {notifications.map((n) => (
-                    <DropdownMenuItem 
-                      key={n.id} 
-                      onClick={() => { 
-                        markAsRead(n.id); 
+                    <DropdownMenuItem
+                      key={n.id}
+                      onClick={() => {
+                        markAsRead(n.id);
                         if (profile?.role === 'admin' && n.type === 'assessment') {
                           navigate(`/admin/assessment/${n.id}`);
                         }
@@ -226,10 +229,10 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Button 
-                onClick={handleSignOut} 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                onClick={handleSignOut}
+                variant="ghost"
+                size="sm"
                 className="font-mono uppercase text-sm"
               >
                 Logout
