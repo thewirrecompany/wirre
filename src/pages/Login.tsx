@@ -111,21 +111,19 @@ export default function Login() {
           <div className="flex border border-border mb-8">
             <button
               onClick={() => setLoginType("company")}
-              className={`flex-1 py-3 px-4 font-mono text-sm uppercase tracking-wider transition-colors ${
-                loginType === "company"
+              className={`flex-1 py-3 px-4 font-mono text-sm uppercase tracking-wider transition-colors ${loginType === "company"
                   ? "bg-foreground text-background"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
-              Company
+              Organiser
             </button>
             <button
               onClick={() => setLoginType("candidate")}
-              className={`flex-1 py-3 px-4 font-mono text-sm uppercase tracking-wider transition-colors border-l border-border ${
-                loginType === "candidate"
+              className={`flex-1 py-3 px-4 font-mono text-sm uppercase tracking-wider transition-colors border-l border-border ${loginType === "candidate"
                   ? "bg-foreground text-background"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               Candidate
             </button>
@@ -170,7 +168,7 @@ export default function Login() {
             </div>
 
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "Logging in..." : `Login as ${loginType === "company" ? "Company" : "Candidate"}`}
+              {loading ? "Logging in..." : `Login as ${loginType === "company" ? "Organiser" : "Candidate"}`}
             </Button>
           </form>
 
@@ -185,4 +183,3 @@ export default function Login() {
     </Layout>
   );
 }
-	

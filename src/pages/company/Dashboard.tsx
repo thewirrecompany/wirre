@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 
 // state populated from DB
 // assessments: array of { id, title, positions, created_at, status, start_at, registrationsCount, submissionsCount }
- 
+
 
 interface CompanyDashboardProps {
   companyUserId?: string | null;
@@ -245,33 +245,33 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
           <section>
             <h2 className="text-xl font-bold font-mono mb-6">Active Roles</h2>
             <div className="border border-border">
-                <div className="grid grid-cols-4 gap-4 p-4 border-b border-border text-sm text-muted-foreground font-mono uppercase tracking-wider">
-                  <span>Role</span>
-                  <span>Positions</span>
-                  <span>Candidates</span>
-                  <span>Created</span>
-                </div>
-                {assessments.map((role) => (
-                  <Link 
-                    key={role.id} 
-                    to={`/company/assessments/${role.id}`}
-                    className="grid grid-cols-4 gap-4 p-4 border-b border-border last:border-b-0 font-mono text-sm hover:bg-secondary/50 transition-colors cursor-pointer"
-                  >
-                    <span className="font-semibold">{role.title}</span>
-                    <span>{role.positions}</span>
-                    <span>{role.registrationsCount}</span>
-                    <span className="text-muted-foreground">{new Date(role.created_at).toLocaleDateString()}</span>
-                  </Link>
-                ))}
+              <div className="grid grid-cols-4 gap-4 p-4 border-b border-border text-sm text-muted-foreground font-mono uppercase tracking-wider">
+                <span>Role</span>
+                <span>Positions</span>
+                <span>Candidates</span>
+                <span>Created</span>
+              </div>
+              {assessments.map((role) => (
+                <Link
+                  key={role.id}
+                  to={`/company/assessments/${role.id}`}
+                  className="grid grid-cols-4 gap-4 p-4 border-b border-border last:border-b-0 font-mono text-sm hover:bg-secondary/50 transition-colors cursor-pointer"
+                >
+                  <span className="font-semibold">{role.title}</span>
+                  <span>{role.positions}</span>
+                  <span>{role.registrationsCount}</span>
+                  <span className="text-muted-foreground">{new Date(role.created_at).toLocaleDateString()}</span>
+                </Link>
+              ))}
             </div>
           </section>
 
-          
+
           <div className="mt-8 border border-border p-6">
-            <h3 className="font-mono font-bold mb-2">Company Account</h3>
-            <p className="text-sm text-muted-foreground mb-4">Deleting your company will remove upcoming rounds and related registrations. Ongoing and completed rounds are preserved.</p>
+            <h3 className="font-mono font-bold mb-2">Organisation Account</h3>
+            <p className="text-sm text-muted-foreground mb-4">Deleting your organisation will remove upcoming rounds and related registrations. Ongoing and completed rounds are preserved.</p>
             <p className="text-sm mb-4">Upcoming rounds: <strong>{upcomingCount === null ? '...' : upcomingCount}</strong></p>
-            <Button variant="destructive" onClick={handleDeleteCompany}>Delete Company</Button>
+            <Button variant="destructive" onClick={handleDeleteCompany}>Delete Organisation</Button>
           </div>
         </div>
       </div>
