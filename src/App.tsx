@@ -8,7 +8,6 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Waitlist from "./pages/Waitlist";
 // Login and Signup pages are kept in the repo but not exposed via routes.
-import About from "./pages/About";
 import GetInvolved from "./pages/GetInvolved";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -46,97 +45,96 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/waitlist" element={<Waitlist />} />
-            <Route path="/about" element={<About />} />
             <Route path="/get-involved" element={<GetInvolved />} />
             <Route path="/tnc" element={<TnC />} />
-            <Route 
-              path="/company/dashboard" 
+            <Route
+              path="/company/dashboard"
               element={
                 <ProtectedRoute requiredRole="company">
                   <CompanyDashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
 
-            <Route 
-              path="/company/role/:roleId" 
+            <Route
+              path="/company/role/:roleId"
               element={
                 <ProtectedRoute requiredRole="company">
                   <RoleDetails />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/company/assessments/new" 
+            <Route
+              path="/company/assessments/new"
               element={
                 <ProtectedRoute requiredRole="company">
                   <AssessmentBuilder />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/company/assessments/:id/edit" 
+            <Route
+              path="/company/assessments/:id/edit"
               element={
                 <ProtectedRoute requiredRole="company">
                   <AssessmentBuilder />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/company/assessments/:id" 
+            <Route
+              path="/company/assessments/:id"
               element={
                 <ProtectedRoute requiredRole="company">
                   <AssessmentDetail />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/candidate/dashboard" 
+            <Route
+              path="/candidate/dashboard"
               element={
                 <ProtectedRoute requiredRole="candidate">
                   <CandidateDashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/candidate/rounds" 
+            <Route
+              path="/candidate/rounds"
               element={
                 <ProtectedRoute requiredRole="candidate">
                   <CandidateRounds />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/candidate/opportunities" 
+            <Route
+              path="/candidate/opportunities"
               element={
                 <ProtectedRoute requiredRole="candidate">
                   <CandidateOpportunities />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/candidate/profile" 
+            <Route
+              path="/candidate/profile"
               element={
                 <ProtectedRoute requiredRole="candidate">
                   <CandidateProfile />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/candidate/assessment/:id" 
+            <Route
+              path="/candidate/assessment/:id"
               element={
                 <ProtectedRoute requiredRole="candidate">
                   <Assessment />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin/dashboard" 
+            <Route
+              path="/admin/dashboard"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminDashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
             <Route
               path="/admin/profile"
@@ -154,21 +152,21 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route 
-              path="/admin/view-as/company/:userId" 
+            <Route
+              path="/admin/view-as/company/:userId"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <ViewAsCompany />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin/view-as/candidate/:userId" 
+            <Route
+              path="/admin/view-as/candidate/:userId"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <ViewAsCandidate />
                 </ProtectedRoute>
-              } 
+              }
             />
             <Route
               path="/admin/assessment/:id"

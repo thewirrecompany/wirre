@@ -17,7 +17,7 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -67,17 +67,15 @@ export default function Signup() {
           <div className="flex border border-foreground mb-8">
             <button
               onClick={() => setSignupType("company")}
-              className={`flex-1 py-3 font-mono text-xs uppercase tracking-widest transition-all ${
-                signupType === "company" ? "bg-foreground text-background" : "text-muted-foreground"
-              }`}
+              className={`flex-1 py-3 font-mono text-xs uppercase tracking-widest transition-all ${signupType === "company" ? "bg-foreground text-background" : "text-muted-foreground"
+                }`}
             >
-              Company
+              Organiser
             </button>
             <button
               onClick={() => setSignupType("candidate")}
-              className={`flex-1 py-3 font-mono text-xs uppercase tracking-widest border-l border-foreground transition-all ${
-                signupType === "candidate" ? "bg-foreground text-background" : "text-muted-foreground"
-              }`}
+              className={`flex-1 py-3 font-mono text-xs uppercase tracking-widest border-l border-foreground transition-all ${signupType === "candidate" ? "bg-foreground text-background" : "text-muted-foreground"
+                }`}
             >
               Candidate
             </button>
@@ -86,7 +84,7 @@ export default function Signup() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label className="font-mono text-xs uppercase text-muted-foreground">
-                {signupType === "company" ? "Company Name" : "Full Name"}
+                {signupType === "company" ? "Organisation Name" : "Full Name"}
               </Label>
               <Input required value={name} onChange={(e) => setName(e.target.value)} className="font-mono rounded-none border-foreground" />
             </div>
