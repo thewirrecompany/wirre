@@ -26,6 +26,7 @@ export function FeedbackModal({ trigger }: FeedbackModalProps) {
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
     const [message, setMessage] = useState("");
+    const [guestEmail, setGuestEmail] = useState("");
     const [loading, setLoading] = useState(false);
 
     // Function to handle form submission
@@ -36,8 +37,8 @@ export function FeedbackModal({ trigger }: FeedbackModalProps) {
         setLoading(true);
         try {
             const { error } = await supabase.from("feedback").insert({
-                user_id: user?.id,
-                email: user?.email,
+                user_id: user?.id || null,
+                email: user?.email || (guestEmail.trim() || null),
                 message: message.trim(),
             });
 
@@ -49,6 +50,7 @@ export function FeedbackModal({ trigger }: FeedbackModalProps) {
             });
             setOpen(false);
             setMessage("");
+            setGuestEmail("");
         } catch (error: any) {
             toast({
                 title: "Error",
@@ -63,10 +65,12 @@ export function FeedbackModal({ trigger }: FeedbackModalProps) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
-                    <MessageSquarePlus className="h-4 w-4" />
-                    Give Feedback
-                </Button>
+                {trigger || (
+                    <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+                        <MessageSquarePlus className="h-4 w-4" />
+                        Give Feedback
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
@@ -77,13 +81,25 @@ export function FeedbackModal({ trigger }: FeedbackModalProps) {
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                            id="email"
-                            value={user?.email || ""}
-                            disabled
-                            className="bg-muted text-muted-foreground"
-                        />
+                        <Label htmlFor="email">
+                            Email {!user && <span className="text-muted-foreground">(Optional)</span>}
+                        </Label>
+                        {user ? (
+                            <Input
+                                id="email"
+                                value={user.email || ""}
+                                disabled
+                                className="bg-muted text-muted-foreground"
+                            />
+                        ) : (
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="your.email@example.com"
+                                value={guestEmail}
+                                onChange={(e) => setGuestEmail(e.target.value)}
+                            />
+                        )}
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="message">Message</Label>

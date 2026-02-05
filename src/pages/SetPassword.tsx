@@ -117,7 +117,7 @@ export default function SetPassword() {
                                 value={otp}
                                 onChange={(e) => setOtp(e.target.value)}
                                 placeholder="6-digit code"
-                                className="font-mono rounded-none border-foreground text-center text-2xl tracking-[0.5em]"
+                                className="font-mono rounded-none border-foreground text-center text-2xl tracking-[0.5em] text-foreground bg-background"
                                 maxLength={6}
                             />
                         </div>

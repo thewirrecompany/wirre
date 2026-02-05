@@ -80,32 +80,34 @@ export function Footer() {
           </div>
 
           {/* Vertical Separator & User Actions */}
-          {user && (
-            <div className="flex md:items-stretch gap-8 mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-border">
-              <div className="hidden md:block w-px bg-border" />
+          <div className="flex md:items-stretch gap-8 mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-border">
+            <div className="hidden md:block w-px bg-border" />
 
-              <div className="flex flex-col gap-1 items-start md:items-end justify-center">
-                <OnboardingModal open={showOnboarding} onOpenChange={setShowOnboarding} />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="font-mono uppercase text-xs tracking-widest h-8 justify-start md:justify-end px-0 hover:bg-transparent hover:text-primary"
-                  onClick={() => setShowOnboarding(true)}
-                >
-                  Show Guide
-                </Button>
-                <FeedbackModal trigger={
+            <div className="flex flex-col gap-1 items-start md:items-end justify-center">
+              {user && (
+                <>
+                  <OnboardingModal open={showOnboarding} onOpenChange={setShowOnboarding} />
                   <Button
                     variant="ghost"
                     size="sm"
                     className="font-mono uppercase text-xs tracking-widest h-8 justify-start md:justify-end px-0 hover:bg-transparent hover:text-primary"
+                    onClick={() => setShowOnboarding(true)}
                   >
-                    Give Feedback
+                    Show Guide
                   </Button>
-                } />
-              </div>
+                </>
+              )}
+              <FeedbackModal trigger={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="font-mono uppercase text-xs tracking-widest h-8 justify-start md:justify-end px-0 hover:bg-transparent hover:text-primary"
+                >
+                  Give Feedback
+                </Button>
+              } />
             </div>
-          )}
+          </div>
         </div>
       </div>
     </footer>

@@ -33,6 +33,7 @@ import AdminProfile from "./pages/admin/Profile";
 import ViewAsCompany from "./pages/admin/ViewAsCompany";
 import ViewAsCandidate from "./pages/admin/ViewAsCandidate";
 import AssessmentSetup from "./pages/admin/AssessmentSetup";
+import AdminAssessmentDetail from "./pages/admin/AssessmentDetail";
 import NotFound from "./pages/NotFound";
 
 
@@ -220,6 +221,14 @@ const App = () => (
             />
             <Route
               path="/admin/assessment/:id"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminAssessmentDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/assessment/:id/setup"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AssessmentSetup />
