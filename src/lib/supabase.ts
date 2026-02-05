@@ -24,6 +24,7 @@ export type Profile = {
   role: 'company' | 'candidate' | 'admin';
   created_at: string;
   updated_at: string;
+  onboarding_completed: boolean;
 };
 
 export type Company = {
