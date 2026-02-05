@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const publicNavLinks = [
-  { href: "/get-involved", label: "get-involved" },
+  { href: "/get-involved", label: "Get Involved" },
 ];
 
 export function Header() {
@@ -87,7 +87,7 @@ export function Header() {
     })();
   };
 
-  const dashboardLink = profile?.role === 'superadmin'
+  const dashboardLink = (profile?.role as string) === 'superadmin'
     ? '/superadmin/dashboard'
     : profile?.role === 'admin'
       ? '/admin/dashboard'
@@ -193,6 +193,18 @@ export function Header() {
                 </>
               )}
 
+              {profile?.role === 'company' && (
+                <Link
+                  to="/company/profile"
+                  className={cn(
+                    "text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground",
+                    location.pathname === '/company/profile' ? "text-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  Profile
+                </Link>
+              )}
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="relative">
@@ -239,15 +251,27 @@ export function Header() {
               </Button>
             </>
           ) : (
-            <Link
-              to="/waitlist"
-              className={cn(
-                "text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground",
-                location.pathname === '/waitlist' ? "text-foreground" : "text-muted-foreground"
-              )}
-            >
-              Login
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                to="/waitlist"
+                className={cn(
+                  "text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground",
+                  location.pathname === '/waitlist' ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                Join Waitlist
+              </Link>
+              <span className="text-muted-foreground/30">|</span>
+              <Link
+                to="/waitlist"
+                className={cn(
+                  "text-sm font-mono uppercase tracking-wider transition-colors hover:text-foreground",
+                  location.pathname === '/login' ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                Login
+              </Link>
+            </div>
           )}
         </nav>
       </div>

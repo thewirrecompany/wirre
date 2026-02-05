@@ -40,7 +40,7 @@ export default function CandidateProfile() {
         setFullName(data.full_name || '');
         setGithubUsername(data.github_username || '');
         setLinkedinUrl(data.linkedin_url || '');
-        
+
         // Check if profile is complete
         const complete = !!(data.full_name && data.github_username && data.linkedin_url);
         setIsComplete(complete);
@@ -86,7 +86,7 @@ export default function CandidateProfile() {
       });
 
       setIsComplete(true);
-      
+
       // Redirect to opportunities page after 1 second
       setTimeout(() => {
         navigate('/candidate/opportunities');
@@ -185,15 +185,48 @@ export default function CandidateProfile() {
                   </p>
                 </div>
 
-                <div className="flex gap-3">
-                  <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? "Saving..." : isComplete ? "Update Profile" : "Complete Profile"}
-                  </Button>
-                  {isComplete && (
-                    <Button type="button" variant="outline" onClick={() => navigate('/candidate/opportunities')}>
-                      Browse Opportunities
+                <div className="flex flex-col gap-3">
+                  <div className="flex gap-3">
+                    <Button type="submit" disabled={loading} className="flex-1">
+                      {loading ? "Saving..." : isComplete ? "Update Profile" : "Complete Profile"}
                     </Button>
-                  )}
+                    {isComplete && (
+                      <Button type="button" variant="outline" onClick={() => navigate('/candidate/opportunities')}>
+                        Browse Opportunities
+                      </Button>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-xs font-mono uppercase text-muted-foreground hover:text-foreground"
+                    onClick={async () => {
+                      if (!user?.email) return;
+                      try {
+                        const { error } = await supabase.auth.signInWithOtp({
+                          email: user.email,
+                          options: {
+                            shouldCreateUser: false,
+                          }
+                        });
+                        if (error) throw error;
+
+                        toast({
+                          title: 'Verification Code Sent',
+                          description: `A code has been sent to ${user.email}`
+                        });
+                        navigate(`/set-password?email=${encodeURIComponent(user.email)}`);
+                      } catch (error: any) {
+                        toast({
+                          title: 'Error',
+                          description: error.message,
+                          variant: 'destructive'
+                        });
+                      }
+                    }}
+                  >
+                    Reset Password
+                  </Button>
                 </div>
               </form>
             </CardContent>

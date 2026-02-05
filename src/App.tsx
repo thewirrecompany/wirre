@@ -11,9 +11,11 @@ import Waitlist from "./pages/Waitlist";
 import GetInvolved from "./pages/GetInvolved";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import SetPassword from "./pages/SetPassword";
 import TnC from "./pages/TnC";
 import CompanyDashboard from "./pages/company/Dashboard";
 import RoleDetails from "./pages/company/RoleDetails";
+import CompanyProfile from "./pages/company/Profile";
 import AssessmentBuilder from "./pages/company/AssessmentBuilder";
 import AssessmentDetail from "./pages/company/AssessmentDetail";
 import CandidateDashboard from "./pages/candidate/Dashboard";
@@ -46,6 +48,9 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/get-involved" element={<GetInvolved />} />
+            <Route path="/login" element={<Waitlist />} />
+            <Route path="/signup" element={<Waitlist />} />
+            <Route path="/set-password" element={<SetPassword />} />
             <Route path="/tnc" element={<TnC />} />
             <Route
               path="/company/dashboard"
@@ -85,6 +90,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="company">
                   <AssessmentDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/profile"
+              element={
+                <ProtectedRoute requiredRole="company">
+                  <CompanyProfile />
                 </ProtectedRoute>
               }
             />
