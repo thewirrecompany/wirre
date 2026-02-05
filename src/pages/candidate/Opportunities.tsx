@@ -117,7 +117,7 @@ export default function CandidateOpportunities() {
 
     const formatDate = (dateStr: string) => {
         const d = new Date(dateStr);
-        return d.toLocaleString();
+        return d.toLocaleDateString();
     };
 
     const handleRegister = async (oppId: string) => {
@@ -350,11 +350,14 @@ export default function CandidateOpportunities() {
                                         </div>
 
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <Users className="h-4 w-4" />
-                                                <span className="font-mono text-xs">{(opp.positions ?? 1)} positions</span>
-                                            </div>
-                                            <div className="flex gap-3">
+                                            {/* Positions - Only show for Paid assessments */}
+                                            {opp.is_paid && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <Users className="h-4 w-4" />
+                                                    <span className="font-mono text-xs">{(opp.positions ?? 1)} positions</span>
+                                                </div>
+                                            )}
+                                            <div className="flex gap-3 ml-auto">
                                                 <Button size="sm" onClick={() => handleRegister(opp.id)} disabled={profileIncomplete}>
                                                     Register
                                                 </Button>

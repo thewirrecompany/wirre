@@ -40,7 +40,7 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
         // fetch assessments for this company
         const { data: aData, error: aErr } = await supabase
           .from('assessments')
-          .select('id,title,positions,created_at,status,start_at,payment_confirmed')
+          .select('id,title,positions,created_at,status,start_at,payment_confirmed,is_paid')
           .eq('company_user_id', ownerId)
           .order('created_at', { ascending: false });
 
@@ -117,7 +117,7 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
 
         // compute aggregate metrics
         const activeRoles = aList
-          .filter((a: any) => a.status !== 'completed')
+          .filter((a: any) => a.status !== 'completed' && a.is_paid)
           .reduce((sum: number, a: any) => sum + (a.positions || 0), 0);
 
         const totalRegs = uniqueCandidates.size;
@@ -243,7 +243,7 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
                   )}>
                     {role.status === 'awaiting_classroom_setup' ? 'waiting for admin' : role.status}
                   </span>
-                  <span>{role.positions}</span>
+                  <span>{role.is_paid ? role.positions : "-"}</span>
                   <span>{role.registrationsCount}</span>
                   <span className="text-muted-foreground whitespace-nowrap">{new Date(role.created_at).toLocaleDateString()}</span>
                 </Link>
