@@ -31,20 +31,20 @@ export default function Index() {
             WIRRE
           </h1>
           <h2 className="mt-6 text-3xl md:text-5xl font-extrabold tracking-tight text-rose-600 font-mono">
-             Beta Testing is Open!
+            Beta Testing is Open!
           </h2>
           <p className="mt-4 text-xl md:text-2xl text-muted-foreground font-mono">
             Compete in Commits.
           </p>
           <p className="mt-8 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            The first arena for Competitive Software Engineering. While platforms like leetcode tests algorithms, WIRRE tests real systems work — 
-            Git workflows, debugging, refactoring, optimization. Host debugging rounds, 
-            refactoring contests, or performance sprints. Clone a repo, fix the bug, push your code, climb the leaderboard. 
+            The first arena for Competitive Software Engineering. While platforms like leetcode tests algorithms, WIRRE tests real systems work —
+            Git workflows, debugging, refactoring, optimization. Host debugging rounds,
+            refactoring contests, or performance sprints. Clone a repo, fix the bug, push your code, climb the leaderboard.
             This isn't practice — it's a sport.
           </p>
           <div className="mt-12 flex flex-wrap gap-4">
             <Button asChild size="lg">
-              <Link to="/waitlist">Start</Link>
+              <Link to="/signup">Start</Link>
             </Button>
           </div>
         </div>
@@ -62,12 +62,12 @@ export default function Index() {
             </h2>
             <div className="mt-8 space-y-6 text-muted-foreground font-mono leading-relaxed">
               <p>
-                Platforms like codeforces have Competitive Programming (algorithms, trees, dynamic programming). 
-                Hackathons are about building new apps from scratch. 
+                Platforms like codeforces have Competitive Programming (algorithms, trees, dynamic programming).
+                Hackathons are about building new apps from scratch.
                 But there's no platform for Competitive Software Engineering — debugging, refactoring sprints, latency optimization contests.
               </p>
               <p>
-                No one hosts "Fix the Memory Leak" tournaments. No leaderboards for "Reduce API Latency by 50%" challenges. 
+                No one hosts "Fix the Memory Leak" tournaments. No leaderboards for "Reduce API Latency by 50%" challenges.
                 No 2-hour rounds where you race to refactor legacy code. The infrastructure to run these at scale doesn't exist.
               </p>
               <p>
@@ -94,7 +94,7 @@ export default function Index() {
               <Terminal className="h-6 w-6 mb-4" />
               <h3 className="font-mono font-bold mb-2">Infinite Rounds</h3>
               <p className="text-sm text-muted-foreground font-mono">
-                 Contests where you race to fix bugs, optimize latency, or refactor legacy code - the possibilities are infintie. Like cf rounds, but for systems work instead of algorithms.
+                Contests where you race to fix bugs, optimize latency, or refactor legacy code - the possibilities are infintie. Like cf rounds, but for systems work instead of algorithms.
               </p>
             </div>
             <div className="p-6 border border-border">
@@ -166,9 +166,9 @@ export default function Index() {
             ))}
           </div>
 
-          
 
-      
+
+
 
           <p className="mt-6 text-xs text-muted-foreground font-mono italic opacity-60">*AI-powered evaluation features are planned for future releases, not expected in the March 2026 launch</p>
         </div>
@@ -186,27 +186,27 @@ export default function Index() {
             </h2>
             <div className="space-y-6 text-muted-foreground font-mono leading-relaxed">
               <p>
-                <span className="text-foreground font-bold">Engineers who compete</span> — If you do Codeforces for algorithms, 
-                do WIRRE for systems. Compete in speed debugging rounds, refactoring contests, and latency optimization sprints. 
+                <span className="text-foreground font-bold">Engineers who compete</span> — If you do Codeforces for algorithms,
+                do WIRRE for systems. Compete in speed debugging rounds, refactoring contests, and latency optimization sprints.
                 Climb leaderboards based on real engineering skills: Git, Docker, CI/CD, debugging, performance tuning.
               </p>
               <p>
-                <span className="text-foreground font-bold">Contest organizers and university clubs</span> — Host the first 
-                "Engineering Olympics" for your community. Run 2-hour tournaments where participants race to fix bugs or optimize code. 
+                <span className="text-foreground font-bold">Contest organizers and university clubs</span> — Host the first
+                "Engineering Olympics" for your community. Run 2-hour tournaments where participants race to fix bugs or optimize code.
                 The infrastructure handles repo provisioning, leaderboards, and evaluation at scale.
               </p>
               <p>
-                <span className="text-foreground font-bold">Students preparing for open source</span> — Build skills that matter 
+                <span className="text-foreground font-bold">Students preparing for open source</span> — Build skills that matter
                 for programs like GSoC through competitive practice. Your portfolio shows real engineering work, not LeetCode scores.
               </p>
               <p className="text-sm italic">
-                <span className="text-foreground font-bold">Companies</span> can use this infrastructure to develop open source talent 
+                <span className="text-foreground font-bold">Companies</span> can use this infrastructure to develop open source talent
                 or evaluate candidates on real work instead of whiteboard puzzles.
               </p>
             </div>
             <div className="mt-12">
               <Button asChild size="lg">
-                <Link to="/waitlist">Start Practicing</Link>
+                <Link to="/signup">Start Practicing</Link>
               </Button>
             </div>
           </div>

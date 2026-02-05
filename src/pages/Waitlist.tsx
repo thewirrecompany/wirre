@@ -1,49 +1,35 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 
-export default function Waitlist() {
+export default function Signup() {
     const [email, setEmail] = useState('');
-    const [role, setRole] = useState<'candidate' | 'company' | 'contributor'>('candidate');
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
+    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            const { error } = await supabase
-                .from('waitlist')
-                .insert([
-                    {
-                        email,
-                        role,
-                    },
-                ]);
+            const { error } = await supabase.auth.signInWithOtp({
+                email,
+            });
 
-            if (error) {
-                // Duplicate email might cause a unique constraint error
-                if (error.code === '23505') {
-                    toast({
-                        title: 'Already on the waitlist',
-                        description: "You're already signed up! We'll notify you when we launch.",
-                    });
-                } else {
-                    throw error;
-                }
-            } else {
-                toast({
-                    title: 'Welcome to the waitlist!',
-                    description: "We'll notify you as soon as Wirre launches.",
-                });
-                setEmail('');
-            }
+            if (error) throw error;
+
+            toast({
+                title: 'Check your email!',
+                description: 'We sent you a 6-digit code. Enter it on the next page.',
+            });
+
+            navigate(`/set-password?email=${encodeURIComponent(email)}`);
         } catch (error: any) {
             toast({
                 title: 'Error',
@@ -60,9 +46,9 @@ export default function Waitlist() {
             <div className="min-h-screen flex items-center justify-center px-4">
                 <div className="max-w-md w-full space-y-8">
                     <div className="text-center">
-                        <h1 className="font-mono text-4xl font-bold mb-2">Join the Waitlist</h1>
+                        <h1 className="font-mono text-4xl font-bold mb-2">Sign Up</h1>
                         <p className="text-muted-foreground">
-                            Wirre is in private beta. Sign up to get early access when we launch!
+                            Join WIRRE as a candidate and start competing in commits!
                         </p>
                     </div>
 
@@ -82,44 +68,34 @@ export default function Waitlist() {
                             />
                         </div>
 
-                        <div className="space-y-3">
-                            <Label className="font-mono">I want to join as:</Label>
-                            <RadioGroup value={role} onValueChange={(value: 'candidate' | 'company' | 'contributor') => setRole(value)}>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="candidate" id="candidate" />
-                                    <Label htmlFor="candidate" className="font-mono cursor-pointer">
-                                        Candidate
-                                    </Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="company" id="company" />
-                                    <Label htmlFor="company" className="font-mono cursor-pointer">
-                                        Organiser
-                                    </Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="contributor" id="contributor" />
-                                    <Label htmlFor="contributor" className="font-mono cursor-pointer">
-                                        Contributor
-                                    </Label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-
                         <Button
                             type="submit"
                             className="w-full font-mono uppercase"
                             disabled={loading}
                         >
-                            {loading ? 'Joining...' : 'Join Waitlist'}
+                            {loading ? 'Sending...' : 'Sign Up'}
                         </Button>
 
-                        <p className="text-xs text-muted-foreground text-center">
-                            By joining, you agree to our{' '}
-                            <a href="/tnc" className="underline hover:text-foreground">
-                                Terms & Conditions
-                            </a>
-                        </p>
+                        <div className="space-y-2">
+                            <p className="text-xs text-muted-foreground text-center">
+                                By signing up, you agree to our{' '}
+                                <a href="/tnc" className="underline hover:text-foreground">
+                                    Terms & Conditions
+                                </a>
+                            </p>
+
+                            <div className="pt-4 border-t border-border">
+                                <p className="text-xs text-muted-foreground text-center">
+                                    Want to organize assessments?{' '}
+                                    <a
+                                        href="mailto:thewirrecompany@gmail.com?subject=Beta Access Request - Organizer"
+                                        className="underline hover:text-foreground font-semibold"
+                                    >
+                                        Email us for beta access
+                                    </a>
+                                </p>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>

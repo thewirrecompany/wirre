@@ -96,7 +96,8 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
     const cards = profile?.role === 'company' ? companyCards : candidateCards;
 
     useEffect(() => {
-        if (profile && profile.onboarding_completed === false && profile.role !== 'admin') {
+        const hasSeenOnboarding = sessionStorage.getItem('onboarding_seen');
+        if (profile && profile.onboarding_completed === false && profile.role !== 'admin' && !hasSeenOnboarding) {
             onOpenChange(true);
         }
     }, [profile, onOpenChange]);
@@ -116,6 +117,9 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
     const handleOpenChange = (open: boolean) => {
         if (!open && profile?.onboarding_completed === false) {
             markAsComplete();
+        }
+        if (!open) {
+            sessionStorage.setItem('onboarding_seen', 'true');
         }
         onOpenChange(open);
     };
