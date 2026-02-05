@@ -1,20 +1,22 @@
--- Fix feedback table to allow guest submissions
+-- Create feedback table with nullable user_id and email for guest submissions
+CREATE TABLE IF NOT EXISTS public.feedback (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id),
+    email TEXT,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
 
--- 1. Make user_id and email nullable (optional)
-ALTER TABLE public.feedback 
-ALTER COLUMN user_id DROP NOT NULL,
-ALTER COLUMN email DROP NOT NULL;
+-- Enable RLS
+ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 
--- 2. Drop the old restrictive policy
-DROP POLICY IF EXISTS "Users can insert their own feedback" ON public.feedback;
-
--- 3. Create new policy that allows anyone (authenticated or anonymous) to insert feedback
+-- Policy: Anyone (authenticated or anonymous) can insert feedback
 CREATE POLICY "Anyone can insert feedback" 
 ON public.feedback FOR INSERT 
 TO public
 WITH CHECK (true);
 
--- 4. Optional: Add policy for admins to view all feedback
+-- Policy: Admins can view all feedback
 CREATE POLICY "Admins can view all feedback"
 ON public.feedback FOR SELECT
 TO authenticated

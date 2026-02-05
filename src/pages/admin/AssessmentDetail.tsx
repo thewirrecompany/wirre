@@ -36,12 +36,10 @@ export default function AdminAssessmentDetail() {
                     } catch (e) { /* ignore */ }
                 }
 
-                // load registrants
-                // Admins can see real names/usernames if they want, but let's stick to what we have in the DB (github_username is on candidate profile usually, or reg logic)
-                // Similar to dashboard logic
+                // load registrants - just get basic registration data
                 const { data: regs } = await supabase
                     .from('assessment_registrations')
-                    .select('*, candidates:user_id(github_username)')
+                    .select('id, user_id, created_at, anonymous_id, repo_provisioned, access_granted, github_username')
                     .eq('assessment_id', id);
 
                 setRegistrants(regs || []);
@@ -136,11 +134,11 @@ export default function AdminAssessmentDetail() {
                             ) : (
                                 <div className="max-h-[250px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                                     {registrants.map((r) => {
-                                        // Attempt to resolve github username from joined table or fallback
-                                        const gh = r.candidates?.github_username || r.github_username || 'Unknown';
+                                        // Use github_username from registration or fallback to anonymous_id
+                                        const displayName = r.github_username || r.anonymous_id || 'Unknown';
                                         return (
                                             <div key={r.id} className="font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 bg-background/50 border border-white/10 rounded-sm">
-                                                <span className="font-bold text-primary">@{gh}</span>
+                                                <span className="font-bold text-primary">{displayName}</span>
                                                 <div className="flex gap-2 text-[10px] text-muted-foreground overflow-x-auto whitespace-nowrap">
                                                     {r.repo_provisioned && <span className="text-green-500">Repo ✓</span>}
                                                     {r.access_granted && <span className="text-green-500">Access ✓</span>}
