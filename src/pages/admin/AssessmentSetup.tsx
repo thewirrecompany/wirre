@@ -15,8 +15,11 @@ export default function AssessmentSetup() {
   const { profile } = useAuth();
 
   const [assessment, setAssessment] = useState<any | null>(null);
-  const [classroomUrl, setClassroomUrl] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editingRepo, setEditingRepo] = useState(false);
+  const [repoInput, setRepoInput] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [repoVerified, setRepoVerified] = useState(false);
 
   useEffect(() => {
     loadAssessment();
@@ -32,8 +35,59 @@ export default function AssessmentSetup() {
       return;
     }
     setAssessment(data);
-      setClassroomUrl(data.github_classroom_url || '');
+    if (data?.github_repo_owner && data?.github_repo_name) {
+      setRepoInput(`${data.github_repo_owner}/${data.github_repo_name}`);
+      setRepoVerified(data.github_repo_verified || false);
+    }
     setLoading(false);
+  }
+
+  async function handleVerifyRepo() {
+    if (!repoInput.includes('/')) {
+      toast({ title: 'Invalid format', description: 'Repository must be in owner/name format', variant: 'destructive' });
+      return;
+    }
+
+    const [owner, repo] = repoInput.split('/');
+    setVerifying(true);
+
+    try {
+      const res = await fetch('https://***REMOVED***.supabase.co/functions/v1/verify-repo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ owner, repo })
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        setRepoVerified(true);
+        toast({ title: 'Repository verified', description: `WIRRE can access ${repoInput}` });
+
+        // Update assessment with verified repo
+        const { error } = await supabase
+          .from('assessments')
+          .update({
+            github_repo_owner: owner,
+            github_repo_name: repo,
+            github_repo_verified: true
+          })
+          .eq('id', id);
+
+        if (error) throw error;
+        loadAssessment();
+      } else {
+        setRepoVerified(false);
+        toast({ title: 'Verification failed', description: data.error || 'Cannot access repository', variant: 'destructive' });
+      }
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setVerifying(false);
+    }
   }
 
   async function handleSave() {
@@ -41,41 +95,20 @@ export default function AssessmentSetup() {
     setLoading(true);
     const { error } = await supabase
       .from('assessments')
-      .update({ github_classroom_url: classroomUrl, status: 'ready', updated_at: new Date().toISOString() })
+      .update({ status: 'ready', updated_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) {
       toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
-      console.error('Error saving classroom URL:', error);
+      console.error('Error updating assessment:', error);
       setLoading(false);
       return;
     }
 
-    // record audit for admin save action
-    try {
-      await supabase.from('assessment_audits').insert([{
-        assessment_id: id,
-        actor_id: profile?.id,
-        actor_role: profile?.role || 'admin',
-        action: 'assignment_url_saved'
-      }]);
-    } catch (err) {
-      console.error('Failed to write audit record:', err);
-    }
+    // (Audit and Notification logging removed)
 
-    // create a notification entry indicating the assessment is ready
-    try {
-      await supabase.from('assessment_notifications').insert([{
-        assessment_id: id,
-        recipient_role: 'admin',
-        message: `Assessment ${assessment?.title || id} marked ready by ${profile?.id || 'admin'}`,
-        payload: { assessment_id: id, github_classroom_url: classroomUrl }
-      }]);
-    } catch (err) {
-      console.error('Failed to create ready notification:', err);
-    }
 
-    toast({ title: 'Saved', description: 'Classroom URL saved. Assessment is ready.' });
+    toast({ title: 'Saved', description: 'Assessment is ready for candidate registration.' });
     setLoading(false);
     navigate('/admin/dashboard');
   }
@@ -103,25 +136,86 @@ export default function AssessmentSetup() {
     );
   }
 
+  const startTime = assessment.start_at ? new Date(assessment.start_at) : null;
+  const hasStarted = startTime && new Date() >= startTime;
+
   return (
     <Layout>
       <div className="py-12">
         <div className="container max-w-3xl">
           <h1 className="text-2xl font-bold mb-4">Assessment Setup</h1>
-          <p className="text-sm text-muted-foreground mb-6">Paste the assignment invitation URL here so candidates can join the assignment.</p>
-
-          <div className="mb-4">
-            <Label className="font-mono text-xs mb-2 block">Template Repository</Label>
-            <div className="p-3 border border-border font-mono">{assessment.github_repo || '—'}</div>
-          </div>
+          {hasStarted && (
+            <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                ⚠️ This assessment has started. Repository cannot be edited.
+              </p>
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground mb-6">
+            When candidates register, WIRRE will automatically create a private fork of this repository for each candidate.
+            They'll work on their fork and submit via Pull Request for automated evaluation.
+          </p>
 
           <div className="mb-6">
-            <Label className="font-mono text-xs mb-2 block">Assignment Invitation URL</Label>
-            <Input value={classroomUrl} onChange={(e) => setClassroomUrl(e.target.value)} className="font-mono" />
+            <Label className="font-mono text-xs mb-2 block">Template Repository</Label>
+            {!editingRepo ? (
+              <div className="flex gap-2 items-center">
+                <div className="flex-1 p-3 border border-border font-mono bg-secondary/30">
+                  {assessment.github_repo_owner}/{assessment.github_repo_name || '—'}
+                  {repoVerified && <span className="ml-2 text-green-600 text-xs">✓ Verified</span>}
+                </div>
+                {!hasStarted && (
+                  <Button size="sm" variant="outline" onClick={() => setEditingRepo(true)}>
+                    Edit
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Input
+                  placeholder="owner/repository"
+                  value={repoInput}
+                  onChange={(e) => {
+                    setRepoInput(e.target.value);
+                    setRepoVerified(false);
+                  }}
+                  className="font-mono"
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleVerifyRepo} disabled={verifying || !repoInput.includes('/')}>
+                    {verifying ? 'Verifying...' : 'Verify Access'}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => {
+                    setEditingRepo(false);
+                    setRepoInput(`${assessment.github_repo_owner}/${assessment.github_repo_name}`);
+                    setRepoVerified(assessment.github_repo_verified || false);
+                  }}>
+                    Cancel
+                  </Button>
+                </div>
+                {repoVerified && (
+                  <p className="text-xs text-green-600">✓ Repository verified and saved</p>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground mt-2">
+              This is the organizer's repository that will be used as the template for candidate assessments.
+            </p>
+          </div>
+
+          <div className="mb-6 p-4 border border-border bg-secondary/10">
+            <h3 className="font-mono text-sm font-bold mb-2">Workflow Overview</h3>
+            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside font-mono">
+              <li>Candidate registers for this assessment</li>
+              <li>WIRRE bot creates a private fork for the candidate</li>
+              <li>Candidate clones, creates a branch, and implements solution</li>
+              <li>Candidate pushes branch and opens a Pull Request</li>
+              <li>WIRRE bot evaluates the PR and provides automated feedback</li>
+            </ol>
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handleSave} disabled={loading || !classroomUrl}>Save & Publish</Button>
+            <Button onClick={handleSave} disabled={loading}>Mark as Ready</Button>
             <Button variant="ghost" onClick={() => navigate('/admin/dashboard')}>Cancel</Button>
           </div>
         </div>

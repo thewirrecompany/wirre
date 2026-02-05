@@ -74,30 +74,41 @@ export default function ViewAsCandidate() {
   return (
     <div>
       {/* Admin header - fixed below main header */}
-      <div className="fixed top-14 left-0 right-0 z-40 bg-background border-b border-primary p-4">
-        <div className="container flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="fixed top-14 left-0 right-0 z-40 bg-black/95 backdrop-blur-md border-b border-primary/30 py-2 px-4 shadow-2xl">
+        <div className="container max-w-7xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 overflow-hidden">
             <Button
-              variant="ghost"
-              size="sm"
+              variant="outline"
+              size="icon"
               onClick={() => navigate('/admin/dashboard')}
+              className="h-8 w-8 rounded-none border-primary/40 hover:bg-primary/10 transition-colors shrink-0"
+              title="Back to Admin"
             >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Admin
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
-              <p className="text-sm font-medium">Editing as: {candidate.full_name}</p>
-              <p className="text-xs text-muted-foreground">{profile.email}</p>
+
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-primary uppercase tracking-widest opacity-70 shrink-0">Acting As</span>
+                <p className="text-xs font-mono font-bold uppercase truncate tracking-tight">{candidate.full_name}</p>
+              </div>
+              <p className="text-[9px] font-mono text-muted-foreground truncate opacity-50 lowercase">{profile.email}</p>
             </div>
           </div>
-          <div className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded font-mono">
-            ADMIN MODE
+
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:block text-[9px] font-mono border border-primary/20 px-2 py-0.5 rounded-none opacity-50 uppercase tracking-widest">
+              Proxy Session
+            </div>
+            <div className="text-[10px] bg-primary text-black px-3 py-1 font-mono font-black tracking-tighter uppercase">
+              ADMIN
+            </div>
           </div>
         </div>
       </div>
 
       {/* Add padding to account for fixed admin header */}
-      <div className="pt-[73px]">
+      <div className="pt-12">
         <CandidateDashboard candidateUserId={profile.id} />
       </div>
     </div>

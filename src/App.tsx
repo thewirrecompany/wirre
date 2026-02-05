@@ -14,15 +14,19 @@ import Signup from "./pages/Signup";
 import SetPassword from "./pages/SetPassword";
 import TnC from "./pages/TnC";
 import CompanyDashboard from "./pages/company/Dashboard";
-import RoleDetails from "./pages/company/RoleDetails";
 import CompanyProfile from "./pages/company/Profile";
 import AssessmentBuilder from "./pages/company/AssessmentBuilder";
 import AssessmentDetail from "./pages/company/AssessmentDetail";
+import AssessmentTypeSelection from "./pages/company/AssessmentTypeSelection";
+import SubmissionsList from "./pages/company/SubmissionsList";
+import SubmissionDetail from "./pages/company/SubmissionDetail";
+import SelectionReview from "./pages/company/SelectionReview";
 import CandidateDashboard from "./pages/candidate/Dashboard";
 import CandidateRounds from "./pages/candidate/Rounds";
 import CandidateOpportunities from "./pages/candidate/Opportunities";
 import CandidateProfile from "./pages/candidate/Profile";
 import Assessment from "./pages/candidate/Assessment";
+import AssessmentStatus from "./pages/candidate/AssessmentStatus";
 import AdminDashboard from "./pages/admin/Dashboard";
 import SuperadminDashboard from "./pages/superadmin/Dashboard";
 import AdminProfile from "./pages/admin/Profile";
@@ -40,7 +44,6 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter
-        basename={import.meta.env.BASE_URL}
         future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <AuthProvider>
@@ -48,7 +51,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/get-involved" element={<GetInvolved />} />
-            <Route path="/login" element={<Waitlist />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Waitlist />} />
             <Route path="/set-password" element={<SetPassword />} />
             <Route path="/tnc" element={<TnC />} />
@@ -62,10 +65,10 @@ const App = () => (
             />
 
             <Route
-              path="/company/role/:roleId"
+              path="/company/assessments/choose"
               element={
                 <ProtectedRoute requiredRole="company">
-                  <RoleDetails />
+                  <AssessmentTypeSelection />
                 </ProtectedRoute>
               }
             />
@@ -77,22 +80,48 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/company/assessments/:id/edit"
-              element={
-                <ProtectedRoute requiredRole="company">
-                  <AssessmentBuilder />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/company/assessments/:id"
-              element={
-                <ProtectedRoute requiredRole="company">
-                  <AssessmentDetail />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/company/assessments/:id">
+              <Route
+                index
+                element={
+                  <ProtectedRoute requiredRole="company">
+                    <AssessmentDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="edit"
+                element={
+                  <ProtectedRoute requiredRole="company">
+                    <AssessmentBuilder />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="submissions"
+                element={
+                  <ProtectedRoute requiredRole="company">
+                    <SubmissionsList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="submissions/:anonymousId"
+                element={
+                  <ProtectedRoute requiredRole="company">
+                    <SubmissionDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="selection-review"
+                element={
+                  <ProtectedRoute requiredRole="company">
+                    <SelectionReview />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
             <Route
               path="/company/profile"
               element={
@@ -138,6 +167,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="candidate">
                   <Assessment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/candidate/assessment/:id/status"
+              element={
+                <ProtectedRoute requiredRole="candidate">
+                  <AssessmentStatus />
                 </ProtectedRoute>
               }
             />
