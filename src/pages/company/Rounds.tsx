@@ -45,18 +45,18 @@ export default function CompanyRounds() {
           <div className="mb-12 flex items-start justify-between">
             <div>
               <h1 className="text-4xl font-bold font-mono tracking-tight mb-4">
-                Assessment Rounds
+                Assessments
               </h1>
               <p className="text-muted-foreground font-mono text-sm">
-                Manage your active assessment rounds and review candidate submissions
+                Manage your active assessments and review candidate submissions
               </p>
             </div>
-            {/* Create Round removed per request */}
+            {/* Create Assessment removed per request */}
           </div>
 
-          {/* Active Rounds */}
+          {/* Active Assessments */}
           <div className="mb-12">
-            <h2 className="text-2xl font-bold font-mono mb-6">Active Rounds</h2>
+            <h2 className="text-2xl font-bold font-mono mb-6">Active Assessments</h2>
             <div className="grid gap-6">
               {activeRounds.map((round) => (
                 <Card key={round.id}>
@@ -114,16 +114,16 @@ export default function CompanyRounds() {
             </div>
           </div>
 
-          {/* Empty state if no rounds */}
+          {/* Empty state if no assessments */}
           {activeRounds.length === 0 && (
             <Card>
               <CardContent className="py-12 text-center">
                 <GitPullRequest className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="font-mono text-lg font-semibold mb-2">
-                  No active assessment rounds
+                  No active assessments
                 </h3>
                 <p className="text-sm text-muted-foreground mb-6">
-                  Create your first assessment round to start evaluating candidates
+                  Create your first assessment to start evaluating candidates
                 </p>
                 {/* Create New Role removed */}
               </CardContent>

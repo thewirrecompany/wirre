@@ -11,10 +11,6 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 
-// state populated from DB
-// assessments: array of { id, title, positions, created_at, status, start_at, registrationsCount, submissionsCount }
-
-
 interface CompanyDashboardProps {
   companyUserId?: string | null;
 }
@@ -33,7 +29,9 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
   const [activeRolesCount, setActiveRolesCount] = useState<number>(0);
   const [totalCandidates, setTotalCandidates] = useState<number>(0);
   const [submissionsCount, setSubmissionsCount] = useState<number>(0);
-  // State and logic for profile moved to Profile.tsx
+  const [hasWebsite, setHasWebsite] = useState<boolean>(true); // default true to avoid flicker
+  const [loadingProfile, setLoadingProfile] = useState<boolean>(true);
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -45,6 +43,19 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
           .select('id,title,positions,created_at,status,start_at,payment_confirmed')
           .eq('company_user_id', ownerId)
           .order('created_at', { ascending: false });
+
+        // fetch company profile to check website
+        const { data: cData } = await supabase
+          .from('companies')
+          .select('domain')
+          .eq('user_id', ownerId)
+          .single();
+
+        if (mounted) {
+          setHasWebsite(!!cData?.domain);
+          setLoadingProfile(false);
+        }
+
         if (aErr) throw aErr;
         const aList = aData || [];
 
@@ -106,7 +117,7 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
 
         // compute aggregate metrics
         const activeRoles = aList
-          .filter((a: any) => a.status === 'published' && a.payment_confirmed === true)
+          .filter((a: any) => a.status !== 'completed')
           .reduce((sum: number, a: any) => sum + (a.positions || 0), 0);
 
         const totalRegs = uniqueCandidates.size;
@@ -125,104 +136,8 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
     return () => { mounted = false; };
   }, [ownerId]);
 
-  const handleDeleteCompany = async () => {
-    if (!ownerId) return;
-    const hasUpcoming = (upcomingCount || 0) > 0;
-    if (hasUpcoming) {
-      const ok = window.confirm('Deleting your company will remove upcoming rounds and requires payment of ₹1000. Proceed to payment?');
-      if (!ok) return;
-      // start payment flow for deletion
-      await handleMakeDeletePayment();
-      return;
-    }
-
-    const ok = window.confirm('Delete your company and upcoming rounds? This cannot be undone.');
-    if (!ok) return;
-
-    try {
-      setDeleting(true);
-      const { data, error } = await supabase.rpc('company_delete_self', { p_user_id: ownerId });
-      if (error) throw error;
-      toast({ title: 'Company deleted', description: 'Company and upcoming rounds removed.' });
-      // sign out and redirect home
-      await supabase.auth.signOut();
-      navigate('/');
-    } catch (err: any) {
-      console.error('Error deleting company:', err);
-      toast({ title: 'Delete failed', description: err?.message || String(err), variant: 'destructive' });
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const handleMakeDeletePayment = async () => {
-    if (!ownerId) return;
-    try {
-      setPaymentProcessing(true);
-      const amountRupees = 1000; // fixed deletion fee
-
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order-company`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({ amount: amountRupees, company_id: ownerId })
-      });
-
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'Failed to create razorpay order');
-
-      // Load Razorpay script
-      if (!(window as any).Razorpay) {
-        await new Promise<void>((resolve, reject) => {
-          const s = document.createElement('script')
-          s.src = 'https://checkout.razorpay.com/v1/checkout.js'
-          s.onload = () => resolve()
-          s.onerror = () => reject(new Error('Failed to load Razorpay SDK'))
-          document.head.appendChild(s)
-        })
-      }
-
-      const options: any = {
-        key: json.key,
-        amount: Math.round(amountRupees * 100),
-        currency: 'INR',
-        name: 'WIRRE',
-        order_id: json.order_id,
-        handler: async function (resp: any) {
-          toast({ title: 'Payment submitted', description: 'Payment processed — attempting deletion.' });
-          // after client-side success, call delete RPC
-          try {
-            setDeleting(true);
-            const { data, error } = await supabase.rpc('company_delete_self', { p_user_id: ownerId });
-            if (error) throw error;
-            toast({ title: 'Company deleted', description: 'Company and upcoming rounds removed.' });
-            await supabase.auth.signOut();
-            navigate('/');
-          } catch (err: any) {
-            console.error('Delete after payment failed', err);
-            toast({ title: 'Delete failed', description: String(err), variant: 'destructive' });
-          } finally {
-            setDeleting(false);
-          }
-        }
-      }
-
-      const rzp = new (window as any).Razorpay(options)
-      rzp.open()
-
-    } catch (err: any) {
-      console.error('Delete payment error', err);
-      toast({ title: 'Payment error', description: err?.message || String(err), variant: 'destructive' });
-    } finally {
-      setPaymentProcessing(false);
-    }
-  };
-
   return (
     <Layout>
-      <OnboardingModal />
       <div className="py-12">
         <div className="container">
           {/* Header */}
@@ -232,16 +147,31 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
                 Dashboard
               </h1>
               <p className="text-muted-foreground font-mono text-sm mt-1">
-                Manage open roles and review candidates
+                Manage open assessments and review candidates
               </p>
             </div>
             <div className="flex gap-4">
-              <Button asChild className="font-mono uppercase text-xs tracking-widest px-8">
-                <Link to="/company/assessments/new">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Assessment
-                </Link>
-              </Button>
+              <div title={!hasWebsite ? "Add your website in Profile to create assessments" : ""}>
+                <Button
+                  asChild={hasWebsite}
+                  disabled={!hasWebsite || loadingProfile}
+                  variant={!hasWebsite ? "outline" : "default"}
+                  className="font-mono uppercase text-xs tracking-widest px-8"
+                  onClick={(e) => { if (!hasWebsite) e.preventDefault(); }}
+                >
+                  {hasWebsite ? (
+                    <Link to="/company/assessments/choose">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Assessment
+                    </Link>
+                  ) : (
+                    <span>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Assessment
+                    </span>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -284,7 +214,6 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
             </div>
           </div>
 
-
           {/* Assessments Overview */}
           <section>
             <h2 className="text-xl font-bold font-mono mb-6 uppercase tracking-tight">Assessments Overview</h2>
@@ -312,7 +241,7 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
                     "text-[10px] uppercase tracking-tighter px-2 py-0.5 border w-fit",
                     role.status === 'published' ? "border-white bg-white text-black font-bold" : "border-muted-foreground text-muted-foreground"
                   )}>
-                    {role.status}
+                    {role.status === 'awaiting_classroom_setup' ? 'waiting for admin' : role.status}
                   </span>
                   <span>{role.positions}</span>
                   <span>{role.registrationsCount}</span>
@@ -321,8 +250,6 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
               ))}
             </div>
           </section>
-
-
         </div>
       </div>
     </Layout>

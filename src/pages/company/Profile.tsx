@@ -214,8 +214,6 @@ export default function CompanyProfile() {
                                         <Button
                                             variant="destructive"
                                             onClick={() => {
-                                                // This logic is complex and handles payments in Dashboard.
-                                                // For now, redirect to Dashboard for deletion or we can move the logic here later.
                                                 toast({
                                                     title: 'Action Required',
                                                     description: 'Account deletion is currently handled from the main dashboard due to payment verification requirements.'

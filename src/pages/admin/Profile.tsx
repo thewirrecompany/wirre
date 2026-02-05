@@ -31,7 +31,7 @@ export default function AdminProfile() {
   async function loadProfile() {
     if (!profile) return;
     try {
-      // Load role-specific details: candidates and companies store extra fields.
+      // Load role-specific details: candidates and organizers store extra fields.
       if (profile.role === 'candidate') {
         const { data, error } = await supabase.from('candidates').select('*').eq('user_id', profile.id).single();
         if (error) throw error;
