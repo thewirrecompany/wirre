@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
 import CandidateRounds from './Rounds';
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 
 // Removed placeholder lists — keep profile settings and minimal status
 
@@ -130,6 +131,7 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
 
   return (
     <Layout>
+      <OnboardingModal />
       <div className="py-12">
         <div className="container max-w-4xl">
           {/* Header */}
@@ -160,7 +162,7 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
                     disabled={loading}
                   />
                 </div>
-                
+
                 <div className="grid gap-2">
                   <Label htmlFor="email" className="font-mono text-sm">Email</Label>
                   <Input
@@ -196,8 +198,8 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
                   />
                 </div>
 
-                <Button 
-                  onClick={handleSave} 
+                <Button
+                  onClick={handleSave}
                   disabled={loading || saving}
                   className="font-mono"
                 >
@@ -226,8 +228,45 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
               Account
             </h2>
             <div className="border border-border p-6">
-              <p className="text-sm text-muted-foreground mb-4">Delete your account and all personal data. This will remove your profile, candidate/company record and any registrations you made.</p>
-              <Button variant="destructive" onClick={handleDeleteAccount} className="font-mono">Delete Account</Button>
+              <div className="mb-8 pb-8 border-b border-border">
+                <h3 className="font-mono font-bold mb-2 uppercase text-sm">Security</h3>
+                <p className="text-sm text-muted-foreground mb-4 font-mono">Reset your password.</p>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    const email = profile?.email;
+                    if (!email) return;
+                    try {
+                      const { error } = await supabase.auth.signInWithOtp({
+                        email,
+                        options: {
+                          shouldCreateUser: false,
+                        }
+                      });
+                      if (error) throw error;
+
+                      toast({
+                        title: 'Verification Code Sent',
+                        description: `A code has been sent to ${email}`
+                      });
+                      navigate(`/set-password?email=${encodeURIComponent(email)}`);
+                    } catch (error: any) {
+                      toast({
+                        title: 'Error',
+                        description: error.message,
+                        variant: 'destructive'
+                      });
+                    }
+                  }}
+                  className="font-mono uppercase text-xs tracking-widest"
+                >
+                  Reset Password
+                </Button>
+              </div>
+
+              <h3 className="font-mono font-bold mb-2 uppercase text-sm text-destructive">Danger Zone</h3>
+              <p className="text-sm text-muted-foreground mb-4 font-mono">Delete your account and all personal data. This will remove your profile, candidate/company record and any registrations you made.</p>
+              <Button variant="destructive" onClick={handleDeleteAccount} className="font-mono uppercase text-xs tracking-widest">Delete Account</Button>
             </div>
           </section>
 
