@@ -37,17 +37,11 @@ export default function Login() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/set-password`,
         }
       });
 
-      if (error) {
-        // Handle "User not found" which happens when shouldCreateUser: false
-        if (error.message.includes("is not registered") || error.message.includes("Signups not allowed") || error.status === 422) {
-          throw new Error("Access is currently limited to authorized users and previously waitlisted candidates. Please join our waitlist to get notified when we open access!");
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "OTP Sent",
@@ -58,26 +52,10 @@ export default function Login() {
     } catch (error: any) {
       console.error('OTP error:', error);
 
-      const isWaitlistError = error.message.includes("waitlist");
-
       toast({
-        title: isWaitlistError ? "Not Authorized" : "Failed to send OTP",
-        description: (
-          <div className="space-y-2">
-            <p>{error.message}</p>
-            {isWaitlistError && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full font-mono text-xs uppercase"
-                onClick={() => navigate('/waitlist')}
-              >
-                Join Waitlist
-              </Button>
-            )}
-          </div>
-        ),
-        variant: isWaitlistError ? "default" : "destructive",
+        title: "Failed to send OTP",
+        description: error.message,
+        variant: "destructive",
       });
     } finally {
       setSendingOtp(false);
@@ -156,13 +134,6 @@ export default function Login() {
     <Layout>
       <section className="min-h-[calc(100vh-14rem)] flex items-center">
         <div className="container max-w-md py-24">
-          <div className="mb-8 p-4 border border-foreground bg-secondary/30 text-center space-y-2">
-            <p className="font-mono text-sm font-bold uppercase tracking-tighter">Authorized Access Only</p>
-            <p className="font-mono text-[10px] uppercase text-muted-foreground leading-tight">
-              Login is currently restricted to whitelisted members.
-            </p>
-          </div>
-
           <h1 className="text-3xl font-bold font-mono tracking-tight mb-2">
             Login
           </h1>

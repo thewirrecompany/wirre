@@ -56,7 +56,7 @@ export default function SetPassword() {
             const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
                 email: email!,
                 token: otp,
-                type: 'magiclink', // Supabase uses 'magiclink' for email OTPs
+                type: 'email',
             });
 
             if (verifyError) throw verifyError;
@@ -67,12 +67,6 @@ export default function SetPassword() {
             });
 
             if (updateError) throw updateError;
-
-            // 3. Mark the user as no longer waitlisted in their metadata
-            // (We keep this part of the logic to clear the flag)
-            await supabase.auth.updateUser({
-                data: { is_waitlisted: false }
-            });
 
             toast({
                 title: "Success",

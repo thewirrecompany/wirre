@@ -91,7 +91,7 @@ export function Header() {
         </>
       ) : (
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-          <NavLink to="/waitlist" label="Join Waitlist" />
+          <NavLink to="/signup" label="Sign Up" />
           <span className="text-muted-foreground/30 hidden md:inline">|</span>
           <NavLink to="/login" label="Login" />
         </div>

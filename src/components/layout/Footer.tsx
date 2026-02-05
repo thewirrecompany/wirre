@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 
 const footerLinks = [
   { href: "/tnc", label: "Terms & Conditions" },
-  { href: "/waitlist", label: "Login" },
-  { href: "/waitlist", label: "Signup" },
+  { href: "/login", label: "Login" },
+  { href: "/signup", label: "Signup" },
 ];
 
 export function Footer() {
