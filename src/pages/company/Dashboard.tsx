@@ -245,7 +245,7 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
                   </span>
                   <span>{role.is_paid ? role.positions : "-"}</span>
                   <span>{role.registrationsCount}</span>
-                  <span className="text-muted-foreground whitespace-nowrap">{new Date(role.created_at).toLocaleDateString()}</span>
+                  <span className="text-muted-foreground whitespace-nowrap">{new Date(role.created_at).toLocaleDateString('en-GB')}</span>
                 </Link>
               ))}
             </div>

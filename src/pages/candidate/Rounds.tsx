@@ -192,7 +192,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-xs text-muted-foreground mb-6">
                                             <div className="flex items-center gap-2">
                                                 <Clock className="h-4 w-4 shrink-0" />
-                                                <span className="font-mono">Start: {round.start_at ? new Date(round.start_at).toLocaleString() : '—'}</span>
+                                                <span className="font-mono">Start: {round.start_at ? new Date(round.start_at).toLocaleString('en-GB') : '—'}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="font-mono">Duration: {round.duration_minutes ? `${round.duration_minutes}m` : '—'}</span>
@@ -249,7 +249,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-xs text-muted-foreground mb-6">
                                             <div className="flex items-center gap-2">
                                                 <Clock className="h-4 w-4 shrink-0" />
-                                                <span className="font-mono">Start: {round.start_at ? new Date(round.start_at).toLocaleDateString() : '—'}</span>
+                                                <span className="font-mono">Start: {round.start_at ? new Date(round.start_at).toLocaleDateString('en-GB') : '—'}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="font-mono">Duration: {round.duration_minutes ? `${round.duration_minutes}m` : '—'}</span>
@@ -306,7 +306,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-6">
                                             <Clock className="h-4 w-4 shrink-0" />
                                             <span className="font-mono">
-                                                Completed {round.start_at ? new Date(round.start_at).toLocaleDateString() : '—'}
+                                                Completed {round.start_at ? new Date(round.start_at).toLocaleDateString('en-GB') : '—'}
                                             </span>
                                         </div>
 

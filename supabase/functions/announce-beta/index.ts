@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { Resend } from 'https://esm.sh/resend@2.0.0'
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,70 +17,68 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
+    // Parse request body to check for specific target (Test Mode)
+    let emails: string[] = []
+    let targetEmail: string | undefined
 
-    // 1. Fetch all emails from the waitlist
-    const { data: waitlistData, error: waitlistError } = await supabaseClient
-      .from('waitlist')
-      .select('email')
+    try {
+      const body = await req.json()
+      targetEmail = body.target_email
+    } catch {
+      // Body might be empty, ignore
+    }
 
-    if (waitlistError) throw waitlistError
+    if (targetEmail) {
+      console.log(`Test Mode: Sending only to ${targetEmail}`)
+      emails = [targetEmail]
+    } else {
+      // 1. Fetch all emails from the waitlist
+      const { data: waitlistData, error: waitlistError } = await supabaseClient
+        .from('waitlist')
+        .select('email')
 
-    const emails = waitlistData.map(w => w.email)
-    console.log(`Found ${emails.length} emails in waitlist.`)
+      if (waitlistError) throw waitlistError
+      emails = waitlistData.map(w => w.email)
+      console.log(`Found ${emails.length} emails in waitlist.`)
+    }
 
     const results = []
 
-    // 2. Loop and send (COMMENTED OUT FOR SAFETY)
-    /*
+    // 2. Loop and Send "Recovery" Email (for existing users)
     for (const email of emails) {
       try {
-        const { data, error } = await resend.emails.send({
-          from: 'WIRRE <team@wirre.com>', // Update this to your verified sender
-          to: [email],
-          subject: 'Beta Testing for Wirre is LIVE!',
-          html: `
-            <div style="font-family: monospace; color: #000;">
-              <h1>WIRRE Beta is Open</h1>
-              <p>The arena is ready. As a whitelisted member, you have early access.</p>
-              <p>
-                <strong>Action:</strong> Set your password and enter the dashboard.
-              </p>
-              <p>
-                <a href="https://wirre.com/login" style="background: #000; color: #fff; padding: 10px 20px; text-decoration: none; display: inline-block;">
-                  Enter the Arena
-                </a>
-              </p>
-              <p style="margin-top: 30px; font-size: 12px; color: #666;">
-                Compete in Commits.
-              </p>
-            </div>
-          `
+        // Since users are already registered (migrated), we trigger a "Reset Password" flow
+        // effectively inviting them to set their password.
+        const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+          redirectTo: 'https://wirre.vercel.app/set-password'
         })
 
         if (error) {
-          console.error(`Failed to send to ${email}:`, error)
+          console.error(`Failed to send reset link to ${email}:`, error)
           results.push({ email, status: 'failed', error })
         } else {
-          console.log(`Sent to ${email}`)
-          results.push({ email, status: 'sent', id: data?.id })
+          console.log(`Sent reset link to ${email}`)
+          results.push({ email, status: 'sent' })
         }
         
-        // Rate limit protection (approx 2 emails/sec)
+        // Rate limit protection
         await new Promise(resolve => setTimeout(resolve, 500))
 
-      } catch (err) {
+      } catch (err: any) {
         console.error(`Error processing ${email}:`, err)
-        results.push({ email, status: 'error', error: err })
+        results.push({ 
+          email, 
+          status: 'error', 
+          error: err instanceof Error ? err.message : String(err) 
+        })
       }
     }
-    */
 
     return new Response(
       JSON.stringify({ 
-        message: "Function ready. Email sending is currently DISABLED (commented out).",
-        found_emails: emails.length,
-        preview_emails: emails.slice(0, 5)
+        message: "Beta announcement sequence completed.",
+        total_found: emails.length,
+        results
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

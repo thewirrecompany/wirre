@@ -873,7 +873,7 @@ export default function AdminDashboard() {
                           )}
                           <div className="flex justify-between items-center text-[10px] font-mono">
                             <span className="text-gray-300 uppercase font-bold">Joined</span>
-                            <span className="text-white font-semibold">{new Date(company.created_at).toLocaleDateString()}</span>
+                            <span className="text-white font-semibold">{new Date(company.created_at).toLocaleDateString('en-GB')}</span>
                           </div>
                         </div>
                         <Button
@@ -1344,7 +1344,7 @@ export default function AdminDashboard() {
                             )}
                             <div className="flex justify-between items-center text-[10px] font-mono">
                               <span className="text-gray-300 uppercase font-bold">Joined</span>
-                              <span className="text-white font-semibold">{new Date(candidate.created_at).toLocaleDateString()}</span>
+                              <span className="text-white font-semibold">{new Date(candidate.created_at).toLocaleDateString('en-GB')}</span>
                             </div>
                             <div className="flex justify-between items-center text-[10px] font-mono">
                               <span className="text-gray-300 uppercase font-bold">Role</span>
