@@ -1025,7 +1025,7 @@ export default function AdminDashboard() {
                             )}
                             {/* Needs setup - show setup button */}
                             {needsSetup && (
-                              <Button size="sm" className="h-9 px-6 font-mono text-[10px] uppercase tracking-widest rounded-none" onClick={() => navigate(`/admin/assessment/${a.id}`)}>
+                              <Button size="sm" className="h-9 px-6 font-mono text-[10px] uppercase tracking-widest rounded-none" onClick={() => navigate(`/admin/assessment/${a.id}/setup`)}>
                                 Setup Assessment
                               </Button>
                             )}
