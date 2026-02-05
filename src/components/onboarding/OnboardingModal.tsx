@@ -16,7 +16,8 @@ import {
     FileCode,
     Zap,
     ShieldCheck,
-    ChevronRight
+    ChevronRight,
+    MessageSquare
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +49,11 @@ const candidateCards: OnboardingCard[] = [
         description: "We're expanding the battlefield. Soon, colleges will host exclusive tech fests, and clubs will run limited-entry scrimmages. Stay sharp, update your dashboard, and be ready.",
         icon: <Target className="h-12 w-12 text-foreground" />,
     },
+    {
+        title: "We Are Listening",
+        description: "Need this guide again? Find it in the footer under 'Guide'. Have an idea or found a bug? Use the 'Give Feedback' link in the footer. We build for you.",
+        icon: <MessageSquare className="h-12 w-12 text-foreground" />,
+    },
 ];
 
 const companyCards: OnboardingCard[] = [
@@ -70,6 +76,11 @@ const companyCards: OnboardingCard[] = [
         title: "Deep Analytics",
         description: "Don't just verify 'it runs'. See how they built it. Access metrics on refactoring patterns, bug-fix velocity, and code architecture. Hire the builders.",
         icon: <FileCode className="h-12 w-12 text-foreground" />,
+    },
+    {
+        title: "We Are Listening",
+        description: "Need this guide again? Find it in the footer under 'Guide'. Have an idea or found a bug? Use the 'Give Feedback' link in the footer. We build for you.",
+        icon: <MessageSquare className="h-12 w-12 text-foreground" />,
     },
 ];
 
