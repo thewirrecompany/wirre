@@ -198,7 +198,7 @@ export default function AssessmentStatus() {
                                     </div>
                                     <div className="flex justify-between items-center text-xs md:text-sm border-b border-border/30 pb-3">
                                         <span className="text-muted-foreground font-mono uppercase tracking-tighter">Submitted</span>
-                                        <span className="font-mono text-foreground">{new Date(registration.created_at).toLocaleDateString()}</span>
+                                        <span className="font-mono text-foreground">{new Date(registration.created_at).toLocaleDateString('en-GB')}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-xs md:text-sm">
                                         <span className="text-muted-foreground font-mono uppercase tracking-tighter">ID Tag</span>

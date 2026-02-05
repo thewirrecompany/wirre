@@ -185,7 +185,7 @@ export default function AssessmentDetail() {
                 )}
                 <div className="flex justify-between border-b border-border/50 pb-2">
                   <span className="font-mono text-[10px] md:text-xs uppercase text-muted-foreground">Start</span>
-                  <span className="font-mono text-xs md:text-sm">{assessment.start_at ? new Date(assessment.start_at).toLocaleString() : '—'}</span>
+                  <span className="font-mono text-xs md:text-sm">{assessment.start_at ? new Date(assessment.start_at).toLocaleString('en-GB') : '—'}</span>
                 </div>
                 <div className="flex justify-between border-b border-border/50 pb-2">
                   <span className="font-mono text-[10px] md:text-xs uppercase text-muted-foreground">Duration</span>
@@ -235,7 +235,7 @@ export default function AssessmentDetail() {
                     <div key={r.user_id} className="font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 bg-background/50 border border-border/50 rounded-sm">
                       <span className="font-bold text-primary">{r.anonymous_id || 'CAND-PENDING'}</span>
                       <div className="flex gap-2 text-[10px] text-muted-foreground overflow-x-auto whitespace-nowrap">
-                        <span>{new Date(r.created_at).toLocaleDateString()}</span>
+                        <span>{new Date(r.created_at).toLocaleDateString('en-GB')}</span>
                         {r.repo_provisioned && <span className="text-green-500">Repo ✓</span>}
                         {r.access_granted && <span className="text-green-500">Access ✓</span>}
                       </div>

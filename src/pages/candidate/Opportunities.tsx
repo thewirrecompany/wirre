@@ -117,7 +117,7 @@ export default function CandidateOpportunities() {
 
     const formatDate = (dateStr: string) => {
         const d = new Date(dateStr);
-        return d.toLocaleDateString();
+        return d.toLocaleDateString('en-GB');
     };
 
     const handleRegister = async (oppId: string) => {
