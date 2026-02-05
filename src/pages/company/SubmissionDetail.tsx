@@ -581,7 +581,7 @@ export default function SubmissionDetail() {
                     {downloading ? 'Downloading...' : 'Download as ZIP'}
                   </Button>
 
-                  {/* AI Grading Section (Paid Only) */}
+                  {/* AI Grading Section (Paid Only) - DISABLED
                   {assessment?.is_paid && (
                     <div className="pt-2">
                       {aiResult.status === 'graded' ? (
@@ -650,6 +650,7 @@ export default function SubmissionDetail() {
                       ) : null}
                     </div>
                   )}
+                  */}
                   {!identitiesRevealed && (
                     <Button
                       variant="outline"
