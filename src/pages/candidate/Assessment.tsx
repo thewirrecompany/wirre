@@ -19,6 +19,7 @@ export default function Assessment() {
     const [privateRepoUrl, setPrivateRepoUrl] = useState<string>('');
     const [accessGranted, setAccessGranted] = useState(false);
     const [userDob, setUserDob] = useState<string | null>(null);
+    const [githubUsername, setGithubUsername] = useState<string | null>(null);
 
     // File viewer state
     const [anonymousId, setAnonymousId] = useState<string | null>(null);
@@ -89,10 +90,13 @@ export default function Assessment() {
                     setAnonymousId(data.anonymous_id);
                 }
 
-                // fetch user DOB for age check
+                // fetch user DOB and GitHub username for validation
                 if (mounted) {
-                    const { data: userData } = await supabase.from('candidates').select('date_of_birth').eq('user_id', profile.id).single();
-                    if (userData) setUserDob(userData.date_of_birth);
+                    const { data: userData } = await supabase.from('candidates').select('date_of_birth, github_username').eq('user_id', profile.id).single();
+                    if (userData) {
+                        setUserDob(userData.date_of_birth);
+                        setGithubUsername(userData.github_username);
+                    }
                 }
 
             } catch (err) {
@@ -152,9 +156,18 @@ export default function Assessment() {
 
     const canRegister = (() => {
         if (!assessment) return false;
-        if (!assessment.is_paid) return true; // Free assessments allow everyone
-        if (!userDob) return false; // Must have DOB for paid
-        return !isUnderage;
+
+        // ALL assessments require GitHub username
+        if (!githubUsername) return false;
+
+        // Paid assessments also require DOB and age check
+        if (assessment.is_paid) {
+            if (!userDob) return false;
+            return !isUnderage;
+        }
+
+        // Unpaid assessments only need GitHub username (already checked above)
+        return true;
     })();
 
     // --- File Viewer Logic ---
@@ -619,7 +632,7 @@ export default function Assessment() {
                                             }
                                         }}
                                     >
-                                        {!userDob && assessment.is_paid ? "Profile Incomplete" : (isUnderage && assessment.is_paid ? "Age 18+ Required" : "Register Now")}
+                                        {!githubUsername ? "GitHub Required" : (!userDob && assessment.is_paid ? "Profile Incomplete" : (isUnderage && assessment.is_paid ? "Age 18+ Required" : "Register Now"))}
                                     </Button>
                                 ) : (
                                     // Registered
