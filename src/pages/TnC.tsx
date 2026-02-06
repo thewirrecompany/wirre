@@ -9,36 +9,38 @@ export default function TnC() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <h1 className="text-4xl font-bold mb-6">Terms & Conditions</h1>
-        
-        {/* Tab Buttons */}
-        <div className="flex gap-4 mb-6">
-          <Button
-            variant={activeTab === 'candidate' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('candidate')}
-            className="flex-1"
-          >
-            For Candidates
-          </Button>
-          <Button
-            variant={activeTab === 'company' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('company')}
-            className="flex-1"
-          >
-            For Organizers
-          </Button>
-          <Button
-            variant={activeTab === 'contributor' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('contributor')}
-            className="flex-1"
-          >
-            For Contributors
-          </Button>
+        <h1 className="text-4xl font-bold mb-6 font-mono">Terms & Conditions</h1>
+
+        {/* Tab Buttons - Scrollable on mobile */}
+        <div className="overflow-x-auto mb-6 -mx-4 px-4">
+          <div className="flex gap-3 min-w-max md:min-w-0">
+            <Button
+              variant={activeTab === 'candidate' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('candidate')}
+              className="flex-shrink-0 md:flex-1 font-mono uppercase text-xs"
+            >
+              For Candidates
+            </Button>
+            <Button
+              variant={activeTab === 'company' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('company')}
+              className="flex-shrink-0 md:flex-1 font-mono uppercase text-xs"
+            >
+              For Organizers
+            </Button>
+            <Button
+              variant={activeTab === 'contributor' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('contributor')}
+              className="flex-shrink-0 md:flex-1 font-mono uppercase text-xs"
+            >
+              For Contributors
+            </Button>
+          </div>
         </div>
 
         {/* Content */}
-        <Card>
-          <CardContent className="p-8 prose prose-slate max-w-none">
+        <Card className="border-border">
+          <CardContent className="p-4 md:p-8 prose prose-slate dark:prose-invert max-w-none">
             {activeTab === 'candidate' ? <CandidateTerms /> : activeTab === 'company' ? <CompanyTerms /> : <ContributorTerms />}
           </CardContent>
         </Card>
@@ -53,7 +55,7 @@ function CandidateTerms() {
       <h1>TERMS AND CONDITIONS FOR CANDIDATES</h1>
       <h2>Wirre Platform User Agreement</h2>
       <p>
-      <strong>Effective Date: March 1, 2026</strong></p>
+        <strong>Effective Date: March 1, 2026</strong></p>
       <hr />
 
       <h2>1. ACCEPTANCE OF TERMS</h2>
@@ -64,16 +66,16 @@ function CandidateTerms() {
       <h2>2. DEFINITIONS</h2>
       <p><strong>2.1</strong> "Assessment" means a technical evaluation created by an Organizer to test your skills, typically involving GitHub repository-based coding challenges.</p>
       <p><strong>2.2</strong> "Organizer" means a business entity using the Platform to conduct Assessments and hire Candidates.</p>
-      <p><strong>2.3</strong> "Submission" means your code, documentation, or other materials submitted as part of an Assessment via GitHub Pull Request.</p>
+      <p><strong>2.3</strong> "Submission" means your code, documentation, or other materials submitted as part of an Assessment via the Platform.</p>
       <p><strong>2.4</strong> "Profile" means your account information including GitHub username, skills, experience, and Assessment history.</p>
       <hr />
 
       <h2>3. CANDIDATE REGISTRATION AND ACCOUNT</h2>
       <h3>3.1 Eligibility</h3>
       <ul>
-        <li>Candidates of any age may register and participate in assessment rounds.</li>
-        <li>If you are under 18 years old, you may participate in rounds but are <strong>not eligible for job opportunities or offers</strong> through the Platform.</li>
-        <li>Only Candidates who are at least 18 years old and legally eligible to work in relevant jurisdictions may be considered for job opportunities.</li>
+        <li>Candidates of any age may register and participate in practice rounds.</li>
+        <li>If you are under 18 years old, you may participate in practice rounds but are <strong>not eligible for paid rounds</strong> (rounds with job opportunities or monetary compensation).</li>
+        <li>Only Candidates who are at least 18 years old and legally eligible to work in relevant jurisdictions may participate in paid rounds.</li>
         <li>You must provide accurate and truthful information</li>
         <li>You must have a valid GitHub account</li>
       </ul>
@@ -127,7 +129,7 @@ function CandidateTerms() {
       </ul>
       <hr />
 
-      <h2>5. PULL REQUEST WORKFLOW</h2>
+      <h2>5. SUBMISSION WORKFLOW</h2>
       <h3>5.1 Repository Access</h3>
       <ul>
         <li>Upon Assessment registration, we create a private fork for you</li>
@@ -137,7 +139,7 @@ function CandidateTerms() {
       <h3>5.2 Submission Process</h3>
       <ul>
         <li>You develop your solution in your private fork</li>
-        <li>You create a Pull Request to submit your work</li>
+        <li>You submit your work directly through the Platform</li>
         <li>Organizers make all evaluation and hiring decisions</li>
       </ul>
       <h3>5.3 Code Ownership</h3>
@@ -208,8 +210,9 @@ function CandidateTerms() {
       </ul>
       <h3>7.3 Data Sharing</h3>
       <ul>
-        <li>For unpaid rounds, Organizers see your Profile when you apply to Assessments</li>
-        <li>For paid rounds (where there is money or a job on the line), all submissions are completely anonymous and Organizers do not see your Profile to prevent cheating</li>
+        <li>All submissions are anonymous regardless of round type (paid or unpaid)</li>
+        <li>For paid rounds, Organizers cannot see your Profile until after final hiring decisions are made</li>
+        <li>For unpaid rounds, your Profile remains hidden to maintain fairness and prevent bias</li>
         <li>Organizers access your Submissions and GitHub activity as permitted by the round type</li>
         <li>We do not sell your personal information to third parties</li>
         <li>We may share anonymized data for analytics</li>
@@ -513,7 +516,7 @@ function CompanyTerms() {
       <h1>TERMS AND CONDITIONS FOR ORGANIZERS</h1>
       <h2>Wirre Platform Services Agreement</h2>
       <p>
-      <strong>Effective Date: March 1, 2026</strong></p>
+        <strong>Effective Date: March 1, 2026</strong></p>
       <hr />
 
       <h2>1. ACCEPTANCE OF TERMS</h2>
@@ -527,12 +530,15 @@ function CompanyTerms() {
       <p><strong>2.3</strong> "Platform Fee" means the service fee charged to Organizers for conducting Assessments, calculated as 20% of the maximum salary multiplied by the number of positions.</p>
       <p><strong>2.4</strong> "Upcoming Assessment" means any Assessment with a start date in the future that has not been marked as completed.</p>
       <hr />
-      <div className="not-prose bg-black border-l-4 border-yellow-500 p-4 my-6">
-        <p className="font-bold text-lg mb-2 text-yellow-400">IMPORTANT: PAID VS UNPAID ROUNDS</p>
-        <ul className="space-y-1 text-gray-100">
-          <li><strong>Paid rounds:</strong> All candidate submissions are completely anonymous. Organizers cannot see any candidate identities or profiles until after they have made their final selection and hiring decision. This is to prevent bias and cheating.</li>
-          <li><strong>Unpaid rounds:</strong> Organizers may view candidate profiles and submissions. However, if you conduct an unpaid round and then proceed to hire any candidate from that round, you will be subject to a penalty of up to <strong>5 times the CTC (cost to company) offered to the candidate</strong>.</li>
-          <li>Attempting to bypass these rules or misclassify a paid round as unpaid to avoid fees or penalties is a serious violation and will result in permanent ban and legal action.</li>
+      <div className="not-prose bg-black border-l-4 border-red-500 p-4 my-6">
+        <p className="font-bold text-lg mb-2 text-red-400">⚠️ CRITICAL: PAID VS UNPAID ROUNDS</p>
+        <ul className="space-y-2 text-gray-100">
+          <li><strong className="text-red-400">Paid rounds:</strong> All candidate submissions are completely anonymous. Organizers cannot see any candidate identities or profiles until after they have made their final selection and hiring decision. This is to prevent bias and cheating.</li>
+          <li><strong className="text-red-400">Unpaid rounds:</strong> For practice, learning, or community engagement only. Candidate submissions remain anonymous. If you conduct an unpaid round and then proceed to hire any candidate from that round, you will be subject to a penalty of up to <strong>5 times the CTC (cost to company) offered to the candidate</strong>.</li>
+          <li className="text-red-300"><strong>STRICTLY PROHIBITED:</strong> You cannot conduct an unpaid round and then hire candidates from it to avoid platform fees. This is fraud and will result in immediate legal action.</li>
+          <li className="text-red-300"><strong>CTC FALSIFICATION:</strong> You must provide accurate CTC (Cost to Company) information for paid rounds. Falsifying or understating the CTC to reduce platform fees is fraud and will result in penalties of up to <strong>10 times the actual CTC</strong> plus legal action.</li>
+          <li className="text-red-300"><strong>SYSTEM ABUSE:</strong> Any attempt to bypass, hack, or manipulate the platform's paid/unpaid classification system will result in permanent account termination, forfeiture of all fees paid, and legal prosecution.</li>
+          <li>We actively monitor for violations and reserve the right to audit your hiring practices and employment contracts.</li>
         </ul>
       </div>
 
@@ -557,12 +563,29 @@ function CompanyTerms() {
       </ul>
       <hr />
 
+
       <h2>4. ASSESSMENT CREATION AND MANAGEMENT</h2>
-      <h3>4.1 Assessment Setup</h3>
+      <h3>4.1 Round Types: Paid vs Unpaid</h3>
+      <p><strong>You can create two types of rounds:</strong></p>
+      <ul>
+        <li><strong>Paid Rounds:</strong> For actual job hiring with monetary compensation. Platform fee applies (20% of max CTC × positions). Candidate identities are hidden until final selection to ensure fairness.</li>
+        <li><strong>Unpaid Rounds:</strong> For practice, learning, or community engagement only. No platform fee. Candidate submissions remain anonymous. <strong className="text-red-500">You CANNOT hire from unpaid rounds.</strong></li>
+      </ul>
+      <p><strong>Choosing the right type:</strong></p>
+      <ul>
+        <li>If you intend to hire anyone → Use <strong>Paid Round</strong></li>
+        <li>If it's purely for practice/learning → Use <strong>Unpaid Round</strong></li>
+        <li>If you're unsure → Use <strong>Paid Round</strong> to avoid penalties</li>
+      </ul>
+      <p className="text-red-500"><strong>WARNING:</strong> Hiring anyone from an unpaid round will result in a penalty of 5× the CTC offered. There are no exceptions.</p>
+      <hr />
+
+      <h3>4.2 Assessment Setup</h3>
       <p>Organizers may create Assessments specifying:</p>
       <ul>
+        <li>Round type (Paid or Unpaid)</li>
         <li>Number of positions</li>
-        <li>Minimum and maximum salary ranges</li>
+        <li>Minimum and maximum salary ranges (for paid rounds)</li>
         <li>Assessment duration and start date</li>
         <li>GitHub repository for candidate submissions</li>
         <li>Skills and requirements</li>
@@ -581,9 +604,10 @@ function CompanyTerms() {
         <li>Salary decreases do not trigger refunds</li>
         <li>Repository changes are subject to duplicate validation</li>
       </ul>
-      <h3>4.4 Pull Request Workflow</h3>
+      <h3>4.4 Submission Workflow</h3>
       <ul>
         <li>Candidates will fork the designated repository</li>
+        <li>Candidates submit their work directly through the Platform</li>
         <li>Organizers are responsible for reviewing and evaluating submissions</li>
         <li>The Platform facilitates the workflow but does not guarantee evaluation outcomes</li>
       </ul>
@@ -690,6 +714,9 @@ function CompanyTerms() {
       <p>You agree NOT to:</p>
       <ul>
         <li>Post false, misleading, or fraudulent job opportunities</li>
+        <li><strong>Falsify or understate CTC (Cost to Company) information to reduce platform fees</strong></li>
+        <li><strong>Conduct unpaid rounds and then hire candidates from those rounds to avoid fees</strong></li>
+        <li><strong>Misclassify paid rounds as unpaid to bypass anonymity requirements or reduce costs</strong></li>
         <li>Discriminate against Candidates on prohibited grounds</li>
         <li>Use the Platform for purposes other than legitimate hiring</li>
         <li>Harvest Candidate data for spam or marketing purposes</li>
@@ -698,6 +725,7 @@ function CompanyTerms() {
         <li>Violate any applicable laws or regulations</li>
         <li>Infringe on intellectual property rights</li>
         <li>Post malicious code or security vulnerabilities in Assessments</li>
+        <li><strong>Contact candidates from unpaid rounds outside the Platform to offer employment</strong></li>
       </ul>
       <hr />
 
@@ -824,7 +852,7 @@ function CompanyTerms() {
       <h2>16. CONTACT INFORMATION</h2>
       <p>For questions about these Terms, contact us at:</p>
       <p>
-      <strong>thewirrecompany@gmail.com</strong> </p>
+        <strong>thewirrecompany@gmail.com</strong> </p>
       <hr />
 
       <h2>17. ACKNOWLEDGMENT</h2>
@@ -842,8 +870,8 @@ function ContributorTerms() {
       <h1>CONTRIBUTOR AGREEMENT AND TERMS OF SERVICE</h1>
       <h2>Wirre Platform Contributor Legal Agreement</h2>
       <p>
-      <strong>Effective Date: January 11, 2026</strong></p>
-      
+        <strong>Effective Date: January 11, 2026</strong></p>
+
       <div className="not-prose bg-black border-l-4 border-red-600 p-6 my-6">
         <p className="font-bold text-xl mb-3 text-red-400">⚠️ CRITICAL LEGAL NOTICE</p>
         <p className="text-white font-semibold mb-2">BY ACCESSING THE WIRRE SOURCE CODE, YOU AGREE TO STRICT CONFIDENTIALITY AND NON-DISCLOSURE OBLIGATIONS.</p>
@@ -868,7 +896,7 @@ function ContributorTerms() {
         <li>Access to the code is a revocable privilege, NOT a right</li>
         <li>The codebase is protected by copyright, trade secret laws, and other intellectual property rights</li>
       </ul>
-      
+
       <h3>2.2 Contributor Status</h3>
       <ul>
         <li>Contributors are independent contractors, NOT employees or partners of Wirre</li>
@@ -877,7 +905,7 @@ function ContributorTerms() {
         <li>Contributors have NO equity or ownership interest in Wirre unless separately agreed in writing</li>
         <li>Contributors have NO decision-making authority over Wirre's business, technical, or strategic decisions</li>
       </ul>
-      
+
       <h3>2.3 Voluntary Participation</h3>
       <ul>
         <li>All contributions are made voluntarily and at your own discretion</li>
@@ -1348,11 +1376,11 @@ function ContributorTerms() {
       <h2>16. CONTACT AND LEGAL NOTICES</h2>
       <p>All legal notices, questions, or concerns regarding this agreement should be directed to:</p>
       <p><strong>Legal Department</strong><br />
-      <strong>Email:</strong>thewirrecompany@gmail.com<br /></p>
+        <strong>Email:</strong>thewirrecompany@gmail.com<br /></p>
       <hr />
 
       <h2>17. ACCEPTANCE AND CERTIFICATION</h2>
-      
+
       <div className="not-prose bg-black border-2 border-yellow-600 p-6 my-6">
         <p className="font-bold text-lg mb-3 text-yellow-400">MANDATORY CERTIFICATION</p>
         <p className="mb-3 text-white">By accessing the Wirre source code, you certify under penalty of perjury that:</p>
@@ -1376,11 +1404,11 @@ function ContributorTerms() {
           <li>✗ Subject to liquidated damages up to ₹1 Crore or more</li>
           <li>✗ Subject to injunctive relief (court orders)</li>
           <li>✗ Subject to criminal prosecution under Indian IT Act and IPC</li>
-          
+
         </ul>
         <p className="mt-3 text-white font-bold">DO NOT ACCESS THE CODE IF YOU DO NOT FULLY AGREE TO THESE TERMS.</p>
       </div>
-      
+
       <hr />
       <p className="text-center text-sm text-gray-500 mt-8"><em>© 2026 Wirre. All rights reserved. This is a legally binding contract.</em></p>
     </div>
