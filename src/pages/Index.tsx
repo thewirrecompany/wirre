@@ -4,14 +4,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, GitBranch, Terminal, Shield, Gauge, CheckCircle } from "lucide-react";
+import { ArrowRight, GitBranch, Terminal, Shield, Gauge, CheckCircle, Trophy, Star } from "lucide-react";
 
 const steps = [
   { num: "01", title: "Choose or create a challenge", desc: "Students pick from a library of real-world challenges, or organizers create custom contests for their communities" },
   { num: "02", title: "Clone your own repo", desc: "Each participant gets their own private repository — reproducible environments ensure everyone starts from the same baseline" },
   { num: "03", title: "Code like you're contributing", desc: "Work in your IDE, debug locally, run tests, refactor — use the same tools you'd use for real open source contributions" },
-  { num: "04", title: "Push and iterate", desc: "Commit your changes, push to your repo, get real-time feedback. Iterate until your solution works and performs well" },
+  { num: "04", title: "Push your code", desc: "Commit your changes and push to your private repository. Get feedback and scores automatically." },
   { num: "05", title: "Get evaluated on what matters", desc: "Scored on functionality, performance, code quality, and engineering judgment — the skills that matter in real projects" },
+  { num: "06", title: "Rise the ranks", desc: "Climb the global and per-session leaderboards. Earn massive bonus points for getting selected by organizers." },
 ];
 
 const metrics = [
@@ -100,7 +101,7 @@ export default function Index() {
               Competitive Software Engineering, not just algorithms
             </h2>
           </div>
-          <div className="mt-12 grid md:grid-cols-2 gap-8">
+          <div className="mt-12 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="p-6 border border-border">
               <Terminal className="h-6 w-6 mb-4" />
               <h3 className="font-mono font-bold mb-2">Infinite Rounds</h3>
@@ -127,6 +128,20 @@ export default function Index() {
               <h3 className="font-mono font-bold mb-2">Host Engineering Contests</h3>
               <p className="text-sm text-muted-foreground font-mono">
                 Run "Latency Optimization Sprints" or "Bug Hunt Tournaments" for your club. Leaderboards, time limits, real infrastructure — engineering as a competitive sport.
+              </p>
+            </div>
+            <div className="p-6 border border-border">
+              <Trophy className="h-6 w-6 mb-4" />
+              <h3 className="font-mono font-bold mb-2">Dual Leaderboards</h3>
+              <p className="text-sm text-muted-foreground font-mono">
+                Battle for the top rank globally across all platform activity, or dominate specific per-session leaderboards.
+              </p>
+            </div>
+            <div className="p-6 border border-border">
+              <Star className="h-6 w-6 mb-4" />
+              <h3 className="font-mono font-bold mb-2">Status & Perks</h3>
+              <p className="text-sm text-muted-foreground font-mono">
+                Stand out in paid rounds. Earning a "Selected" status by a company or organizer grants massive bonus points to your score.
               </p>
             </div>
           </div>
