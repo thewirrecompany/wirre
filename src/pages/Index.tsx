@@ -1,5 +1,6 @@
 
 
+import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,16 @@ const metrics = [
 ];
 
 export default function Index() {
+  const { user, profile } = useAuth();
+
+  const dashboardLink = (profile?.role as string) === 'superadmin'
+    ? '/superadmin/dashboard'
+    : profile?.role === 'admin'
+      ? '/admin/dashboard'
+      : profile?.role === 'company'
+        ? '/company/dashboard'
+        : '/candidate/dashboard';
+
   return (
     <Layout>
       {/* Hero */}
@@ -44,7 +55,7 @@ export default function Index() {
           </p>
           <div className="mt-12 flex flex-wrap gap-4">
             <Button asChild size="lg">
-              <Link to="/signup">Start</Link>
+              <Link to={user ? dashboardLink : "/login"}>{user ? "Dashboard" : "Start"}</Link>
             </Button>
           </div>
         </div>
@@ -206,7 +217,7 @@ export default function Index() {
             </div>
             <div className="mt-12">
               <Button asChild size="lg">
-                <Link to="/signup">Start Practicing</Link>
+                <Link to={user ? dashboardLink : "/login"}>{user ? "Dashboard" : "Start Practicing"}</Link>
               </Button>
             </div>
           </div>

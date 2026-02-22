@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Layout } from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, Clock } from "lucide-react";
@@ -215,7 +216,10 @@ export default function AssessmentStatus() {
                                     </CardHeader>
                                     <CardContent className="p-6 md:p-10 flex flex-col items-center justify-center text-center">
                                         <span className="text-4xl md:text-6xl font-bold font-mono text-primary tabular-nums tracking-tighter">{registration.score}</span>
-                                        <span className="text-[10px] md:text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground mt-4">Out of 10</span>
+                                        <span className="text-[10px] md:text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground mt-4 mb-6">Out of 10</span>
+                                        <Button variant="outline" size="sm" className="font-mono text-xs uppercase" onClick={() => window.location.href = `/leaderboard/assessment/${id}`}>
+                                            View Leaderboard
+                                        </Button>
                                     </CardContent>
                                 </Card>
                             ) : (

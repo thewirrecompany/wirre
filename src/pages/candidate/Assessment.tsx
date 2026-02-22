@@ -20,6 +20,7 @@ export default function Assessment() {
     const [accessGranted, setAccessGranted] = useState(false);
     const [userDob, setUserDob] = useState<string | null>(null);
     const [githubUsername, setGithubUsername] = useState<string | null>(null);
+    const [username, setUsername] = useState<string | null>(null);
 
     // File viewer state
     const [anonymousId, setAnonymousId] = useState<string | null>(null);
@@ -92,10 +93,11 @@ export default function Assessment() {
 
                 // fetch user DOB and GitHub username for validation
                 if (mounted) {
-                    const { data: userData } = await supabase.from('candidates').select('date_of_birth, github_username').eq('user_id', profile.id).single();
+                    const { data: userData } = await supabase.from('candidates').select('date_of_birth, github_username, username').eq('user_id', profile.id).single();
                     if (userData) {
                         setUserDob(userData.date_of_birth);
                         setGithubUsername(userData.github_username);
+                        setUsername(userData.username);
                     }
                 }
 
@@ -157,8 +159,8 @@ export default function Assessment() {
     const canRegister = (() => {
         if (!assessment) return false;
 
-        // ALL assessments require GitHub username
-        if (!githubUsername) return false;
+        // ALL assessments require GitHub username and WIRRE username
+        if (!githubUsername || !username) return false;
 
         // Paid assessments also require DOB and age check
         if (assessment.is_paid) {
@@ -632,7 +634,7 @@ export default function Assessment() {
                                             }
                                         }}
                                     >
-                                        {!githubUsername ? "GitHub Required" : (!userDob && assessment.is_paid ? "Profile Incomplete" : (isUnderage && assessment.is_paid ? "Age 18+ Required" : "Register Now"))}
+                                        {!username || !githubUsername ? "Profile Incomplete" : (!userDob && assessment.is_paid ? "DOB Required" : (isUnderage && assessment.is_paid ? "Age 18+ Required" : "Register Now"))}
                                     </Button>
                                 ) : (
                                     // Registered

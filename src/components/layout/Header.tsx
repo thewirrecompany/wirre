@@ -52,47 +52,62 @@ export function Header() {
     </Link>
   );
 
+  const Separator = () => (
+    <span className="text-border/50 hidden lg:inline font-light">|</span>
+  );
+
   const NavItems = () => (
     <>
       {!user && publicNavLinks.map((link) => (
-        <NavLink key={link.href} to={link.href} label={link.label} />
+        <span key={link.href} className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+          <NavLink to={link.href} label={link.label} />
+        </span>
       ))}
 
-      {!user && <span className="mx-1 text-muted-foreground/50 hidden md:inline">|</span>}
+      {!user && <Separator />}
 
       {user ? (
         <>
           <NavLink to={dashboardLink} label="Dashboard" />
+          <Separator />
+          <NavLink to="/leaderboard" label="Leaderboard" />
 
           {/* Admin Profile link (shown to admins) */}
           {profile?.role === 'admin' && (
-            <NavLink to="/admin/profile" label="Profile" />
+            <>
+              <Separator />
+              <NavLink to="/admin/profile" label="Profile" />
+            </>
           )}
 
           {profile?.role === 'candidate' && (
             <>
+              <Separator />
               <NavLink to="/candidate/rounds" label="My Rounds" />
+              <Separator />
               <NavLink to="/candidate/opportunities" label="Opportunities" />
             </>
           )}
 
           {profile?.role === 'company' && (
-            <NavLink to="/company/profile" label="Profile" />
+            <>
+              <Separator />
+              <NavLink to="/company/profile" label="Profile" />
+            </>
           )}
 
-          <Button
+          <Separator />
+          <button
             onClick={handleSignOut}
-            variant="ghost"
-            size="sm"
-            className="font-mono uppercase text-sm justify-start px-0 md:justify-center md:px-4"
+            className="font-mono uppercase text-sm tracking-wider text-muted-foreground hover:text-foreground transition-colors text-left"
           >
             Logout
-          </Button>
+          </button>
         </>
       ) : (
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
           <NavLink to="/signup" label="Sign Up" />
-          <span className="text-muted-foreground/30 hidden md:inline">|</span>
+          <Separator />
           <NavLink to="/login" label="Login" />
         </div>
       )}
@@ -101,8 +116,8 @@ export function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
-      <div className="container flex h-14 items-center justify-between px-4 md:px-6">
-        <div className="flex items-center gap-1.5 md:gap-4">
+      <div className="flex w-full h-14 items-center justify-between px-4 lg:px-8 xl:px-12">
+        <div className="flex items-center gap-1.5 lg:gap-4">
           {location.pathname !== '/' && (
             <Button variant="ghost" size="sm" onClick={() => {
               // Hierarchical navigation
@@ -136,20 +151,20 @@ export function Header() {
                 navigate('/');
               }
             }}>
-              <ArrowLeft className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Back</span>
+              <ArrowLeft className="h-4 w-4 lg:mr-2" />
+              <span className="hidden lg:inline">Back</span>
             </Button>
           )}
           <Link to="/" className="font-mono text-lg font-bold tracking-widest">WIRRE</Link>
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-4">
+        <nav className="hidden lg:flex items-center gap-4 xl:gap-6">
           <NavItems />
         </nav>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden">
+        <div className="lg:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">

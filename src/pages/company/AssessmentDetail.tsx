@@ -279,6 +279,13 @@ export default function AssessmentDetail() {
               View Submissions
             </Button>
             <Button
+              onClick={() => { if (id) navigate(`/leaderboard/assessment/${id}`); }}
+              variant="outline"
+              className="font-mono w-full sm:w-auto h-11"
+            >
+              View Leaderboard
+            </Button>
+            <Button
               onClick={() => { if (id) navigate(`/company/assessments/${id}/edit?paid=${assessment.is_paid}`); }}
               disabled={editDisabled}
               title={editDisabled ? 'Editing locked 1 day before start' : 'Edit assessment'}

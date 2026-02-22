@@ -16,6 +16,9 @@ export default function CandidateProfile() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [fullName, setFullName] = useState("");
+    const [username, setUsername] = useState("");
+    const [initialUsername, setInitialUsername] = useState("");
+    const [isPublic, setIsPublic] = useState(false);
     const [githubUsername, setGithubUsername] = useState("");
     const [initialGithubUsername, setInitialGithubUsername] = useState("");
 
@@ -45,6 +48,9 @@ export default function CandidateProfile() {
 
             if (data) {
                 setFullName(data.full_name || '');
+                setUsername(data.username || '');
+                setInitialUsername(data.username || '');
+                setIsPublic(data.is_public ?? false);
                 setGithubUsername(data.github_username || '');
                 setInitialGithubUsername(data.github_username || '');
                 console.log('Loaded profile, initial Github:', data.github_username);
@@ -52,7 +58,7 @@ export default function CandidateProfile() {
                 setDateOfBirth(data.date_of_birth || '');
 
                 // Check if profile is complete
-                const complete = !!(data.full_name && data.github_username && data.linkedin_url && data.date_of_birth);
+                const complete = !!(data.full_name && data.username && data.github_username && data.linkedin_url && data.date_of_birth);
                 setIsComplete(complete);
             }
 
@@ -108,8 +114,13 @@ export default function CandidateProfile() {
         setLoading(true);
 
         try {
-            if (!fullName || !githubUsername || !linkedinUrl) {
+            if (!fullName || !username || !githubUsername || !linkedinUrl) {
                 throw new Error('All fields are required');
+            }
+
+            // Validate Username formatting (optional alphanumeric constraints)
+            if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+                throw new Error('Username can only contain letters, numbers, underscores, dots, and hyphens');
             }
 
             // Validate GitHub username format
@@ -154,10 +165,26 @@ export default function CandidateProfile() {
                 }
             }
 
+            // Check if username is taken by someone else
+            if (username !== initialUsername) {
+                const { data: existingUser, error: checkError } = await supabase
+                    .from('candidates')
+                    .select('id')
+                    .eq('username', username)
+                    .neq('user_id', user!.id)
+                    .single();
+
+                if (existingUser && !checkError) {
+                    throw new Error('Username is already taken. Please choose another one.');
+                }
+            }
+
             const { error } = await supabase
                 .from('candidates')
                 .update({
                     full_name: fullName,
+                    username: username,
+                    is_public: isPublic,
                     github_username: githubUsername,
                     linkedin_url: linkedinUrl,
                     date_of_birth: dateOfBirth || null,
@@ -179,6 +206,7 @@ export default function CandidateProfile() {
 
             // Update initial state to new value
             setInitialGithubUsername(githubUsername);
+            setInitialUsername(username);
 
             toast({
                 title: "Profile updated",
@@ -257,6 +285,31 @@ export default function CandidateProfile() {
                                 </div>
 
                                 <div className="space-y-2">
+                                    <Label htmlFor="username" className="font-mono text-sm">
+                                        Username
+                                    </Label>
+                                    <Input
+                                        id="username"
+                                        type="text"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                                        placeholder="johndoe123"
+                                        className="font-mono"
+                                        disabled={!!initialUsername}
+                                        required
+                                    />
+                                    {initialUsername ? (
+                                        <p className="text-xs text-muted-foreground font-mono">
+                                            Username is permanently set and cannot be changed.
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-red-500 font-mono">
+                                            Once set, your username cannot be changed.
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
                                     <Label htmlFor="github" className="font-mono text-sm flex items-center gap-2">
                                         <Github className="h-4 w-4" />
                                         GitHub Username
@@ -312,7 +365,25 @@ export default function CandidateProfile() {
                                         required
                                     />
                                     <p className="text-xs text-muted-foreground font-mono">
-                                        Must be 18+ to participate in paid assessments
+                                        Must be 18+ to participate in paid assessments. Date of birth is permanently set and cannot be changed.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2 pt-4 border-t border-border">
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id="isPublic"
+                                            checked={isPublic}
+                                            onChange={(e) => setIsPublic(e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary bg-transparent"
+                                        />
+                                        <Label htmlFor="isPublic" className="font-mono text-sm uppercase tracking-wider">
+                                            Public Profile
+                                        </Label>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground font-mono leading-relaxed pl-6">
+                                        If active, your GitHub username, LinkedIn account, and full name will be visible on the leaderboard. If private, only your username will be displayed.
                                     </p>
                                 </div>
 

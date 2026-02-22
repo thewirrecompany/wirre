@@ -173,41 +173,7 @@ export default function SubmissionsList() {
     }
   };
 
-  const handleBulkAiGrading = async () => {
-    if (!id) return;
-    try {
-      toast({
-        title: "Starting AI Grading",
-        description: "Queuing grading jobs for all candidates...",
-      });
 
-      const { error } = await supabase.functions.invoke('schedule-grading', {
-        body: { assessmentId: id }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Jobs Queued",
-        description: "AI grading has started. Values will populate automatically.",
-      });
-
-      // Poll every 5s for 1 min
-      let attempts = 0;
-      const interval = setInterval(() => {
-        loadData();
-        attempts++;
-        if (attempts > 12) clearInterval(interval);
-      }, 5000);
-
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: "Failed to trigger grading: " + err.message,
-        variant: "destructive"
-      });
-    }
-  };
 
   // Helper to recursively add files to zip folder
   const addFilesToZip = async (folder: any, items: any[], assessmentId: string, anonymousId: string) => {
@@ -332,18 +298,7 @@ export default function SubmissionsList() {
               </Button>
             )}
 
-            {assessment.is_paid && (
-              <Button
-                onClick={handleBulkAiGrading}
-                disabled={loading || !assessmentEnded}
-                className="w-full sm:w-auto font-mono text-sm h-12 px-8 uppercase tracking-widest bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
-                variant="default"
-                title={!assessmentEnded ? 'Wait for assessment to end' : 'Run AI Grading'}
-              >
-                <Bot className="h-4 w-4 mr-2" />
-                Run AI Grading
-              </Button>
-            )}
+
 
             <Button
               onClick={handleDownloadAll}
