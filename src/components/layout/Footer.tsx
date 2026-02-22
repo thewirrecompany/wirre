@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { FeedbackModal } from "@/components/feedback/FeedbackModal";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { Button } from "@/components/ui/button";
 
@@ -97,15 +96,14 @@ export function Footer() {
                   </Button>
                 </>
               )}
-              <FeedbackModal trigger={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="font-mono uppercase text-xs tracking-widest h-8 justify-start md:justify-end px-0 hover:bg-transparent hover:text-primary"
-                >
-                  Give Feedback
-                </Button>
-              } />
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="font-mono uppercase text-xs tracking-widest h-8 justify-start md:justify-end px-0 hover:bg-transparent hover:text-primary"
+              >
+                <Link to="/feedback">Give Feedback</Link>
+              </Button>
             </div>
           </div>
         </div>

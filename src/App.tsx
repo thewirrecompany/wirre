@@ -36,6 +36,7 @@ import AssessmentSetup from "./pages/admin/AssessmentSetup";
 import AdminAssessmentDetail from "./pages/admin/AssessmentDetail";
 import NotFound from "./pages/NotFound";
 import Leaderboard from "./pages/Leaderboard";
+import Feedback from "./pages/Feedback";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/signup" element={<Waitlist />} />
             <Route path="/set-password" element={<SetPassword />} />
             <Route path="/tnc" element={<TnC />} />
+            <Route path="/feedback" element={<Feedback />} />
             <Route path="/leaderboard" element={
               <ProtectedRoute>
                 <Leaderboard />
