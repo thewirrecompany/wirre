@@ -34,6 +34,20 @@ export default function Login() {
 
     setSendingOtp(true);
     try {
+      // 1. Verify that the email actually exists in the profiles table to prevent abuse
+      const { data: profileExists, error: profileCheckError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (profileCheckError) throw profileCheckError;
+
+      if (!profileExists) {
+        throw new Error("No account found with this email address. Please sign up first.");
+      }
+
+      // 2. If it exists, proceed to send the OTP
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
