@@ -24,11 +24,14 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
     const [saving, setSaving] = useState(false);
     const [profileData, setProfileData] = useState({
         full_name: "",
+        username: "",
+        is_public: false,
         email: "",
         github_username: "",
         linkedin_url: "",
         date_of_birth: "",
     });
+    const [initialUsername, setInitialUsername] = useState("");
     const [dobSet, setDobSet] = useState(false);
 
     const [initialGithubUsername, setInitialGithubUsername] = useState("");
@@ -47,17 +50,23 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
                 // Get candidate profile data
                 const { data: candidateRow } = await supabase
                     .from('candidates')
-                    .select('full_name, github_username, linkedin_url, date_of_birth')
+                    .select('full_name, username, is_public, github_username, linkedin_url, date_of_birth')
                     .eq('user_id', targetId)
                     .single();
 
                 setProfileData({
                     full_name: candidateRow?.full_name || "",
+                    username: candidateRow?.username || "",
+                    is_public: candidateRow?.is_public ?? false,
                     email: profileRow?.email || "",
                     github_username: candidateRow?.github_username || "",
                     linkedin_url: candidateRow?.linkedin_url || "",
                     date_of_birth: candidateRow?.date_of_birth || "",
                 });
+
+                if (candidateRow?.username) {
+                    setInitialUsername(candidateRow.username);
+                }
 
                 if (candidateRow?.github_username) {
                     setInitialGithubUsername(candidateRow.github_username);
@@ -128,10 +137,31 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
                 }
             }
 
+            // Check if username is taken
+            if (profileData.username !== initialUsername) {
+                // Validate Username formatting (optional alphanumeric constraints)
+                if (!/^[a-zA-Z0-9_.-]+$/.test(profileData.username)) {
+                    throw new Error('Username can only contain letters, numbers, underscores, dots, and hyphens');
+                }
+
+                const { data: existingUser, error: checkError } = await supabase
+                    .from('candidates')
+                    .select('id')
+                    .eq('username', profileData.username)
+                    .neq('user_id', profile.id)
+                    .single();
+
+                if (existingUser && !checkError) {
+                    throw new Error('Username is already taken. Please choose another one.');
+                }
+            }
+
             const { error } = await supabase
                 .from('candidates')
                 .update({
                     full_name: profileData.full_name,
+                    username: profileData.username,
+                    is_public: profileData.is_public,
                     github_username: profileData.github_username,
                     linkedin_url: profileData.linkedin_url,
                     date_of_birth: profileData.date_of_birth || null,
@@ -151,6 +181,7 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
             }
 
             setInitialGithubUsername(profileData.github_username);
+            setInitialUsername(profileData.username);
 
             toast({
                 title: "Profile updated",
@@ -237,6 +268,23 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
                                 </div>
 
                                 <div className="grid gap-2">
+                                    <Label htmlFor="username" className="font-mono text-xs md:text-sm uppercase text-muted-foreground">Username</Label>
+                                    <Input
+                                        id="username"
+                                        value={profileData.username}
+                                        onChange={(e) => setProfileData({ ...profileData, username: e.target.value.toLowerCase() })}
+                                        className="font-mono h-10 md:h-11"
+                                        disabled={loading || !!initialUsername}
+                                        placeholder="johndoe123"
+                                    />
+                                    {initialUsername ? (
+                                        <p className="text-[10px] text-muted-foreground font-mono">Username is permanently set and cannot be changed.</p>
+                                    ) : (
+                                        <p className="text-[10px] text-red-500 font-mono font-medium">Once set, your username cannot be changed.</p>
+                                    )}
+                                </div>
+
+                                <div className="grid gap-2">
                                     <Label htmlFor="email" className="font-mono text-xs md:text-sm uppercase text-muted-foreground">Email</Label>
                                     <Input
                                         id="email"
@@ -283,6 +331,24 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
                                     />
                                     {dobSet && <p className="text-[10px] text-muted-foreground font-mono">Date of birth is permanently set and cannot be changed.</p>}
                                     {!dobSet && <p className="text-[10px] text-muted-foreground font-mono">You can only set this once. Please ensure it is correct.</p>}
+                                </div>
+
+                                <div className="space-y-2 pt-4 border-t border-border">
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id="isPublic"
+                                            checked={profileData.is_public}
+                                            onChange={(e) => setProfileData({ ...profileData, is_public: e.target.checked })}
+                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary bg-transparent"
+                                        />
+                                        <Label htmlFor="isPublic" className="font-mono text-xs md:text-sm uppercase tracking-wider">
+                                            Public Profile
+                                        </Label>
+                                    </div>
+                                    <p className="text-[10px] md:text-xs text-muted-foreground font-mono leading-relaxed pl-6">
+                                        If active, your GitHub username, LinkedIn account, and full name will be visible on the leaderboard. If private, only your username will be displayed.
+                                    </p>
                                 </div>
 
                                 <Button

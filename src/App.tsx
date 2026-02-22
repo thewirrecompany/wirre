@@ -35,7 +35,7 @@ import ViewAsCandidate from "./pages/admin/ViewAsCandidate";
 import AssessmentSetup from "./pages/admin/AssessmentSetup";
 import AdminAssessmentDetail from "./pages/admin/AssessmentDetail";
 import NotFound from "./pages/NotFound";
-
+import Leaderboard from "./pages/Leaderboard";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +56,16 @@ const App = () => (
             <Route path="/signup" element={<Waitlist />} />
             <Route path="/set-password" element={<SetPassword />} />
             <Route path="/tnc" element={<TnC />} />
+            <Route path="/leaderboard" element={
+              <ProtectedRoute>
+                <Leaderboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/leaderboard/assessment/:id" element={
+              <ProtectedRoute>
+                <Leaderboard />
+              </ProtectedRoute>
+            } />
             <Route
               path="/company/dashboard"
               element={
