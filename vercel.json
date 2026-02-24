@@ -10,6 +10,10 @@
   },
   "routes": [
     {
+      "src": "/supabase-proxy/(.*)",
+      "dest": "https://iaqzckrdoovxtmjinxal.supabase.co/$1"
+    },
+    {
       "handle": "filesystem"
     },
     {
