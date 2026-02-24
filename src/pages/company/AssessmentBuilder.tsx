@@ -1115,7 +1115,11 @@ export default function AssessmentBuilder() {
                   <li>Enable "Template repository" in Repo Settings.</li>
                   <li>Install the <a href="https://github.com/apps/wirre-repo-verifier/installations/select_target" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold">WIRRE App</a> and grant access to this repo.</li>
                   <li>WIRRE will automatically provision private working environments for each candidate.</li>
+                  <li className="text-primary font-bold">CRITICAL: Make the repository PUBLIC (READ-ONLY) exactly 2 hours before the round starts.</li>
                 </ol>
+                <p className="text-[10px] text-muted-foreground italic mt-4 leading-relaxed">
+                  Reason: At WIRRE, we appreciate the open source community. By making the source public once the round begins, we allow the community to learn from the challenges, and candidates can discuss the problem and their approaches together after their rounds are complete.
+                </p>
               </div>
             </div>
             <Input

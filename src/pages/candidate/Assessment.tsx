@@ -291,18 +291,37 @@ export default function Assessment() {
                     description: `Repository created. You now have access.`,
                 });
                 if (result.repoUrl) setPrivateRepoUrl(result.repoUrl);
-                // The polling effect will pick up the access grant soon, 
-                // but we can also manually refresh the registration data
+
+                // 1. Manually verify access immediately via the edge function to avoid polling delay
+                try {
+                    const { error: verifyError } = await supabase.functions.invoke('grant-assessment-access', {
+                        body: {
+                            assessmentId: id,
+                            candidateUserId: profile.id,
+                        }
+                    });
+                    if (!verifyError) setAccessGranted(true);
+                } catch (e) {
+                    console.debug('Manual access verification after provisioning failed', e);
+                }
+
+                // 2. Refresh registration data from DB
                 const { data: regData } = await supabase
                     .from('assessment_registrations')
                     .select('private_repo_url, access_granted, anonymous_id')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
+
                 if (regData) {
-                    setPrivateRepoUrl(regData.private_repo_url || '');
-                    setAccessGranted(regData.access_granted || false);
+                    setPrivateRepoUrl(regData.private_repo_url || result.repoUrl || '');
+                    setAccessGranted(regData.access_granted || true); // Default to true if provision was successful
                     setAnonymousId(regData.anonymous_id);
+
+                    // 3. Immediately load file contents for the preview
+                    if (regData.anonymous_id || result.anonymousId) {
+                        loadFileContents('');
+                    }
                 }
             }
         } catch (err: any) {
@@ -503,10 +522,30 @@ export default function Assessment() {
                                                 </div>
                                             );
                                         } else if (isRegistered) {
-                                            // Registered but no private_repo_url (initializing)
+                                            // Registered but no private_repo_url (not created yet)
+                                            const startAt = assessment?.start_at ? new Date(assessment.start_at).getTime() : 0;
+                                            const now = Date.now();
+                                            const isWithinOneHour = now >= startAt - 60 * 60 * 1000;
+
+                                            if (isProvisioning) {
+                                                return (
+                                                    <div className="p-4 bg-muted/30 border border-border border-dashed font-mono text-xs md:text-sm text-muted-foreground animate-pulse rounded-sm">
+                                                        Initializing your private repository... this usually takes a few minutes.
+                                                    </div>
+                                                );
+                                            }
+
+                                            if (isWithinOneHour) {
+                                                return (
+                                                    <div className="p-4 bg-primary/5 border border-primary/20 font-mono text-xs md:text-sm text-primary/80 leading-relaxed rounded-sm">
+                                                        Setup your environment by clicking <span className="text-primary font-bold">Start Now</span> below.
+                                                    </div>
+                                                );
+                                            }
+
                                             return (
-                                                <div className="p-4 bg-muted/30 border border-border border-dashed font-mono text-xs md:text-sm text-muted-foreground animate-pulse rounded-sm">
-                                                    Initializing your private repository... this usually takes a few minutes.
+                                                <div className="p-4 bg-muted/30 border border-border border-dashed font-mono text-xs md:text-sm text-muted-foreground rounded-sm">
+                                                    Repository will be available 1 hour before start.
                                                 </div>
                                             );
                                         } else {

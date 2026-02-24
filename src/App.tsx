@@ -52,10 +52,10 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/waitlist" element={<Maintenance />} />
+            <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/get-involved" element={<GetInvolved />} />
-            <Route path="/login" element={<Maintenance />} />
-            <Route path="/signup" element={<Maintenance />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Waitlist />} />
             <Route path="/maintenance" element={<Maintenance />} />
             <Route path="/set-password" element={<SetPassword />} />
             <Route path="/tnc" element={<TnC />} />
