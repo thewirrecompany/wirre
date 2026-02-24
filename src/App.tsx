@@ -35,6 +35,7 @@ import ViewAsCandidate from "./pages/admin/ViewAsCandidate";
 import AssessmentSetup from "./pages/admin/AssessmentSetup";
 import AdminAssessmentDetail from "./pages/admin/AssessmentDetail";
 import NotFound from "./pages/NotFound";
+import Maintenance from "./pages/Maintenance";
 import Leaderboard from "./pages/Leaderboard";
 import Feedback from "./pages/Feedback";
 
@@ -51,10 +52,11 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/waitlist" element={<Waitlist />} />
+            <Route path="/waitlist" element={<Maintenance />} />
             <Route path="/get-involved" element={<GetInvolved />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Waitlist />} />
+            <Route path="/login" element={<Maintenance />} />
+            <Route path="/signup" element={<Maintenance />} />
+            <Route path="/maintenance" element={<Maintenance />} />
             <Route path="/set-password" element={<SetPassword />} />
             <Route path="/tnc" element={<TnC />} />
             <Route path="/feedback" element={<Feedback />} />
