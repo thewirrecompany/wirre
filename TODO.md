@@ -54,4 +54,8 @@ For the Top `2 * N` candidates, we perform a deep, multi-pass analysis. **We sti
 3.  **Premium Value to Companies:** Generates highly technical, irrefutable feedback (e.g., exact line numbers of N+1 queries) rather than generic AI fluff. Easy upsell for paid assessments.
 
 
-also we can do : 2. add clubs and college specific things.
+# NEED TO CHANGE : MAKE SURE THAT THE PRIVATE REPOSITORIES ARE MADE EVEN IF THE TEMPLATE REPOSITORY IS PRIVATE 
+
+# ADD EMAIL NOTIFICATIONS ABOUT ROUND STARTS, ROUND REGISTRATIONS
+
+# ADD GOOGLE OAUTH AND INTEGRATE IT WITH THE ENTIRE CODEBASE + SUPABASE
