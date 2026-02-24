@@ -56,7 +56,7 @@ export default function Index() {
           </p>
           <div className="mt-12 flex flex-wrap gap-4">
             <Button asChild size="lg">
-              <Link to={user ? dashboardLink : "/login"}>{user ? "Dashboard" : "Start"}</Link>
+              <Link to={user ? dashboardLink : "/maintenance"}>{user ? "Dashboard" : "Start"}</Link>
             </Button>
           </div>
         </div>
@@ -232,7 +232,7 @@ export default function Index() {
             </div>
             <div className="mt-12">
               <Button asChild size="lg">
-                <Link to={user ? dashboardLink : "/login"}>{user ? "Dashboard" : "Start Practicing"}</Link>
+                <Link to={user ? dashboardLink : "/maintenance"}>{user ? "Dashboard" : "Start Practicing"}</Link>
               </Button>
             </div>
           </div>

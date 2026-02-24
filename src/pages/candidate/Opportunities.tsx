@@ -180,61 +180,8 @@ export default function CandidateOpportunities() {
 
             toast({
                 title: "Registration successful",
-                description: "Setting up your private repository...",
+                description: "You've successfully registered for this assessment.",
             });
-
-            // Step 2: Provision private repository for candidate (but don't grant access yet)
-            if (githubUsername) {
-                const provisionResponse = await fetch(
-                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/provision-candidate-repo`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-                        },
-                        body: JSON.stringify({
-                            assessmentId: oppId,
-                            candidateUserId: profile.id,
-                            candidateGithubUsername: githubUsername,
-                        }),
-                    }
-                );
-
-                if (!provisionResponse.ok) {
-                    const errorData = await provisionResponse.json();
-                    console.error('Failed to provision repository:', errorData);
-                    console.error('Full error details:', JSON.stringify(errorData, null, 2));
-
-                    // If organizer hasn't set up GitHub access, show appropriate message
-                    if (errorData.error?.includes('GitHub installation not found')) {
-                        toast({
-                            title: "Registration complete",
-                            description: "The organizer will set up your repository soon. You'll get access when the assessment starts.",
-                            variant: "default",
-                        });
-                    } else {
-                        // Log the actual error for debugging
-                        console.error('Provisioning error message:', errorData.error);
-                        toast({
-                            title: "Registration complete",
-                            description: "Your repository will be provisioned shortly. You'll get access when the assessment starts.",
-                            variant: "default",
-                        });
-                    }
-                } else {
-                    const result = await provisionResponse.json();
-                    toast({
-                        title: "All set!",
-                        description: `Repository created. You'll get access when the assessment starts.`,
-                    });
-                }
-            } else {
-                toast({
-                    title: "Registration successful",
-                    description: "You'll receive your repository access when the assessment starts"
-                });
-            }
 
             // refresh lists
             loadOpportunities();

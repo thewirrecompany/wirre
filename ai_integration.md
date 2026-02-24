@@ -52,3 +52,6 @@ For the Top `2 * N` candidates, we perform a deep, multi-pass analysis. **We sti
 1.  **Drastically Reduced Token Costs:** Analyzing a 500-line diff 4 times is exponentially cheaper than parsing a 10,000-line repository once.
 2.  **Zero Context-Window Loss:** LLMs won't hallucinate or skip files. They are forced to evaluate only the lines the candidate actually changed.
 3.  **Premium Value to Companies:** Generates highly technical, irrefutable feedback (e.g., exact line numbers of N+1 queries) rather than generic AI fluff. Easy upsell for paid assessments.
+
+
+also we can do : 2. add clubs and college specific things.

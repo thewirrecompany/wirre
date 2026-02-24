@@ -1,2 +1,0 @@
-1. AI integration, auto checking.
-2. add clubs and college specific things.

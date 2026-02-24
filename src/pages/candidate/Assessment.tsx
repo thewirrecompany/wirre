@@ -21,6 +21,8 @@ export default function Assessment() {
     const [userDob, setUserDob] = useState<string | null>(null);
     const [githubUsername, setGithubUsername] = useState<string | null>(null);
     const [username, setUsername] = useState<string | null>(null);
+    const [isProvisioning, setIsProvisioning] = useState(false);
+
 
     // File viewer state
     const [anonymousId, setAnonymousId] = useState<string | null>(null);
@@ -254,7 +256,65 @@ export default function Assessment() {
         }
     };
 
+    const handleStartNow = async () => {
+        if (!id || !profile?.id || !githubUsername) return;
+        setIsProvisioning(true);
+        try {
+            const provisionResponse = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/provision-candidate-repo`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+                    },
+                    body: JSON.stringify({
+                        assessmentId: id,
+                        candidateUserId: profile.id,
+                        candidateGithubUsername: githubUsername,
+                    }),
+                }
+            );
+
+            if (!provisionResponse.ok) {
+                const errorData = await provisionResponse.json();
+                console.error('Failed to provision repository:', errorData);
+                toast({
+                    title: "Provisioning failed",
+                    description: errorData.error || "Could not set up your repository. Please try again or contact support.",
+                    variant: "destructive",
+                });
+            } else {
+                const result = await provisionResponse.json();
+                toast({
+                    title: "All set!",
+                    description: `Repository created. You now have access.`,
+                });
+                if (result.repoUrl) setPrivateRepoUrl(result.repoUrl);
+                // The polling effect will pick up the access grant soon, 
+                // but we can also manually refresh the registration data
+                const { data: regData } = await supabase
+                    .from('assessment_registrations')
+                    .select('private_repo_url, access_granted, anonymous_id')
+                    .eq('assessment_id', id)
+                    .eq('user_id', profile.id)
+                    .single();
+                if (regData) {
+                    setPrivateRepoUrl(regData.private_repo_url || '');
+                    setAccessGranted(regData.access_granted || false);
+                    setAnonymousId(regData.anonymous_id);
+                }
+            }
+        } catch (err: any) {
+            console.error('Start Now failed', err);
+            toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+        } finally {
+            setIsProvisioning(false);
+        }
+    };
+
     if (loading) {
+
         return (
             <Layout>
                 <div className="min-h-screen flex items-center justify-center">
@@ -560,78 +620,17 @@ export default function Assessment() {
                                             if (!canRegister) return;
                                             if (!id || !profile?.id) return;
                                             try {
-                                                // 1. Get candidate profile for GitHub username
-                                                const { data: candidateData, error: candidateError } = await supabase
-                                                    .from('candidates')
-                                                    .select('github_username')
-                                                    .eq('user_id', profile.id)
-                                                    .single();
-
-                                                if (candidateError) throw new Error('Failed to fetch your profile data');
-                                                const githubUsername = candidateData?.github_username;
-
-                                                // 2. Insert registration
+                                                // 1. Insert registration
                                                 const { error } = await supabase.from('assessment_registrations').insert([{ assessment_id: id, user_id: profile.id }]);
                                                 if (error) throw error;
 
                                                 setIsRegistered(true);
-                                                toast({ title: 'Registered', description: 'Setting up your private repository...' });
-
-                                                // 3. Provision repo
-                                                if (githubUsername) {
-                                                    const provisionResponse = await fetch(
-                                                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/provision-candidate-repo`,
-                                                        {
-                                                            method: 'POST',
-                                                            headers: {
-                                                                'Content-Type': 'application/json',
-                                                                'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-                                                            },
-                                                            body: JSON.stringify({
-                                                                assessmentId: id,
-                                                                candidateUserId: profile.id,
-                                                                candidateGithubUsername: githubUsername,
-                                                            }),
-                                                        }
-                                                    );
-
-                                                    if (!provisionResponse.ok) {
-                                                        const errorData = await provisionResponse.json();
-                                                        console.error('Failed to provision repository:', errorData);
-
-                                                        if (errorData.error?.includes('GitHub installation not found')) {
-                                                            toast({
-                                                                title: "Registration complete",
-                                                                description: "The organizer will set up your repository soon.",
-                                                                variant: "default",
-                                                            });
-                                                        } else {
-                                                            toast({
-                                                                title: "Registration complete",
-                                                                description: "Your repository will be provisioned shortly.",
-                                                                variant: "default",
-                                                            });
-                                                        }
-                                                    } else {
-                                                        const result = await provisionResponse.json();
-                                                        toast({
-                                                            title: "All set!",
-                                                            description: `Repository created. Access will be granted when the assessment starts.`,
-                                                        });
-                                                        // Update local state if URL is returned (optimistic update)
-                                                        if (result.repoUrl) setPrivateRepoUrl(result.repoUrl);
-                                                    }
-                                                } else {
-                                                    toast({
-                                                        title: "Registration successful",
-                                                        description: "You'll receive your repository access when the assessment starts"
-                                                    });
-                                                }
-
+                                                toast({ title: 'Registered', description: "You've successfully registered for this assessment." });
                                             } catch (err: any) {
                                                 console.error('Register failed', err);
                                                 toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
                                             }
+
                                         }}
                                     >
                                         {!username || !githubUsername ? "Profile Incomplete" : (!userDob && assessment.is_paid ? "DOB Required" : (isUnderage && assessment.is_paid ? "Age 18+ Required" : "Register Now"))}
@@ -729,27 +728,67 @@ export default function Assessment() {
                                                 );
                                             })()
                                         ) : (
-                                            // No repo yet -> show Unregister button
-                                            <Button variant="outline" className="w-full font-mono text-xs h-11" onClick={async () => {
-                                                if (!id || !profile?.id) return;
-                                                const ok = window.confirm('Unregister from this round?');
-                                                if (!ok) return;
-                                                try {
-                                                    const { error } = await supabase
-                                                        .from('assessment_registrations')
-                                                        .delete()
-                                                        .eq('assessment_id', id)
-                                                        .eq('user_id', profile.id);
-                                                    if (error) throw error;
-                                                    setIsRegistered(false);
-                                                    toast({ title: 'Unregistered', description: 'You have been unregistered.' });
-                                                } catch (err: any) {
-                                                    console.error('Unregister failed', err);
-                                                    toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+                                            // No repo yet -> show Start Now button if within 1 hour
+                                            (() => {
+                                                const startAt = new Date(assessment.start_at).getTime();
+                                                const now = new Date().getTime();
+                                                const isWithinOneHour = now >= startAt - 60 * 60 * 1000;
+                                                const isBeforeEnd = assessment.duration_minutes ? now <= startAt + (assessment.duration_minutes * 60 * 1000) : true;
+
+                                                if (isWithinOneHour && isBeforeEnd) {
+                                                    return (
+                                                        <Button
+                                                            className="w-full font-mono text-sm h-12 uppercase tracking-widest"
+                                                            size="lg"
+                                                            onClick={handleStartNow}
+                                                            disabled={isProvisioning}
+                                                        >
+                                                            {isProvisioning ? "Initializing..." : "Start Now"}
+                                                        </Button>
+                                                    );
+                                                } else if (!isBeforeEnd) {
+                                                    return (
+                                                        <div className="p-4 bg-muted/30 border border-border text-center rounded-sm">
+                                                            <p className="font-mono text-xs text-muted-foreground italic">Registration has ended.</p>
+                                                        </div>
+                                                    );
+                                                } else {
+                                                    return (
+                                                        <div className="space-y-4">
+                                                            <div className="p-4 bg-muted/30 border border-border text-center rounded-sm">
+                                                                <p className="font-mono text-xs text-muted-foreground italic">Repository will be available 1 hour before start.</p>
+                                                            </div>
+                                                            <Button
+                                                                variant="outline"
+                                                                className="w-full font-mono text-xs h-11"
+                                                                onClick={async () => {
+                                                                    if (!id || !profile?.id) return;
+                                                                    const ok = window.confirm('Unregister from this round?');
+                                                                    if (!ok) return;
+                                                                    try {
+                                                                        const { error } = await supabase
+                                                                            .from('assessment_registrations')
+                                                                            .delete()
+                                                                            .eq('assessment_id', id)
+                                                                            .eq('user_id', profile.id);
+                                                                        if (error) throw error;
+                                                                        setIsRegistered(false);
+                                                                        toast({ title: 'Unregistered', description: 'You have been unregistered.' });
+                                                                    } catch (err: any) {
+                                                                        console.error('Unregister failed', err);
+                                                                        toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+                                                                    }
+                                                                }}
+                                                            >
+                                                                Unregister
+                                                            </Button>
+                                                        </div>
+                                                    );
                                                 }
-                                            }}>Unregister</Button>
+                                            })()
                                         )}
                                     </div>
+
                                 )}
                             </div>
 
