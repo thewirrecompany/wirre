@@ -218,12 +218,12 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
           <section>
             <h2 className="text-xl font-bold font-mono mb-6 uppercase tracking-tight">Assessments Overview</h2>
             <div className="border border-border">
-              <div className="grid grid-cols-5 gap-4 p-4 border-b border-border text-[10px] text-muted-foreground font-mono uppercase tracking-widest">
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-4 p-4 border-b border-border text-[10px] text-muted-foreground font-mono uppercase tracking-widest">
                 <span>Role</span>
                 <span>Status</span>
-                <span>Positions</span>
+                <span className="hidden md:block">Positions</span>
                 <span>Candidates</span>
-                <span>Created</span>
+                <span className="hidden md:block">Created</span>
               </div>
               {assessments.length === 0 && (
                 <div className="p-8 text-center text-muted-foreground font-mono text-sm">
@@ -234,7 +234,7 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
                 <Link
                   key={role.id}
                   to={`/company/assessments/${role.id}`}
-                  className="grid grid-cols-5 gap-4 p-4 border-b border-border last:border-b-0 font-mono text-xs hover:bg-secondary/50 transition-colors cursor-pointer items-center"
+                  className="grid grid-cols-3 md:grid-cols-5 gap-4 p-4 border-b border-border last:border-b-0 font-mono text-xs hover:bg-secondary/50 transition-colors cursor-pointer items-center"
                 >
                   <span className="font-semibold uppercase truncate">{role.title}</span>
                   <span className={cn(
@@ -243,9 +243,9 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
                   )}>
                     {role.status === 'awaiting_classroom_setup' ? 'waiting for admin' : role.status}
                   </span>
-                  <span>{role.is_paid ? role.positions : "-"}</span>
+                  <span className="hidden md:block">{role.is_paid ? role.positions : "-"}</span>
                   <span>{role.registrationsCount}</span>
-                  <span className="text-muted-foreground whitespace-nowrap">{new Date(role.created_at).toLocaleDateString('en-GB')}</span>
+                  <span className="text-muted-foreground whitespace-nowrap hidden md:block">{new Date(role.created_at).toLocaleDateString('en-GB')}</span>
                 </Link>
               ))}
             </div>
