@@ -206,7 +206,7 @@ export default function Login() {
             </div>
 
             <Button type="submit" className="w-full rounded-none uppercase font-mono tracking-widest" size="lg" disabled={loading}>
-              {loading ? "Logging in..." : `Login as ${loginType}`}
+              {loading ? "Logging in..." : `Login as ${loginType === "company" ? "organiser" : loginType}`}
             </Button>
           </form>
 
