@@ -155,7 +155,7 @@ export default function Index() {
             How It Works
           </p>
           <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-12">
-            Five steps from practice to mastery
+            Six steps from practice to mastery
           </h2>
           <div className="space-y-0">
             {steps.map((step, i) => (
