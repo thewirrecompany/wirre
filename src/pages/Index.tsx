@@ -180,7 +180,7 @@ export default function Index() {
             What We Measure
           </p>
           <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-12">
-            Real engineering skills, not puzzle-solving*
+            Real engineering skills, not puzzle-solving
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {metrics.map((metric) => (
