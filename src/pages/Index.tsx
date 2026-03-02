@@ -196,7 +196,7 @@ export default function Index() {
 
 
 
-          <p className="mt-6 text-xs text-muted-foreground font-mono italic opacity-60">*AI-powered evaluation features are planned for future releases, not expected in the March 2026 launch</p>
+          <p className="mt-6 text-xs text-muted-foreground font-mono italic opacity-60">*AI-powered evaluation features coming soon</p>
         </div>
       </section>
 
