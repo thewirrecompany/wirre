@@ -8,6 +8,19 @@
       "dev": false
     }
   },
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "wirre.vercel.app"
+        }
+      ],
+      "destination": "https://wirre.in/$1",
+      "permanent": true
+    }
+  ],
   "routes": [
     {
       "src": "/supabase-proxy/(.*)",
