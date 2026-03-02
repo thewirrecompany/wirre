@@ -177,7 +177,7 @@ export default function Index() {
       <section className="py-24 border-b border-border">
         <div className="container">
           <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-4">
-            What We Measure*
+            What We Measure
           </p>
           <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-12">
             Real engineering skills, not puzzle-solving*
