@@ -196,7 +196,7 @@ export default function Index() {
 
 
 
-          <p className="mt-6 text-xs text-muted-foreground font-mono italic opacity-60">*AI-powered evaluation features coming soon</p>
+          <p className="mt-6 text-xs text-muted-foreground font-mono italic opacity-60">*AI-powered evaluation features coming soon.*</p>
         </div>
       </section>
 
