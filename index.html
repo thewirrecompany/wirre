@@ -1,67 +1,73 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WIRRE | Compete in Commits.</title>
-    <script type="text/javascript">
-      (function(l) {
-        if (l.search[1] === '/' ) {
-          var decoded = l.search.slice(1).split('&').map(function(s) { 
-            return s.replace(/~and~/g, '&')
-          }).join('?');
-          window.history.replaceState(null, null,
-              l.pathname.slice(0, -1) + decoded + l.hash
-          );
-        }
-      }(window.location))
-    </script>
-    <link rel="canonical" href="https://aryamirani.github.io/wirre/" />
-    <meta name="description" content="WIRRE is infrastructure for evaluating real engineering work using production-grade workflows. Stop measuring interview performance. Start measuring engineering capability." />
-    <meta name="author" content="WIRRE" />
-    <meta name="keywords" content="engineering hiring, technical assessment, infrastructure, Docker, Git, engineering evaluation" />
-    <meta name="robots" content="index, follow" />
 
-    <meta property="og:title" content="WIRRE | Compete in Commits." />
-    <meta property="og:description" content="Infrastructure for evaluating real engineering work using production-grade workflows." />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="WIRRE" />
-    <meta property="og:image" content="https://aryamirani.github.io/wirre/logo.png" />
-    <meta property="og:image:alt" content="WIRRE logo" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WIRRE | Compete in Commits.</title>
+  <script type="text/javascript">
+    (function (l) {
+      if (l.search[1] === '/') {
+        var decoded = l.search.slice(1).split('&').map(function (s) {
+          return s.replace(/~and~/g, '&')
+        }).join('?');
+        window.history.replaceState(null, null,
+          l.pathname.slice(0, -1) + decoded + l.hash
+        );
+      }
+    }(window.location))
+  </script>
+  <link rel="canonical" href="https://wirre.in/" />
+  <meta name="description"
+    content="WIRRE is infrastructure for evaluating real engineering work using production-grade workflows. Stop measuring interview performance. Start measuring engineering capability." />
+  <meta name="author" content="WIRRE" />
+  <meta name="keywords"
+    content="engineering hiring, technical assessment, infrastructure, Docker, Git, engineering evaluation" />
+  <meta name="robots" content="index, follow" />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@wirre" />
-    <meta name="twitter:title" content="WIRRE | Compete in Commits." />
-    <meta name="twitter:description" content="Infrastructure for evaluating real engineering work using production-grade workflows." />
-    <meta name="twitter:image" content="https://aryamirani.github.io/wirre/logo.png" />
-    <link rel="icon" type="image/png" href="/logo.png">
-    <link rel="shortcut icon" href="/logo.png">
-    <link rel="apple-touch-icon" href="/logo.png">
-    <meta name="theme-color" content="#0ea5a4">
-    <script type="application/ld+json">
+  <meta property="og:title" content="WIRRE | Compete in Commits." />
+  <meta property="og:description"
+    content="Infrastructure for evaluating real engineering work using production-grade workflows." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="WIRRE" />
+  <meta property="og:image" content="https://wirre.in/logo.png" />
+  <meta property="og:image:alt" content="WIRRE logo" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@wirre" />
+  <meta name="twitter:title" content="WIRRE | Compete in Commits." />
+  <meta name="twitter:description"
+    content="Infrastructure for evaluating real engineering work using production-grade workflows." />
+  <meta name="twitter:image" content="https://wirre.in/logo.png" />
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="shortcut icon" href="/logo.png">
+  <link rel="apple-touch-icon" href="/logo.png">
+  <meta name="theme-color" content="#0ea5a4">
+  <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@graph": [
           {
             "@type": "Organization",
             "name": "WIRRE",
-            "url": "https://aryamirani.github.io/wirre/",
-            "logo": "https://aryamirani.github.io/wirre/logo.png",
+            "url": "https://wirre.in/",
+            "logo": "https://wirre.in/logo.png",
             "sameAs": ["https://www.linkedin.com/company/wirre/"]
           },
           {
             "@type": "WebSite",
-            "url": "https://aryamirani.github.io/wirre/",
+            "url": "https://wirre.in/",
             "name": "WIRRE | Compete in Commits.",
             "description": "WIRRE is infrastructure for evaluating real engineering work using production-grade workflows."
           }
         ]
       }
     </script>
-  </head>
+</head>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>
