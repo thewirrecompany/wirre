@@ -21,17 +21,14 @@
       "permanent": true
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/supabase-proxy/(.*)",
-      "dest": "https://***REMOVED***.supabase.co/$1"
+      "source": "/supabase-proxy/:path*",
+      "destination": "https://***REMOVED***.supabase.co/:path*"
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }
