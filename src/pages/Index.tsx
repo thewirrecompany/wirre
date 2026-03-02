@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, GitBranch, Terminal, Shield, Gauge, CheckCircle, Trophy, Star } from "lucide-react";
+import { ArrowRight, GitBranch, Terminal, Shield, Gauge, CheckCircle, Trophy, Star, SearchCode, Bug, FileSearch, Scale } from "lucide-react";
 
 const steps = [
   { num: "01", title: "Choose or create a challenge", desc: "Students pick from a library of real-world challenges, or organizers create custom contests for their communities" },
@@ -197,6 +197,83 @@ export default function Index() {
 
 
           <p className="mt-6 text-xs text-muted-foreground font-mono italic opacity-60">*AI-powered evaluation features coming soon.*</p>
+        </div>
+      </section>
+
+      {/* Peer Code Review Round */}
+      <section className="py-24 border-b border-border">
+        <div className="container">
+          <div className="flex items-center gap-4 mb-4">
+            <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider">
+              Coming Soon
+            </p>
+            <span className="text-xs font-mono px-2 py-0.5 border border-rose-600 text-rose-600 uppercase tracking-wider">
+              New Round Type
+            </span>
+          </div>
+          <div className="max-w-3xl mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight">
+              Peer Code Review Round
+            </h2>
+            <p className="mt-4 text-muted-foreground font-mono leading-relaxed">
+              When the coding round ends, a 1-hour review round begins. Every candidate receives a randomly
+              assigned peer's submission — along with the original spec. Their job: find real bugs and logical
+              errors. Not nitpicks. Not style issues. Actual bugs.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div className="p-6 border border-border">
+              <FileSearch className="h-5 w-5 mb-4 text-muted-foreground" />
+              <h3 className="font-mono font-bold mb-2">Real code, real bugs</h3>
+              <p className="text-sm text-muted-foreground font-mono">
+                You review actual peer submissions from the same round — not synthetic puzzles.
+                The bugs are real because the humans writing the code are real.
+              </p>
+            </div>
+            <div className="p-6 border border-border">
+              <SearchCode className="h-5 w-5 mb-4 text-muted-foreground" />
+              <h3 className="font-mono font-bold mb-2">Spec-grounded review</h3>
+              <p className="text-sm text-muted-foreground font-mono">
+                You receive the original problem spec alongside the code. Ground truth is objective —
+                the spec defines what "correct" means, not opinion.
+              </p>
+            </div>
+            <div className="p-6 border border-border">
+              <Bug className="h-5 w-5 mb-4 text-muted-foreground" />
+              <h3 className="font-mono font-bold mb-2">Find all or be penalized</h3>
+              <p className="text-sm text-muted-foreground font-mono">
+                Miss a real bug and your score takes a hit. Find all bugs in your assigned repo and
+                earn full review points. Get a clean repo? You're lucky — just say so.
+              </p>
+            </div>
+            <div className="p-6 border border-border">
+              <Scale className="h-5 w-5 mb-4 text-muted-foreground" />
+              <h3 className="font-mono font-bold mb-2">Severity-weighted scoring</h3>
+              <p className="text-sm text-muted-foreground font-mono">
+                A crash-causing null pointer counts more than an off-by-one in a non-critical path.
+                Penalties and points are weighted by bug severity.
+              </p>
+            </div>
+          </div>
+
+          <div className="border border-border p-6 max-w-2xl">
+            <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-4">How it flows</p>
+            <div className="space-y-0">
+              {[
+                { num: "01", text: "Coding round ends. Submissions are locked." },
+                { num: "02", text: "Each candidate is randomly assigned a peer's repository + the original spec." },
+                { num: "03", text: "1-hour review window begins. Candidates submit a bug report with explanations — not just line numbers." },
+                { num: "04", text: "If bugs exist and you miss them: penalized. If you find all of them: full review points. Clean repo: declare it and move on." },
+                { num: "05", text: "Your final score = coding score + review score. Both matter." },
+              ].map((item) => (
+                <div key={item.num} className="flex border-t border-border py-4 last:border-b">
+                  <span className="text-muted-foreground font-mono text-sm w-12 shrink-0">{item.num}</span>
+                  <p className="text-sm font-mono text-muted-foreground">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
