@@ -46,6 +46,10 @@ export default function AssessmentBuilder() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [roundNumber, setRoundNumber] = useState(1);
 
+  // Super-organizer powers (only for thewirrecompany@gmail.com)
+  const isSuperOrganizer = profile?.email === 'thewirrecompany@gmail.com';
+  const [isSampleRound, setIsSampleRound] = useState(false);
+
   const [selectedRole, setSelectedRole] = useState("");
   const [customRole, setCustomRole] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
@@ -106,6 +110,9 @@ export default function AssessmentBuilder() {
   const repoProvided = githubRepo.trim().includes('/');
   const salaryValid = (minSalaryNum > 0) && (minSalaryNum < maxSalaryNum) && (maxSalaryNum <= 10000000);
 
+  // Sample rounds (super-organizer only): no date required
+  const dateRequired = !isSampleRound;
+
   // Different validation for paid vs unpaid
   const allFieldsFilled = isPaid ? Boolean(
     finalRole &&
@@ -115,16 +122,14 @@ export default function AssessmentBuilder() {
     selectedTechs.length >= 1 &&
     selectedTechs.length <= 10 &&
     durationMinutes > 0 &&
-    startDate !== '' &&
-    startTime !== ''
+    (!dateRequired || (startDate !== '' && startTime !== ''))
   ) : Boolean(
     // Unpaid: no role, level, salary, or positions required
     (assignmentMode === 'wirre' || repoProvided) &&
     selectedTechs.length >= 1 &&
     selectedTechs.length <= 10 &&
     durationMinutes > 0 &&
-    startDate !== '' &&
-    startTime !== ''
+    (!dateRequired || (startDate !== '' && startTime !== ''))
   );
 
   const canPublish = allFieldsFilled && hasCheckedStatus && (assignmentMode === 'wirre' || hasRepoAccess);
@@ -141,9 +146,9 @@ export default function AssessmentBuilder() {
     if (selectedTechs.length < 1) items.push('At least 1 technology');
     if (selectedTechs.length > 10) items.push('No more than 10 technologies');
     if (durationMinutes <= 0) items.push('Duration (minutes)');
-    // Simplified checks: require both date and time strings to be present
-    if (!startDate) items.push('Start date');
-    if (!startTime) items.push('Start time');
+    // Date/time only required when not a sample round
+    if (dateRequired && !startDate) items.push('Start date');
+    if (dateRequired && !startTime) items.push('Start time');
     return items;
   };
 
@@ -160,6 +165,7 @@ export default function AssessmentBuilder() {
         if (error) throw error;
         if (!data) return;
         setIsPaid(data.is_paid); // Correctly set paid status from DB
+        setIsSampleRound(data.is_sample || false); // Load sample round flag
         setCustomRole(data.title || '');
         setGithubRepo(data.github_repo_owner ? `${data.github_repo_owner}/${data.github_repo_name}` : '');
         setPositions(data.positions || 1);
@@ -381,7 +387,8 @@ export default function AssessmentBuilder() {
       // Skip payment checks for unpaid assessments
       if (!isPaid) {
         // Validation before publishing unpaid assessment
-        if (startDate && startTime) {
+        // Skip date/time validation entirely for sample rounds
+        if (!isSampleRound && startDate && startTime) {
           const now = new Date();
           const scheduledTime = new Date(`${startDate}T${startTime}`);
           const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -397,6 +404,10 @@ export default function AssessmentBuilder() {
           }
         }
 
+        const finalDescription = isSampleRound
+          ? `${description}\n\n---\n**NOTE:** This is a sample round meant only to demonstrate the platform's workflow. No submissions will be evaluated, and there are no results for this round.`
+          : description;
+
         // Directly publish unpaid assessment
         const parts = assignmentMode === 'repo' ? githubRepo.split('/') : [];
         const insertPayload: any = {
@@ -411,11 +422,12 @@ export default function AssessmentBuilder() {
           positions: 1,
           technologies: selectedTechs,
           duration_minutes: durationMinutes,
-          start_at: (startDate && startTime) ? (isNaN(new Date(`${startDate}T${startTime}`).getTime()) ? null : new Date(`${startDate}T${startTime}`).toISOString()) : null,
+          start_at: isSampleRound ? null : ((startDate && startTime) ? (isNaN(new Date(`${startDate}T${startTime}`).getTime()) ? null : new Date(`${startDate}T${startTime}`).toISOString()) : null),
           min_salary: 0,
           max_salary: 0,
-          description,
+          description: finalDescription,
           is_paid: false,
+          is_sample: isSampleRound,
           round_number: isRound2 ? roundNumber : 1,
           parent_assessment_id: isRound2 ? parentAssessmentId : null
         };
@@ -1057,15 +1069,47 @@ export default function AssessmentBuilder() {
               </div>
             </div>
             <div className="space-y-6">
-              <div>
-                <Label className="font-mono text-[10px] md:text-sm uppercase tracking-[0.2em] mb-3 block text-muted-foreground">Start Date</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="font-mono h-11" />
-              </div>
-              <div>
-                <Label className="font-mono text-[10px] md:text-sm uppercase tracking-[0.2em] mb-3 block text-muted-foreground">Start Time</Label>
-                <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="font-mono h-11" />
-                <p className="mt-2 text-[10px] font-mono text-muted-foreground/60">Scheduled for: {startDate && startTime ? `${startDate} @ ${startTime}` : 'TBD'}</p>
-              </div>
+              {isSuperOrganizer && (
+                <div className="p-4 border border-primary/30 bg-primary/5 rounded-sm">
+                  <Label className="font-mono text-[10px] md:text-sm uppercase tracking-[0.2em] mb-3 block text-primary">
+                    ★ Sample Round (Super Organizer)
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsSampleRound(p => !p)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isSampleRound ? 'bg-primary' : 'bg-muted'
+                        }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isSampleRound ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                      />
+                    </button>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {isSampleRound ? 'Enabled — always open, no expiration' : 'Off — normal scheduled round'}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {!isSampleRound && (
+                <>
+                  <div>
+                    <Label className="font-mono text-[10px] md:text-sm uppercase tracking-[0.2em] mb-3 block text-muted-foreground">Start Date</Label>
+                    <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="font-mono h-11" />
+                  </div>
+                  <div>
+                    <Label className="font-mono text-[10px] md:text-sm uppercase tracking-[0.2em] mb-3 block text-muted-foreground">Start Time</Label>
+                    <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="font-mono h-11" />
+                    <p className="mt-2 text-[10px] font-mono text-muted-foreground/60">Scheduled for: {startDate && startTime ? `${startDate} @ ${startTime}` : 'TBD'}</p>
+                  </div>
+                </>
+              )}
+              {isSampleRound && (
+                <p className="font-mono text-[10px] text-primary/70 italic">
+                  ★ This round will remain open forever — candidates can register at any time.
+                </p>
+              )}
             </div>
           </section>
 
