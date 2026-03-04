@@ -60,7 +60,7 @@ export default function CandidateOpportunities() {
       // only show assessments that are marked ready
       const { data, error } = await supabase
         .from('assessments')
-        .select('id,title,company_user_id,created_at,technologies,duration_minutes,start_at,positions,is_paid')
+        .select('id,title,company_user_id,created_at,technologies,duration_minutes,start_at,positions,is_paid,is_sample')
         .eq('status', 'ready')
         .order('created_at', { ascending: false });
 
@@ -139,13 +139,14 @@ export default function CandidateOpportunities() {
       const githubUsername = candidateData?.github_username || '';
 
       // Check if assessment has started (block registrations after start_at)
+      // Sample rounds skip this check — they're always open
       const { data: assessmentCheck } = await supabase
         .from('assessments')
-        .select('start_at')
+        .select('start_at,is_sample')
         .eq('id', oppId)
         .single();
 
-      if (assessmentCheck?.start_at && new Date(assessmentCheck.start_at) <= new Date()) {
+      if (!assessmentCheck?.is_sample && assessmentCheck?.start_at && new Date(assessmentCheck.start_at) <= new Date()) {
         toast({
           title: "Registration closed",
           description: "This assessment has already started and is no longer accepting registrations",
@@ -221,10 +222,50 @@ export default function CandidateOpportunities() {
           }
         } else {
           const result = await provisionResponse.json();
-          toast({
-            title: "All set!",
-            description: `Repository created. You'll get access when the assessment starts.`,
-          });
+          // If it's a sample round, we want to immediately grant access instead of waiting for start time
+          if (assessmentCheck?.is_sample) {
+            toast({
+              title: "Provisioned",
+              description: `Repository created. Granting access immediately...`,
+            });
+            try {
+              const grantResponse = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/grant-assessment-access`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    assessmentId: oppId,
+                    candidateUserId: profile.id,
+                  }),
+                }
+              );
+
+              if (!grantResponse.ok) {
+                console.error('Failed to grant immediate access:', await grantResponse.text());
+                toast({
+                  title: "Registration partial",
+                  description: "Repo created, but instant access failed. You'll get it soon.",
+                  variant: "default",
+                });
+              } else {
+                toast({
+                  title: "All set!",
+                  description: "Repository created and access granted. You can start the sample round.",
+                });
+              }
+            } catch (grantErr) {
+              console.error('Error auto-granting access:', grantErr);
+            }
+          } else {
+            toast({
+              title: "All set!",
+              description: `Repository created. You'll get access when the assessment starts.`,
+            });
+          }
         }
       } else {
         toast({
