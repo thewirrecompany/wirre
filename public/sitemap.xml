@@ -1,40 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Sitemap configured for your GitHub Pages site -->
   <url>
-    <loc>https://aryamirani.github.io/wirre/</loc>
-    <lastmod>2025-12-21</lastmod>
+    <loc>https://wirre.in/</loc>
+    <lastmod>2026-03-04</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>1.00</priority>
+    <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://aryamirani.github.io/wirre/about</loc>
-    <lastmod>2025-12-21</lastmod>
+    <loc>https://wirre.in/get-involved</loc>
+    <lastmod>2026-03-04</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
+    <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://aryamirani.github.io/wirre/get-involved</loc>
-    <lastmod>2025-12-21</lastmod>
+    <loc>https://wirre.in/waitlist</loc>
+    <lastmod>2026-03-04</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
+    <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://aryamirani.github.io/wirre/platform</loc>
-    <lastmod>2025-12-21</lastmod>
+    <loc>https://wirre.in/login</loc>
+    <lastmod>2026-03-04</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.80</priority>
+    <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://aryamirani.github.io/wirre/signup</loc>
-    <lastmod>2025-12-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.64</priority>
-  </url>
-  <url>
-    <loc>https://aryamirani.github.io/wirre/login</loc>
-    <lastmod>2025-12-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.50</priority>
+    <loc>https://wirre.in/tnc</loc>
+    <lastmod>2026-03-04</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
 </urlset>
