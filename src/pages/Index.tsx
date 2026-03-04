@@ -42,9 +42,6 @@ export default function Index() {
           <h1 className="text-6xl md:text-8xl font-bold tracking-tighter font-mono">
             WIRRE
           </h1>
-          <h2 className="mt-6 text-3xl md:text-5xl font-extrabold tracking-tight text-rose-600 font-mono">
-            WE ARE LIVE !!
-          </h2>
           <p className="mt-4 text-xl md:text-2xl text-muted-foreground font-mono">
             Compete in Commits.
           </p>
