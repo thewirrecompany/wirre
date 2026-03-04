@@ -304,11 +304,6 @@ export default function Index() {
                 or evaluate candidates on real work instead of whiteboard puzzles.
               </p>
             </div>
-            <div className="mt-12">
-              <Button asChild size="lg">
-                <Link to={user ? dashboardLink : "/login"}>{user ? "Dashboard" : "Start Practicing"}</Link>
-              </Button>
-            </div>
           </div>
         </div>
       </section>
