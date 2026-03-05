@@ -28,6 +28,7 @@ export default function Assessment() {
     const [peerReviewRepoUrl, setPeerReviewRepoUrl] = useState<string | null>(null);
     const [assignedPeerRegistrationId, setAssignedPeerRegistrationId] = useState<string | null>(null);
     const [registrationId, setRegistrationId] = useState<string | null>(null);
+    const [registrationCreatedAt, setRegistrationCreatedAt] = useState<string | null>(null);
 
     const isPeerReviewPhase = assessment?.start_at && assessment.duration_minutes && 
         (new Date().getTime() > new Date(assessment.start_at).getTime() + assessment.duration_minutes * 60000);
@@ -130,13 +131,14 @@ export default function Assessment() {
             try {
                 const { data, error } = await supabase
                     .from('assessment_registrations')
-                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id')
+                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
                 if (!error && data && mounted) {
                     setIsRegistered(true);
                     setRegistrationId(data.id);
+                    setRegistrationCreatedAt(data.created_at);
                     setPrivateRepoUrl(data.private_repo_url || '');
                     setAccessGranted(data.access_granted || false);
                     setAnonymousId(data.anonymous_id);
@@ -171,6 +173,40 @@ export default function Assessment() {
         if (accessGranted) return;
 
         const checkAccess = () => {
+            if (assessment?.is_sample) {
+                // For sample rounds, start time is when they registered
+                // If they registered more than duration ago, revoke access
+                if (registrationCreatedAt) {
+                    const startTime = new Date(registrationCreatedAt).getTime();
+                    const now = Date.now();
+                    const duration = (assessment.duration_minutes || 0) * 60000;
+                    const endTime = startTime + duration; // No buffer for sample rounds? Let's stick to duration.
+
+                    if (now > endTime) {
+                        console.log('Sample assessment time ended, attempting revocation...');
+                        supabase.functions.invoke('revoke-assessment-access', {
+                            body: {
+                                assessmentId: id,
+                                candidateUserId: profile?.id,
+                            }
+                        });
+                        return;
+                    }
+
+                    // Otherwise, ensure they have access
+                    console.log('Syncing sample round access...');
+                    supabase.functions.invoke('grant-assessment-access', {
+                        body: {
+                            assessmentId: id,
+                            candidateUserId: profile?.id,
+                        }
+                    }).then(({ error }) => {
+                        if (!error) setAccessGranted(true);
+                    });
+                }
+                return;
+            }
+
             // Only try if assessment is started or close to starting (1 hour)
             if (assessment?.start_at) {
                 const startTime = new Date(assessment.start_at).getTime();
@@ -501,8 +537,8 @@ export default function Assessment() {
                                             );
                                         }
 
-                                        const hasStarted = assessment?.start_at ? new Date() >= new Date(assessment.start_at) : false;
-                                        const isWithinOneHour = assessment?.start_at ? new Date() >= new Date(new Date(assessment.start_at).getTime() - 60 * 60 * 1000) : false;
+                                        const hasStarted = assessment?.is_sample ? true : (assessment?.start_at ? new Date() >= new Date(assessment.start_at) : false);
+                                        const isWithinOneHour = assessment?.is_sample ? true : (assessment?.start_at ? new Date() >= new Date(new Date(assessment.start_at).getTime() - 60 * 60 * 1000) : false);
 
                                         const canViewRepoLink = isRegistered && privateRepoUrl && accessGranted && hasStarted;
                                         const canViewFiles = isRegistered && privateRepoUrl && accessGranted && isWithinOneHour && !hasStarted;
@@ -631,6 +667,21 @@ export default function Assessment() {
                                             );
                                         } else if (isRegistered) {
                                             // Registered but no private_repo_url (not created yet)
+                                            if (assessment?.is_sample) {
+                                                if (isProvisioning) {
+                                                    return (
+                                                        <div className="p-4 bg-muted/30 border border-border border-dashed font-mono text-xs md:text-sm text-muted-foreground animate-pulse rounded-sm">
+                                                            Initializing your private repository... this usually takes a few minutes.
+                                                        </div>
+                                                    );
+                                                }
+                                                return (
+                                                    <div className="p-4 bg-primary/5 border border-primary/20 font-mono text-xs md:text-sm text-primary/80 leading-relaxed rounded-sm">
+                                                        Setup your environment by clicking <span className="text-primary font-bold">Start Now</span> below.
+                                                    </div>
+                                                );
+                                            }
+
                                             const startAt = assessment?.start_at ? new Date(assessment.start_at).getTime() : 0;
                                             const now = Date.now();
                                             const isWithinOneHour = now >= startAt - 60 * 60 * 1000;
