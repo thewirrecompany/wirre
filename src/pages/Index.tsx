@@ -200,17 +200,9 @@ export default function Index() {
       {/* Peer Code Review Round */}
       <section className="py-24 border-b border-border">
         <div className="container">
-          <div className="flex items-center gap-4 mb-4">
-            <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider">
-              Coming Soon
-            </p>
-            <span className="text-xs font-mono px-2 py-0.5 border border-rose-600 text-rose-600 uppercase tracking-wider">
-              New Round Type
-            </span>
-          </div>
           <div className="max-w-3xl mb-12">
             <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight">
-              Peer Code Review Round
+              Peer Code Review
             </h2>
             <p className="mt-4 text-muted-foreground font-mono leading-relaxed">
               When the coding round ends, a 1-hour review round begins. Every candidate receives a randomly
