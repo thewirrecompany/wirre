@@ -676,8 +676,14 @@ export default function Assessment() {
                                                     );
                                                 }
                                                 return (
-                                                    <div className="p-4 bg-primary/5 border border-primary/20 font-mono text-xs md:text-sm text-primary/80 leading-relaxed rounded-sm">
-                                                        Setup your environment by clicking <span className="text-primary font-bold">Start Now</span> below.
+                                                    <div className="p-4 bg-primary/5 border border-primary/20 font-mono text-xs md:text-sm text-primary/80 leading-relaxed rounded-sm flex flex-col gap-4 items-center text-center">
+                                                        <span>Setup your environment by clicking <span className="text-primary font-bold">Start Now</span> below.</span>
+                                                        <Button 
+                                                            className="w-full sm:w-auto" 
+                                                            onClick={handleStartNow}
+                                                        >
+                                                            Start Now
+                                                        </Button>
                                                     </div>
                                                 );
                                             }
@@ -696,8 +702,14 @@ export default function Assessment() {
 
                                             if (isWithinOneHour) {
                                                 return (
-                                                    <div className="p-4 bg-primary/5 border border-primary/20 font-mono text-xs md:text-sm text-primary/80 leading-relaxed rounded-sm">
-                                                        Setup your environment by clicking <span className="text-primary font-bold">Start Now</span> below.
+                                                    <div className="p-4 bg-primary/5 border border-primary/20 font-mono text-xs md:text-sm text-primary/80 leading-relaxed rounded-sm flex flex-col gap-4 items-center text-center">
+                                                        <span>Setup your environment by clicking <span className="text-primary font-bold">Start Now</span> below.</span>
+                                                        <Button 
+                                                            className="w-full sm:w-auto" 
+                                                            onClick={handleStartNow}
+                                                        >
+                                                            Start Now
+                                                        </Button>
                                                     </div>
                                                 );
                                             }
