@@ -175,6 +175,24 @@ export default function Assessment() {
             if (assessment?.start_at) {
                 const startTime = new Date(assessment.start_at).getTime();
                 const now = Date.now();
+                const duration = (assessment.duration_minutes || 0) * 60000;
+                const endTime = startTime + duration;
+
+                // Stop giving access if time is over
+                if (now > endTime) {
+                    console.log('Assessment ended, stopping access grant.');
+                    // Trigger revocation just in case access persists
+                    supabase.functions.invoke('revoke-assessment-access', {
+                        body: {
+                            assessmentId: id,
+                            candidateUserId: profile?.id,
+                        }
+                    }).then(({ error }) => {
+                        if (!error) console.log('Revocation check sent');
+                    });
+                    return;
+                }
+
                 // If now is past start time OR within 1 hour before
                 if (now >= startTime - 60 * 60 * 1000) {
                     console.log('Running scheduled access verification...');
