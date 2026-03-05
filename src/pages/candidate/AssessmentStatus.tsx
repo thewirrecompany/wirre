@@ -159,6 +159,33 @@ export default function AssessmentStatus() {
         <Layout>
             <div className="py-8 md:py-12">
                 <div className="container px-4 md:px-6 max-w-4xl">
+                    {(() => {
+                        const isPeerReviewPhase = assessment?.start_at && assessment.duration_minutes && 
+                            (Date.now() > new Date(assessment.start_at).getTime() + assessment.duration_minutes * 60000);
+                        
+                        if (isPeerReviewPhase) {
+                             return (
+                                <div className="mb-8 p-6 bg-indigo-500/10 border border-indigo-500/30 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                    <div>
+                                        <h3 className="text-lg font-mono font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                                            <CheckCircle className="h-5 w-5" /> Phase 2: Peer Review Active
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground font-mono mt-2">
+                                            The coding round has ended. You have been assigned a peer review task.
+                                        </p>
+                                    </div>
+                                    <Button 
+                                        onClick={() => window.location.href = `/candidate/assessment/${id}`}
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-mono uppercase tracking-widest text-xs min-w-[160px]"
+                                    >
+                                        Start Peer Review
+                                    </Button>
+                                </div>
+                             );
+                        }
+                        return null;
+                    })()}
+
                     <div className="mb-8 md:mb-12 text-center md:text-left">
                         <p className="text-[10px] md:text-xs text-muted-foreground font-mono uppercase tracking-[0.2em] mb-2">Assessment Results</p>
                         <h1 className="text-2xl md:text-3xl font-bold font-mono tracking-tight uppercase leading-tight">{assessment.title}</h1>
