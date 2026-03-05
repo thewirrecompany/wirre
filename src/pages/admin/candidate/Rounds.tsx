@@ -85,12 +85,12 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
         const completed = registeredAssessments.filter((a: any) => {
           if (upcomingRegistered.includes(a)) return false;
 
-          // 1. Explicitly finished status
-          if (a.status === 'completed' || a.status === 'under_review') return true;
+          // 1. Explicitly finished status (completed only - under_review is active for peer reviews)
+          if (a.status === 'completed') return true;
 
-          // 2. Time expired
+          // 2. Time expired (coding duration + 1 hour peer review buffer)
           if (a.start_at && a.duration_minutes) {
-            const endTime = new Date(new Date(a.start_at).getTime() + a.duration_minutes * 60000);
+            const endTime = new Date(new Date(a.start_at).getTime() + (a.duration_minutes + 60) * 60000);
             if (now > endTime) return true;
           }
 

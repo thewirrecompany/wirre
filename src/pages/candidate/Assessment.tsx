@@ -8,6 +8,7 @@ import { GitBranch, Terminal, Clock, File, Folder, Download, ArrowLeft } from "l
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/card';
+import { PeerReviewPanel } from '@/components/assessment/PeerReviewPanel';
 
 export default function Assessment() {
     const { id } = useParams();
@@ -22,6 +23,14 @@ export default function Assessment() {
     const [githubUsername, setGithubUsername] = useState<string | null>(null);
     const [username, setUsername] = useState<string | null>(null);
     const [isProvisioning, setIsProvisioning] = useState(false);
+    
+    // Peer Review State
+    const [peerReviewRepoUrl, setPeerReviewRepoUrl] = useState<string | null>(null);
+    const [assignedPeerRegistrationId, setAssignedPeerRegistrationId] = useState<string | null>(null);
+    const [registrationId, setRegistrationId] = useState<string | null>(null);
+
+    const isPeerReviewPhase = assessment?.start_at && assessment.duration_minutes && 
+        (new Date().getTime() > new Date(assessment.start_at).getTime() + assessment.duration_minutes * 60000);
 
 
     // File viewer state
@@ -74,6 +83,45 @@ export default function Assessment() {
         return () => { mounted = false; };
     }, [id]);
 
+    // Peer Review Assignment Hook
+    useEffect(() => {
+        if (!id || !isRegistered || !assessment) return;
+
+        const checkPeerReview = async () => {
+            const startAt = new Date(assessment.start_at).getTime();
+            const durationMs = (assessment.duration_minutes || 0) * 60000;
+            const now = new Date().getTime();
+            const isPeerReviewPhase = now > (startAt + durationMs);
+
+            if (isPeerReviewPhase && !peerReviewRepoUrl) {
+                // Try to trigger assignment if missing
+                try {
+                    await supabase.rpc('assign_peer_reviews', { target_assessment_id: id });
+                    
+                    // Refresh local state
+                    const { data } = await supabase
+                        .from('assessment_registrations')
+                        .select('peer_review_repo_url, assigned_peer_registration_id')
+                        .eq('assessment_id', id)
+                        .eq('user_id', profile?.id)
+                        .single();
+                    
+                    if (data?.peer_review_repo_url) {
+                        setPeerReviewRepoUrl(data.peer_review_repo_url);
+                        setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
+                    }
+                } catch (e) {
+                    console.error('Peer review assignment trigger failed', e);
+                }
+            }
+        };
+
+        // Check initially and periodically if in peer review phase
+        checkPeerReview();
+        const interval = setInterval(checkPeerReview, 15000);
+        return () => clearInterval(interval);
+    }, [id, isRegistered, assessment, peerReviewRepoUrl, profile?.id]);
+
     // check registration (if table exists) so we only reveal classroom/repo when allowed
     useEffect(() => {
         if (!id || !profile?.id) return;
@@ -82,15 +130,18 @@ export default function Assessment() {
             try {
                 const { data, error } = await supabase
                     .from('assessment_registrations')
-                    .select('id, private_repo_url, access_granted, anonymous_id')
+                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
                 if (!error && data && mounted) {
                     setIsRegistered(true);
+                    setRegistrationId(data.id);
                     setPrivateRepoUrl(data.private_repo_url || '');
                     setAccessGranted(data.access_granted || false);
                     setAnonymousId(data.anonymous_id);
+                    setPeerReviewRepoUrl(data.peer_review_repo_url);
+                    setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
                 }
 
                 // fetch user DOB and GitHub username for validation
@@ -115,6 +166,9 @@ export default function Assessment() {
     // Continuous access verification: poll every 30 seconds to ensure access is correct (sync)
     useEffect(() => {
         if (!id || !isRegistered || !privateRepoUrl) return;
+        
+        // If access is already granted, we don't need to poll continuously
+        if (accessGranted) return;
 
         const checkAccess = () => {
             // Only try if assessment is started or close to starting (1 hour)
@@ -147,7 +201,7 @@ export default function Assessment() {
         // Poll every 30s
         const interval = setInterval(checkAccess, 30000);
         return () => clearInterval(interval);
-    }, [id, isRegistered, privateRepoUrl, assessment]);
+    }, [id, isRegistered, privateRepoUrl, assessment, accessGranted]);
 
     // Age check helper
     const isUnderage = (() => {
@@ -393,6 +447,42 @@ export default function Assessment() {
                                 </div>
                                 <div className="flex flex-col gap-4">
                                     {(() => {
+                                        if (isPeerReviewPhase) {
+                                            const peerReviewEndTime = new Date(assessment.start_at).getTime() + (assessment.duration_minutes * 60000) + (60 * 60 * 1000); // +1 hour
+                                            const isPeerReviewExpired = Date.now() > peerReviewEndTime;
+
+                                            if (isPeerReviewExpired) {
+                                                return (
+                                                    <div className="text-center p-8 bg-black/20 rounded-md border border-dashed border-red-500/30">
+                                                        <div className="flex flex-col items-center gap-4">
+                                                            <Clock className="h-8 w-8 text-red-500/50" />
+                                                            <h3 className="font-mono text-sm uppercase tracking-wider text-red-400">Peer Review Ended</h3>
+                                                            <p className="font-mono text-xs text-muted-foreground">The 1-hour peer review window has closed.</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+
+                                            if (peerReviewRepoUrl && registrationId && id) {
+                                                return <PeerReviewPanel 
+                                                    assessmentId={String(id)} 
+                                                    registrationId={String(registrationId)}
+                                                    peerRepoUrl={peerReviewRepoUrl}
+                                                    assignedPeerRegistrationId={assignedPeerRegistrationId || undefined} 
+                                                    isSelfReview={peerReviewRepoUrl === privateRepoUrl}
+                                                />;
+                                            }
+                                            return (
+                                                <div className="text-center p-8 bg-black/20 rounded-md border border-dashed border-indigo-500/30">
+                                                    <div className="flex flex-col items-center gap-4">
+                                                        <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full"/>
+                                                        <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Peer Review Phase</h3>
+                                                        <p className="font-mono text-xs text-muted-foreground">Transitioning to peer review... Assigning repository.</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+
                                         const hasStarted = assessment?.start_at ? new Date() >= new Date(assessment.start_at) : false;
                                         const isWithinOneHour = assessment?.start_at ? new Date() >= new Date(new Date(assessment.start_at).getTime() - 60 * 60 * 1000) : false;
 
