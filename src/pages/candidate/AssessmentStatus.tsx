@@ -161,7 +161,8 @@ export default function AssessmentStatus() {
                 <div className="container px-4 md:px-6 max-w-4xl">
                     {(() => {
                         const isPeerReviewPhase = assessment?.start_at && assessment.duration_minutes && 
-                            (Date.now() > new Date(assessment.start_at).getTime() + assessment.duration_minutes * 60000);
+                            (Date.now() > new Date(assessment.start_at).getTime() + assessment.duration_minutes * 60000) &&
+                            (Date.now() < new Date(assessment.start_at).getTime() + assessment.duration_minutes * 60000 + 60 * 60000);
                         
                         if (isPeerReviewPhase) {
                              return (
