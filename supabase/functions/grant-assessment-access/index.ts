@@ -57,9 +57,10 @@ serve(async (req) => {
 
     let query = supabase
       .from('assessment_registrations')
-      .select('id, user_id, github_username, private_repo_url, access_granted')
+      .select('id, user_id, github_username, private_repo_url, access_granted, finished_at')
       .eq('assessment_id', assessmentId)
-      .eq('repo_provisioned', true);
+      .eq('repo_provisioned', true)
+      .is('finished_at', null); // Only grant access if NOT finished
 
     // If targeting a specific user, we check them regardless of current access status (to support sync/repair)
     if (candidateUserId) {

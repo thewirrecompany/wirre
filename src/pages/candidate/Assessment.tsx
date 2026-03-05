@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/card';
 import { PeerReviewPanel } from '@/components/assessment/PeerReviewPanel';
+import { SubmissionSuccessModal } from '@/components/assessment/SubmissionSuccessModal';
 
 export default function Assessment() {
     const { id } = useParams();
@@ -23,7 +24,7 @@ export default function Assessment() {
     const [githubUsername, setGithubUsername] = useState<string | null>(null);
     const [username, setUsername] = useState<string | null>(null);
     const [isProvisioning, setIsProvisioning] = useState(false);
-    
+
     // Peer Review State
     const [peerReviewRepoUrl, setPeerReviewRepoUrl] = useState<string | null>(null);
     const [assignedPeerRegistrationId, setAssignedPeerRegistrationId] = useState<string | null>(null);
@@ -31,8 +32,18 @@ export default function Assessment() {
     const [registrationCreatedAt, setRegistrationCreatedAt] = useState<string | null>(null);
     const [registrationStartedAt, setRegistrationStartedAt] = useState<string | null>(null);
 
-    const isPeerReviewPhase = assessment?.start_at && assessment.duration_minutes && 
-        (new Date().getTime() > new Date(assessment.start_at).getTime() + assessment.duration_minutes * 60000);
+    // For scheduled rounds: use assessment.start_at.
+    // For sample/per-candidate rounds (start_at is null): use the candidate's own started_at.
+    const _codingStartMs = assessment?.is_sample
+        ? (registrationStartedAt ? new Date(registrationStartedAt).getTime() : null)
+        : (assessment?.start_at ? new Date(assessment.start_at).getTime() : null);
+    const _durationMs = (assessment?.duration_minutes || 0) * 60000;
+    const _codingEndMs = _codingStartMs !== null ? _codingStartMs + _durationMs : null;
+    const _peerReviewEndMs = _codingEndMs !== null ? _codingEndMs + 60 * 60 * 1000 : null;
+    const isPeerReviewPhase = _codingEndMs !== null && new Date().getTime() > _codingEndMs;
+    const isPeerReviewExpiredCalc = _peerReviewEndMs !== null && new Date().getTime() > _peerReviewEndMs;
+    const [isFinished, setIsFinished] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
 
     // File viewer state
@@ -85,15 +96,55 @@ export default function Assessment() {
         return () => { mounted = false; };
     }, [id]);
 
+    // Auto-submit when coding time expires, and auto-finalize when peer review hour ends
+    useEffect(() => {
+        if (!id || !isRegistered || !privateRepoUrl || _codingEndMs === null) return;
+
+        const checkPhaseTransitions = async () => {
+            const now = Date.now();
+
+            // Coding phase just ended -> auto-submit (revoke access + set status to under_review)
+            if (now > _codingEndMs && accessGranted) {
+                console.log('Coding time expired, auto-submitting...');
+                try {
+                    await supabase.rpc('candidate_finish_assessment', { p_assessment_id: id });
+                } catch (e) {
+                    console.debug('auto candidate_finish_assessment failed', e);
+                }
+                await supabase.functions.invoke('revoke-assessment-access', {
+                    body: { assessmentId: id, candidateUserId: profile?.id }
+                });
+                setAccessGranted(false);
+                toast({ title: 'Time\'s up!', description: 'Coding phase ended. The peer review round has started.' });
+            }
+
+            // Peer review hour ended -> auto-finalize and redirect
+            if (_peerReviewEndMs !== null && now > _peerReviewEndMs) {
+                console.log('Peer review window ended, finalizing...');
+                try {
+                    await supabase.rpc('auto_complete_expired_assessments');
+                } catch (e) {
+                    console.debug('auto_complete_expired_assessments failed', e);
+                }
+                toast({ title: 'Round Complete', description: 'The peer review window has closed. Your submission is finalized.' });
+                setTimeout(() => {
+                    window.location.href = `/candidate/assessment/${id}/status`;
+                }, 2000);
+            }
+        };
+
+        checkPhaseTransitions();
+        const interval = setInterval(checkPhaseTransitions, 15000);
+        return () => clearInterval(interval);
+    }, [id, isRegistered, privateRepoUrl, _codingEndMs, _peerReviewEndMs, accessGranted, profile?.id]);
+
     // Peer Review Assignment Hook
     useEffect(() => {
         if (!id || !isRegistered || !assessment) return;
 
         const checkPeerReview = async () => {
-            const startAt = new Date(assessment.start_at).getTime();
-            const durationMs = (assessment.duration_minutes || 0) * 60000;
             const now = new Date().getTime();
-            const isPeerReviewPhase = now > (startAt + durationMs);
+            const isPeerReviewPhase = _codingEndMs !== null && now > _codingEndMs;
 
             if (isPeerReviewPhase && !peerReviewRepoUrl) {
                 // Try to trigger assignment if missing
@@ -131,7 +182,7 @@ export default function Assessment() {
             try {
                 const { data, error } = await supabase
                     .from('assessment_registrations')
-                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, started_at')
+                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, started_at, finished_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
@@ -145,6 +196,7 @@ export default function Assessment() {
                     setAnonymousId(data.anonymous_id);
                     setPeerReviewRepoUrl(data.peer_review_repo_url);
                     setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
+                    setIsFinished(!!data.finished_at);
                 }
 
                 // fetch user DOB and GitHub username for validation
@@ -168,13 +220,13 @@ export default function Assessment() {
 
     // Continuous access verification: poll every 30 seconds to ensure access is correct (sync)
     useEffect(() => {
-        if (!id || !isRegistered || !privateRepoUrl) return;
+        if (!id || !isRegistered || !privateRepoUrl || isFinished) return;
 
         const checkAccess = () => {
             if (assessment?.is_sample) {
                 // For sample rounds, start time is when they clicked Start Now (provisioned repo)
                 if (registrationStartedAt || registrationCreatedAt) {
-                     // Prefer started_at, fallback to created_at if old registration
+                    // Prefer started_at, fallback to created_at if old registration
                     const startTime = new Date(registrationStartedAt || registrationCreatedAt).getTime();
                     const now = Date.now();
                     const duration = (assessment.duration_minutes || 0) * 60000;
@@ -260,7 +312,7 @@ export default function Assessment() {
         // Poll every 30s
         const interval = setInterval(checkAccess, 30000);
         return () => clearInterval(interval);
-    }, [id, isRegistered, privateRepoUrl, assessment, accessGranted]);
+    }, [id, isRegistered, privateRepoUrl, assessment, accessGranted, isFinished]);
 
     // Age check helper
     const isUnderage = (() => {
@@ -507,8 +559,7 @@ export default function Assessment() {
                                 <div className="flex flex-col gap-4">
                                     {(() => {
                                         if (isPeerReviewPhase) {
-                                            const peerReviewEndTime = new Date(assessment.start_at).getTime() + (assessment.duration_minutes * 60000) + (60 * 60 * 1000); // +1 hour
-                                            const isPeerReviewExpired = Date.now() > peerReviewEndTime;
+                                            const isPeerReviewExpired = isPeerReviewExpiredCalc;
 
                                             if (isPeerReviewExpired) {
                                                 return (
@@ -523,18 +574,18 @@ export default function Assessment() {
                                             }
 
                                             if (peerReviewRepoUrl && registrationId && id) {
-                                                return <PeerReviewPanel 
-                                                    assessmentId={String(id)} 
+                                                return <PeerReviewPanel
+                                                    assessmentId={String(id)}
                                                     registrationId={String(registrationId)}
                                                     peerRepoUrl={peerReviewRepoUrl}
-                                                    assignedPeerRegistrationId={assignedPeerRegistrationId || undefined} 
+                                                    assignedPeerRegistrationId={assignedPeerRegistrationId || undefined}
                                                     isSelfReview={peerReviewRepoUrl === privateRepoUrl}
                                                 />;
                                             }
                                             return (
                                                 <div className="text-center p-8 bg-black/20 rounded-md border border-dashed border-indigo-500/30">
                                                     <div className="flex flex-col items-center gap-4">
-                                                        <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full"/>
+                                                        <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
                                                         <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Peer Review Phase</h3>
                                                         <p className="font-mono text-xs text-muted-foreground">Transitioning to peer review... Assigning repository.</p>
                                                     </div>
@@ -683,8 +734,8 @@ export default function Assessment() {
                                                 return (
                                                     <div className="p-4 bg-primary/5 border border-primary/20 font-mono text-xs md:text-sm text-primary/80 leading-relaxed rounded-sm flex flex-col gap-4 items-center text-center">
                                                         <span>Setup your environment by clicking <span className="text-primary font-bold">Start Now</span> below.</span>
-                                                        <Button 
-                                                            className="w-full sm:w-auto" 
+                                                        <Button
+                                                            className="w-full sm:w-auto"
                                                             onClick={handleStartNow}
                                                         >
                                                             Start Now
@@ -709,8 +760,8 @@ export default function Assessment() {
                                                 return (
                                                     <div className="p-4 bg-primary/5 border border-primary/20 font-mono text-xs md:text-sm text-primary/80 leading-relaxed rounded-sm flex flex-col gap-4 items-center text-center">
                                                         <span>Setup your environment by clicking <span className="text-primary font-bold">Start Now</span> below.</span>
-                                                        <Button 
-                                                            className="w-full sm:w-auto" 
+                                                        <Button
+                                                            className="w-full sm:w-auto"
                                                             onClick={handleStartNow}
                                                         >
                                                             Start Now
@@ -885,15 +936,13 @@ export default function Assessment() {
                                                                     }
 
                                                                     setAccessGranted(false);
+                                                                    setIsFinished(true);
+                                                                    setShowSuccessModal(true);
+
                                                                     toast({
                                                                         title: 'Round Finished',
                                                                         description: 'Your submission has been finalized.'
                                                                     });
-
-                                                                    // Redirect to status page after a moment
-                                                                    setTimeout(() => {
-                                                                        window.location.href = `/candidate/assessment/${id}/status`;
-                                                                    }, 1500);
                                                                 } catch (err: any) {
                                                                     console.error('Finish failed', err);
                                                                     toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
@@ -1011,6 +1060,12 @@ export default function Assessment() {
                     </div>
                 </div>
             </div>
+            <SubmissionSuccessModal
+                isOpen={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                onGoToDashboard={() => window.location.href = '/candidate/dashboard'}
+                isSampleRound={assessment?.is_sample}
+            />
         </Layout>
     );
 }

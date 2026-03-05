@@ -93,9 +93,16 @@ export default function AssessmentSetup() {
   async function handleSave() {
     if (!id) return;
     setLoading(true);
+    // For sample rounds, populate start_at with the current time when marked ready.
+    // This records when the round was opened, while individual candidate timers
+    // still use assessment_registrations.started_at.
+    const updatePayload: Record<string, any> = { status: 'ready', updated_at: new Date().toISOString() };
+    if (assessment?.is_sample) {
+      updatePayload.start_at = new Date().toISOString();
+    }
     const { error } = await supabase
       .from('assessments')
-      .update({ status: 'ready', updated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq('id', id);
 
     if (error) {
