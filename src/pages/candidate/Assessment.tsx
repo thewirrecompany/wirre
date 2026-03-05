@@ -29,6 +29,7 @@ export default function Assessment() {
     const [assignedPeerRegistrationId, setAssignedPeerRegistrationId] = useState<string | null>(null);
     const [registrationId, setRegistrationId] = useState<string | null>(null);
     const [registrationCreatedAt, setRegistrationCreatedAt] = useState<string | null>(null);
+    const [registrationStartedAt, setRegistrationStartedAt] = useState<string | null>(null);
 
     const isPeerReviewPhase = assessment?.start_at && assessment.duration_minutes && 
         (new Date().getTime() > new Date(assessment.start_at).getTime() + assessment.duration_minutes * 60000);
@@ -96,23 +97,22 @@ export default function Assessment() {
 
             if (isPeerReviewPhase && !peerReviewRepoUrl) {
                 // Try to trigger assignment if missing
-                try {
-                    await supabase.rpc('assign_peer_reviews', { target_assessment_id: id });
-                    
-                    // Refresh local state
-                    const { data } = await supabase
-                        .from('assessment_registrations')
-                        .select('peer_review_repo_url, assigned_peer_registration_id')
-                        .eq('assessment_id', id)
-                        .eq('user_id', profile?.id)
-                        .single();
-                    
-                    if (data?.peer_review_repo_url) {
-                        setPeerReviewRepoUrl(data.peer_review_repo_url);
-                        setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
-                    }
-                } catch (e) {
-                    console.error('Peer review assignment trigger failed', e);
+                const { error: rpcError } = await supabase.rpc('assign_peer_reviews', { target_assessment_id: id });
+                if (rpcError) {
+                    console.error('Peer review assignment RPC failed:', rpcError.message);
+                }
+
+                // Refresh local state regardless (assignment may have been done by another client)
+                const { data } = await supabase
+                    .from('assessment_registrations')
+                    .select('peer_review_repo_url, assigned_peer_registration_id')
+                    .eq('assessment_id', id)
+                    .eq('user_id', profile?.id)
+                    .single();
+
+                if (data?.peer_review_repo_url) {
+                    setPeerReviewRepoUrl(data.peer_review_repo_url);
+                    setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
                 }
             }
         };
@@ -131,7 +131,7 @@ export default function Assessment() {
             try {
                 const { data, error } = await supabase
                     .from('assessment_registrations')
-                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at')
+                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, started_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
@@ -139,6 +139,7 @@ export default function Assessment() {
                     setIsRegistered(true);
                     setRegistrationId(data.id);
                     setRegistrationCreatedAt(data.created_at);
+                    setRegistrationStartedAt(data.started_at);
                     setPrivateRepoUrl(data.private_repo_url || '');
                     setAccessGranted(data.access_granted || false);
                     setAnonymousId(data.anonymous_id);
@@ -168,41 +169,44 @@ export default function Assessment() {
     // Continuous access verification: poll every 30 seconds to ensure access is correct (sync)
     useEffect(() => {
         if (!id || !isRegistered || !privateRepoUrl) return;
-        
-        // If access is already granted, we don't need to poll continuously
-        if (accessGranted) return;
 
         const checkAccess = () => {
             if (assessment?.is_sample) {
-                // For sample rounds, start time is when they registered
-                // If they registered more than duration ago, revoke access
-                if (registrationCreatedAt) {
-                    const startTime = new Date(registrationCreatedAt).getTime();
+                // For sample rounds, start time is when they clicked Start Now (provisioned repo)
+                if (registrationStartedAt || registrationCreatedAt) {
+                     // Prefer started_at, fallback to created_at if old registration
+                    const startTime = new Date(registrationStartedAt || registrationCreatedAt).getTime();
                     const now = Date.now();
                     const duration = (assessment.duration_minutes || 0) * 60000;
-                    const endTime = startTime + duration; // No buffer for sample rounds? Let's stick to duration.
+                    const endTime = startTime + duration;
 
                     if (now > endTime) {
-                        console.log('Sample assessment time ended, attempting revocation...');
-                        supabase.functions.invoke('revoke-assessment-access', {
+                        if (accessGranted) {
+                            console.log('Sample assessment time ended, revoking access...');
+                            supabase.functions.invoke('revoke-assessment-access', {
+                                body: {
+                                    assessmentId: id,
+                                    candidateUserId: profile?.id,
+                                }
+                            }).then(({ error }) => {
+                                if (!error) setAccessGranted(false);
+                            });
+                        }
+                        return;
+                    }
+
+                    // Otherwise, ensure they have access (if repo url exists)
+                    if (privateRepoUrl) {
+                        console.log('Syncing sample round access...');
+                        supabase.functions.invoke('grant-assessment-access', {
                             body: {
                                 assessmentId: id,
                                 candidateUserId: profile?.id,
                             }
+                        }).then(({ error }) => {
+                            if (!error) setAccessGranted(true);
                         });
-                        return;
                     }
-
-                    // Otherwise, ensure they have access
-                    console.log('Syncing sample round access...');
-                    supabase.functions.invoke('grant-assessment-access', {
-                        body: {
-                            assessmentId: id,
-                            candidateUserId: profile?.id,
-                        }
-                    }).then(({ error }) => {
-                        if (!error) setAccessGranted(true);
-                    });
                 }
                 return;
             }
@@ -216,16 +220,17 @@ export default function Assessment() {
 
                 // Stop giving access if time is over
                 if (now > endTime) {
-                    console.log('Assessment ended, stopping access grant.');
-                    // Trigger revocation just in case access persists
-                    supabase.functions.invoke('revoke-assessment-access', {
-                        body: {
-                            assessmentId: id,
-                            candidateUserId: profile?.id,
-                        }
-                    }).then(({ error }) => {
-                        if (!error) console.log('Revocation check sent');
-                    });
+                    if (accessGranted) {
+                        console.log('Assessment ended, revoking access...');
+                        supabase.functions.invoke('revoke-assessment-access', {
+                            body: {
+                                assessmentId: id,
+                                candidateUserId: profile?.id,
+                            }
+                        }).then(({ error }) => {
+                            if (!error) setAccessGranted(false);
+                        });
+                    }
                     return;
                 }
 
@@ -851,7 +856,7 @@ export default function Assessment() {
                                         {privateRepoUrl ? (
                                             // Has repo -> show Finish Assignment button (only if started)
                                             (() => {
-                                                const hasStarted = assessment.start_at && new Date() >= new Date(assessment.start_at);
+                                                const hasStarted = assessment.is_sample || (assessment.start_at && new Date() >= new Date(assessment.start_at));
                                                 return hasStarted ? (
                                                     <div className="space-y-3">
                                                         <Button

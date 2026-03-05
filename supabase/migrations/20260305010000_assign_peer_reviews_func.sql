@@ -14,8 +14,21 @@ BEGIN
   SELECT start_at, duration_minutes INTO assessment_start, assessment_duration
   FROM public.assessments WHERE id = target_assessment_id;
 
-  IF assessment_start IS NULL OR assessment_duration IS NULL THEN
+  IF assessment_duration IS NULL THEN
     RAISE EXCEPTION 'Invalid assessment data';
+  END IF;
+
+  -- For assessments without a fixed start_at (e.g. sample / per-candidate rounds),
+  -- fall back to the earliest started_at among registered candidates.
+  IF assessment_start IS NULL THEN
+    SELECT MIN(started_at) INTO assessment_start
+    FROM public.assessment_registrations
+    WHERE assessment_id = target_assessment_id
+      AND started_at IS NOT NULL;
+
+    IF assessment_start IS NULL THEN
+      RAISE EXCEPTION 'Invalid assessment data: no start time available';
+    END IF;
   END IF;
 
   IF now() < (assessment_start + (assessment_duration || ' minutes')::interval) THEN
