@@ -593,6 +593,18 @@ export default function Assessment() {
                                             );
                                         }
 
+                                        if (isFinished) {
+                                            return (
+                                                <div className="text-center p-8 bg-black/20 rounded-md border border-dashed border-indigo-500/30">
+                                                    <div className="flex flex-col items-center gap-4">
+                                                        <Clock className="h-8 w-8 text-indigo-500/50" />
+                                                        <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Submission Received</h3>
+                                                        <p className="font-mono text-xs text-muted-foreground">Waiting for peer review round to start...</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+
                                         const hasStarted = assessment?.is_sample ? true : (assessment?.start_at ? new Date() >= new Date(assessment.start_at) : false);
                                         const isWithinOneHour = assessment?.is_sample ? true : (assessment?.start_at ? new Date() >= new Date(new Date(assessment.start_at).getTime() - 60 * 60 * 1000) : false);
 
@@ -908,6 +920,13 @@ export default function Assessment() {
                                             // Has repo -> show Finish Assignment button (only if started)
                                             (() => {
                                                 const hasStarted = assessment.is_sample || (assessment.start_at && new Date() >= new Date(assessment.start_at));
+                                                if (isFinished) {
+                                                    return (
+                                                        <div className="p-4 bg-primary/5 border border-primary/20 rounded-sm text-center">
+                                                            <p className="font-mono text-xs text-primary uppercase tracking-widest">Awaiting Peer Review Phase</p>
+                                                        </div>
+                                                    );
+                                                }
                                                 return hasStarted ? (
                                                     <div className="space-y-3">
                                                         <Button
