@@ -141,14 +141,14 @@ export default function CandidateOpportunities() {
 
             const githubUsername = candidateData?.github_username || '';
 
-            // Check if assessment has started (block registrations after start_at)
+            // Check if assessment has started (block registrations after start_at) — skip for sample rounds
             const { data: assessmentCheck } = await supabase
                 .from('assessments')
-                .select('start_at')
+                .select('start_at, is_sample')
                 .eq('id', oppId)
                 .single();
 
-            if (assessmentCheck?.start_at && new Date(assessmentCheck.start_at) <= new Date()) {
+            if (!assessmentCheck?.is_sample && assessmentCheck?.start_at && new Date(assessmentCheck.start_at) <= new Date()) {
                 toast({
                     title: "Registration closed",
                     description: "This assessment has already started and is no longer accepting registrations",

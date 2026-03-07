@@ -93,17 +93,23 @@ export default function AssessmentSetup() {
   async function handleSave() {
     if (!id) return;
     setLoading(true);
-    // For sample rounds, populate start_at with the current time when marked ready.
-    // This records when the round was opened, while individual candidate timers
-    // still use assessment_registrations.started_at.
-    const updatePayload: Record<string, any> = { status: 'ready', updated_at: new Date().toISOString() };
+
+    let error: any = null;
+
     if (assessment?.is_sample) {
-      updatePayload.start_at = new Date().toISOString();
+      // Use SECURITY DEFINER RPC to bypass RLS/trigger constraints for sample rounds
+      const { error: rpcError } = await supabase.rpc('mark_sample_round_ready', {
+        p_assessment_id: id
+      });
+      error = rpcError;
+    } else {
+      // Normal round: direct update
+      const { error: updateError } = await supabase
+        .from('assessments')
+        .update({ status: 'ready', updated_at: new Date().toISOString() })
+        .eq('id', id);
+      error = updateError;
     }
-    const { error } = await supabase
-      .from('assessments')
-      .update(updatePayload)
-      .eq('id', id);
 
     if (error) {
       toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
@@ -111,9 +117,6 @@ export default function AssessmentSetup() {
       setLoading(false);
       return;
     }
-
-    // (Audit and Notification logging removed)
-
 
     toast({ title: 'Saved', description: 'Assessment is ready for candidate registration.' });
     setLoading(false);
