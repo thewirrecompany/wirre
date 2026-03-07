@@ -1069,29 +1069,27 @@ export default function AssessmentBuilder() {
               </div>
             </div>
             <div className="space-y-6">
-              {isSuperOrganizer && (
-                <div className="p-4 border border-primary/30 bg-primary/5 rounded-sm">
-                  <Label className="font-mono text-[10px] md:text-sm uppercase tracking-[0.2em] mb-3 block text-primary">
-                    ★ Sample Round (Super Organizer)
-                  </Label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsSampleRound(p => !p)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isSampleRound ? 'bg-primary' : 'bg-muted'
+              <div className="p-4 border border-primary/30 bg-primary/5 rounded-sm">
+                <Label className="font-mono text-[10px] md:text-sm uppercase tracking-[0.2em] mb-3 block text-primary">
+                  ★ {isSuperOrganizer ? 'Sample Round (Super Organizer)' : 'Practice Round (Per-Candidate Start)'}
+                </Label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsSampleRound(p => !p)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isSampleRound ? 'bg-primary' : 'bg-muted'
+                      }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isSampleRound ? 'translate-x-6' : 'translate-x-1'
                         }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isSampleRound ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                      />
-                    </button>
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {isSampleRound ? 'Enabled — always open, no expiration' : 'Off — normal scheduled round'}
-                    </span>
-                  </div>
+                    />
+                  </button>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {isSampleRound ? 'Enabled — candidate timer starts when they click "Start Now"' : 'Off — normal scheduled round with fixed start time'}
+                  </span>
                 </div>
-              )}
+              </div>
               {!isSampleRound && (
                 <>
                   <div>

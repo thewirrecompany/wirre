@@ -54,7 +54,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                     });
                     const { data: asses } = await supabase
                         .from('assessments')
-                        .select('id,title,status,start_at,duration_minutes,positions,company_user_id,created_at,is_paid')
+                        .select('id,title,status,start_at,duration_minutes,positions,company_user_id,created_at,is_paid,emergency_abandoned')
                         .in('id', ids as any[])
                         .order('created_at', { ascending: false });
                     registeredAssessments = asses || [];
@@ -289,6 +289,13 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                                     <CardHeader className="p-4 md:p-6 pb-2 md:pb-4">
                                         <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                                             <div className="flex-1 min-w-0">
+                                                {round.emergency_abandoned && (
+                                                    <div className="flex items-center gap-2 mb-2 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded-sm">
+                                                        <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-red-400">
+                                                            ⚠️ Round Emergency Abandoned
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 <div className="flex flex-wrap items-center gap-2 mb-2">
                                                     <CardTitle className="font-mono text-base md:text-xl truncate">{round.title}</CardTitle>
                                                     <Badge variant={round.is_paid ? "default" : "secondary"} className="text-[10px] md:text-xs h-5">

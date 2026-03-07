@@ -57,12 +57,12 @@ serve(async (req) => {
 
     let query = supabase
       .from('assessment_registrations')
-      .select('id, user_id, github_username, private_repo_url, access_granted, finished_at')
+      .select('id, user_id, github_username, private_repo_url, access_granted, finished_at, access_revoked_at, total_paused_ms')
       .eq('assessment_id', assessmentId)
       .eq('repo_provisioned', true)
       .is('finished_at', null); // Only grant access if NOT finished
 
-    // If targeting a specific user, we check them regardless of current access status (to support sync/repair)
+    // If targeting a specific user, we check them regardless of current access status (to support manual resumes)
     if (candidateUserId) {
         query = query.eq('user_id', candidateUserId);
     } else {
@@ -208,17 +208,22 @@ serve(async (req) => {
           continue;
         }
 
-        // Update registration to mark access as granted
-        // Do this even if it was already true, to be safe? Or just if false.
-        if (!registration.access_granted) {
-            const { error: updateError } = await supabase
-              .from('assessment_registrations')
-              .update({ access_granted: true })
-              .eq('id', registration.id);
+        // Update registration to mark access as granted and calculate pause duration
+        const updates: any = { access_granted: true, access_revoked_at: null };
+        
+        if (registration.access_revoked_at) {
+          const pausedMs = Date.now() - new Date(registration.access_revoked_at).getTime();
+          updates.total_paused_ms = (registration.total_paused_ms || 0) + Math.max(0, pausedMs);
+          console.log(`Calculated pause duration for ${registration.github_username}: ${pausedMs}ms. New total: ${updates.total_paused_ms}ms`);
+        }
 
-            if (updateError) {
-              console.error(`Failed to update registration ${registration.id}:`, updateError);
-            }
+        const { error: updateError } = await supabase
+          .from('assessment_registrations')
+          .update(updates)
+          .eq('id', registration.id);
+
+        if (updateError) {
+          console.error(`Failed to update registration ${registration.id}:`, updateError);
         }
 
         results.push({ userId: registration.user_id, success: true });
@@ -229,24 +234,6 @@ serve(async (req) => {
     }
 
     const successCount = results.filter(r => r.success).length;
-
-    // HOUSEKEEPING TRIGGERS:
-    // Fire-and-forget call to revoke-assessment-access to clean up expired users
-    // This ensures regular cleanup without needing a cron job
-    try {
-        console.log('Triggering background cleanup of expired assessments...');
-        fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/revoke-assessment-access`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ action: 'cleanup_expired' }),
-        }).catch(err => console.error('Background cleanup trigger failed (ignored):', err));
-    } catch (e) {
-        // Ignore errors here to not fail the main request
-        console.error('Error triggering background cleanup:', e);
-    }
 
     return new Response(
       JSON.stringify({

@@ -400,6 +400,60 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleEmergencyDeleteRound(assessmentId: string) {
+    if (revokingAccess) return;
+    const confirmed = window.confirm(
+      'EMERGENCY DELETE ROUND\n\nThis will:\n• Auto-submit all candidates\n• Revoke all GitHub access\n• Mark the round as completed (abandoned)\n\nThis cannot be undone. Continue?'
+    );
+    if (!confirmed) return;
+
+    setRevokingAccess(assessmentId);
+    try {
+      const assessment = upcomingAssessments.find(a => a.id === assessmentId);
+      if (!assessment) return;
+
+      // 1. Call admin RPC to mark all registrations finished + complete the round as abandoned
+      const { error: rpcError } = await supabase.rpc('admin_emergency_delete_round', {
+        p_assessment_id: assessmentId
+      });
+      if (rpcError) throw rpcError;
+
+      // 2. Revoke all GitHub collaborator access via edge function
+      await supabase.functions.invoke('revoke-assessment-access', {
+        body: { assessmentId }
+      });
+
+      // 3. Update UI immediately
+      setUpcomingAssessments(prev => prev.map(a => {
+        if (a.id !== assessmentId) return a;
+        return {
+          ...a,
+          status: 'completed',
+          emergency_abandoned: true,
+          assessment_registrations: a.assessment_registrations.map((reg: any) => ({
+            ...reg,
+            access_granted: false
+          }))
+        };
+      }));
+
+      toast({
+        title: 'Round Emergency Deleted',
+        description: 'All candidates auto-submitted, access revoked, and round completed.',
+      });
+    } catch (err: any) {
+      console.error('Emergency delete round failed:', err);
+      loadUpcomingAssessments();
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to emergency delete round',
+        variant: 'destructive'
+      });
+    } finally {
+      setRevokingAccess(null);
+    }
+  }
+
   // --- Individual Access Management ---
 
   async function handleGrantSingleAccess(assessmentId: string, registration: any) {
@@ -485,9 +539,11 @@ export default function AdminDashboard() {
 
       // 3. Also update the database directly as a reliable fallback.
       // The edge function may update the DB too, but this ensures it's done.
+      // IMPORTANT: also set access_revoked_at so the candidate page can correctly
+      // detect an explicit admin revoke (vs a freshly provisioned, never-granted registration).
       const { error: dbError } = await supabase
         .from('assessment_registrations')
-        .update({ access_granted: false })
+        .update({ access_granted: false, access_revoked_at: new Date().toISOString() })
         .eq('id', registration.id);
 
       if (dbError) {
@@ -1195,12 +1251,12 @@ export default function AdminDashboard() {
                                 {accessGrantedCount > 0 && (
                                   <Button
                                     size="lg"
-                                    onClick={() => handleRevokeAccess(assessment.id)}
+                                    onClick={() => handleEmergencyDeleteRound(assessment.id)}
                                     disabled={revokingAccess === assessment.id}
                                     variant="outline"
                                     className="w-full font-mono text-[10px] uppercase tracking-widest text-red-500 border-red-500/30 hover:bg-red-500/5 h-12 rounded-none"
                                   >
-                                    {revokingAccess === assessment.id ? 'Revoking Access...' : 'Emergency Revoke'}
+                                    {revokingAccess === assessment.id ? 'Processing...' : 'Emergency Delete Round'}
                                   </Button>
                                 )}
                               </>

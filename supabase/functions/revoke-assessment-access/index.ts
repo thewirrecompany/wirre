@@ -487,10 +487,12 @@ serve(async (req) => {
       console.log('Running cleanup_expired job...');
       
       // Fetch all active registrations with their assessment details
+      // Include started_at and total_paused_ms for true expiry calculation
       const { data: activeRegs, error: fetchError } = await supabase
         .from('assessment_registrations')
-        .select('*, assessments!inner(start_at, duration_minutes)')
-        .eq('access_granted', true);
+        .select('*, assessments!inner(is_sample, start_at, duration_minutes)')
+        .eq('access_granted', true)
+        .is('finished_at', null); // Only cleanup those not already finished
 
       if (fetchError) throw fetchError;
 
@@ -499,14 +501,27 @@ serve(async (req) => {
       // Filter for expired ones
       registrationsToProcess = (activeRegs || []).filter((reg: any) => {
         const assessment = reg.assessments;
-        if (!assessment || !assessment.start_at) return false;
+        if (!assessment) return false;
 
-        const start = new Date(assessment.start_at).getTime();
-        const durationMs = assessment.duration_minutes * 60 * 1000;
-        const end = start + durationMs;
+        let startTimeMs = 0;
+        if (assessment.is_sample) {
+          // For sample rounds, use the individual started_at
+          if (!reg.started_at) return false; // Haven't even started yet
+          startTimeMs = new Date(reg.started_at).getTime();
+        } else {
+          // For scheduled rounds, use assessment start_at
+          if (!assessment.start_at) return false;
+          startTimeMs = new Date(assessment.start_at).getTime();
+        }
 
-        // If end time is in the past, it is expired
-        return now > end;
+        const durationMs = (assessment.duration_minutes || 0) * 60 * 1000;
+        const totalPausedMs = reg.total_paused_ms || 0;
+        
+        // True expiry = Start + Duration + All Paused Time
+        // Add 30s grace period to prevent immediate re-revocation upon grant/pause-edge
+        const trueExpiryMs = startTimeMs + durationMs + totalPausedMs + 30000;
+
+        return now > trueExpiryMs;
       });
 
       console.log(`Found ${registrationsToProcess.length} expired registrations to revoke out of ${activeRegs?.length || 0} active.`);

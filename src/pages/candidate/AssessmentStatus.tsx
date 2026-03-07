@@ -16,54 +16,51 @@ export default function AssessmentStatus() {
     const [registration, setRegistration] = useState<any | null>(null);
     const [companyData, setCompanyData] = useState<{ name: string, domain?: string } | null>(null);
 
+    const [serverTimeOffset, setServerTimeOffset] = useState(0);
+
     useEffect(() => {
         if (!id || !profile?.id) return;
         let mounted = true;
-        (async () => {
-            setLoading(true);
+        const loadData = async (isFirstLoad = false) => {
+            if (isFirstLoad) setLoading(true);
 
-            // Load assessment
-            const { data: assessmentData, error: assessmentError } = await supabase
-                .from('assessments')
-                .select('*')
-                .eq('id', id)
-                .single();
+            // Load assessment and time sync
+            const [assessmentRes, regRes, serverTimeRes] = await Promise.all([
+                supabase.from('assessments').select('*').eq('id', id).single(),
+                supabase.from('assessment_registrations')
+                    .select('id, score, notes, selection_status, created_at, started_at, anonymous_id, peer_review_repo_url, peer_review_assigned_at, total_paused_ms, access_granted, finished_at')
+                    .eq('assessment_id', id)
+                    .eq('user_id', profile.id)
+                    .single(),
+                supabase.rpc('get_server_time')
+            ]);
 
-            if (assessmentError) {
-                console.error('Error loading assessment:', assessmentError);
-            }
-            if (mounted) setAssessment(assessmentData || null);
-
-            // Load registration with score and selection status
-            const { data: regData, error: regError } = await supabase
-                .from('assessment_registrations')
-                .select('id, score, notes, selection_status, created_at, started_at, anonymous_id, peer_review_repo_url')
-                .eq('assessment_id', id)
-                .eq('user_id', profile.id)
-                .single();
-
-            if (regError) {
-                console.error('Error loading registration:', regError);
-            }
-            if (mounted) setRegistration(regData || null);
-
-            // Load company name
-            if (assessmentData?.company_user_id) {
-                try {
-                    const { data: cData } = await supabase
-                        .from('companies')
-                        .select('name, domain')
-                        .eq('user_id', assessmentData.company_user_id)
-                        .maybeSingle();
-                    if (mounted) setCompanyData(cData || null);
-                } catch (e) {
-                    console.debug('Company lookup failed', e);
-                }
+            if (serverTimeRes.data && mounted) {
+                setServerTimeOffset(new Date(serverTimeRes.data).getTime() - Date.now());
             }
 
-            setLoading(false);
-        })();
-        return () => { mounted = false; };
+            if (assessmentRes.data && mounted) setAssessment(assessmentRes.data);
+            if (regRes.data && mounted) setRegistration(regRes.data);
+
+            // Load company name if not already loaded
+            if (assessmentRes.data?.company_user_id && mounted) {
+                const { data: cData } = await supabase
+                    .from('companies')
+                    .select('name, domain')
+                    .eq('user_id', assessmentRes.data.company_user_id)
+                    .maybeSingle();
+                if (mounted) setCompanyData(cData || null);
+            }
+
+            if (mounted) setLoading(false);
+        };
+
+        loadData(true);
+        const interval = setInterval(() => loadData(false), 30000);
+        return () => {
+            mounted = false;
+            clearInterval(interval);
+        };
     }, [id, profile?.id]);
 
     if (loading) {
@@ -159,13 +156,34 @@ export default function AssessmentStatus() {
         <Layout>
             <div className="py-8 md:py-12">
                 <div className="container px-4 md:px-6 max-w-4xl">
+                    {assessment.emergency_abandoned && (
+                        <div className="mb-8 p-6 bg-red-500/10 border border-red-500/30 rounded-lg animate-in fade-in slide-in-from-top-4 duration-500">
+                            <h3 className="text-lg font-mono font-black text-red-500 uppercase tracking-widest flex items-center gap-3">
+                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-[14px]">⚠️</span>
+                                Round Emergency Abandoned
+                            </h3>
+                            <p className="text-sm text-red-400/80 font-mono mt-3 font-bold leading-relaxed">
+                                This assessment was formally abandoned by the administrator. All pending evaluations have been finalized as is.
+                            </p>
+                        </div>
+                    )}
+
                     {(() => {
                         const _codingStartMs = assessment?.is_sample
                             ? (registration?.started_at ? new Date(registration.started_at).getTime() : null)
                             : (assessment?.start_at ? new Date(assessment.start_at).getTime() : null);
                         const _durationMs = (assessment?.duration_minutes || 0) * 60000;
-                        const _codingEndMs = _codingStartMs !== null ? _codingStartMs + _durationMs : null;
-                        const isPeerReviewPhase = _codingEndMs !== null && Date.now() > _codingEndMs && Date.now() < _codingEndMs + 60 * 60000;
+                        const _codingEndMs = _codingStartMs !== null
+                            ? _codingStartMs + _durationMs + (assessment?.is_sample ? (registration?.total_paused_ms || 0) : 0)
+                            : null;
+
+                        // Peer review phase: starts when coding ends, window duration is based on assignment time (for sample rounds)
+                        const _peerReviewEndMs = assessment?.is_sample
+                            ? (registration?.peer_review_assigned_at ? new Date(registration.peer_review_assigned_at).getTime() + 60 * 60 * 1000 : null)
+                            : (_codingEndMs !== null ? _codingEndMs + 60 * 60 * 1000 : null);
+
+                        const now = Date.now();
+                        const isPeerReviewPhase = _codingEndMs !== null && now > _codingEndMs && (_peerReviewEndMs === null || now < _peerReviewEndMs);
 
                         if (isPeerReviewPhase) {
                             const hasPeer = !!registration?.peer_review_repo_url;

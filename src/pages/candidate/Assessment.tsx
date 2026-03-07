@@ -1,18 +1,25 @@
-import { useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GitBranch, Terminal, Clock, File, Folder, Download, ArrowLeft } from "lucide-react";
+import { GitBranch, Terminal, Clock, File, Folder, Download, ArrowLeft, AlertTriangle, TimerOff, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { PeerReviewPanel } from '@/components/assessment/PeerReviewPanel';
 import { SubmissionSuccessModal } from '@/components/assessment/SubmissionSuccessModal';
 
 export default function Assessment() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const { profile } = useAuth();
     const [assessment, setAssessment] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
@@ -33,13 +40,33 @@ export default function Assessment() {
     const [registrationStartedAt, setRegistrationStartedAt] = useState<string | null>(null);
     const [peerReviewAssignedAt, setPeerReviewAssignedAt] = useState<string | null>(null);
 
+    const [isFinished, setIsFinished] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+    // Admin revoke / countdown state — declared before computed values that depend on them
+    const [adminRevokedAccess, setAdminRevokedAccess] = useState(false);
+    const [showAdminRevokeDialog, setShowAdminRevokeDialog] = useState(false);
+    const [showTimeExpiredDialog, setShowTimeExpiredDialog] = useState(false);
+    const [totalPausedMs, setTotalPausedMs] = useState(0);
+    const [timeRemainingMs, setTimeRemainingMs] = useState<number | null>(null);
+    const [accessRevokedAt, setAccessRevokedAt] = useState<string | null>(null);
+    const [serverTimeOffset, setServerTimeOffset] = useState(0);
+    const adminRevokedAtRef = useRef<number | null>(null);
+    const totalPausedMsRef = useRef(0);
+    const codingEndMsRef = useRef<number | null>(null);
+
     // For scheduled rounds: use assessment.start_at.
     // For sample/per-candidate rounds (start_at is null): use the candidate's own started_at.
     const _codingStartMs = assessment?.is_sample
         ? (registrationStartedAt ? new Date(registrationStartedAt).getTime() : null)
         : (assessment?.start_at ? new Date(assessment.start_at).getTime() : null);
     const _durationMs = (assessment?.duration_minutes || 0) * 60000;
-    const _codingEndMs = _codingStartMs !== null ? _codingStartMs + _durationMs : null;
+    // For sample rounds, extend coding end time by any admin-paused duration
+    const _codingEndMs = _codingStartMs !== null
+        ? _codingStartMs + _durationMs + (assessment?.is_sample ? totalPausedMs : 0)
+        : null;
+    // Keep ref up-to-date for use inside polling closure without stale captures
+    codingEndMsRef.current = _codingEndMs;
     // For sample rounds: peer review timer starts when competitor is assigned, not when coding ends.
     // If no competitor assigned yet, _peerReviewEndMs is null (timer hasn't started).
     const _peerReviewEndMs = assessment?.is_sample
@@ -47,9 +74,6 @@ export default function Assessment() {
         : (_codingEndMs !== null ? _codingEndMs + 60 * 60 * 1000 : null);
     const isPeerReviewPhase = _codingEndMs !== null && new Date().getTime() > _codingEndMs;
     const isPeerReviewExpiredCalc = _peerReviewEndMs !== null && new Date().getTime() > _peerReviewEndMs;
-    const [isFinished, setIsFinished] = useState(false);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-
 
     // File viewer state
     const [anonymousId, setAnonymousId] = useState<string | null>(null);
@@ -108,19 +132,14 @@ export default function Assessment() {
         const checkPhaseTransitions = async () => {
             const now = Date.now();
 
-            // Coding phase just ended -> auto-submit (revoke access + set status to under_review)
+            // Coding phase just ended -> auto-submit (set status to under_review)
             if (now > _codingEndMs && accessGranted) {
-                console.log('Coding time expired, auto-submitting...');
-                try {
-                    await supabase.rpc('candidate_finish_assessment', { p_assessment_id: id });
-                } catch (e) {
-                    console.debug('auto candidate_finish_assessment failed', e);
-                }
-                await supabase.functions.invoke('revoke-assessment-access', {
-                    body: { assessmentId: id, candidateUserId: profile?.id }
-                });
+                console.log('Coding time expired, alerting user...');
+                // Note: We no longer auto-revoke or auto-submit from here to prevent sync loops.
+                // The candidate will see an overlay and the "Finish & Submit" button is still available
+                // but access should eventually be revoked by backend.
                 setAccessGranted(false);
-                toast({ title: 'Time\'s up!', description: 'Coding phase ended. The peer review round has started.' });
+                toast({ title: 'Time\'s up!', description: 'Coding phase ended. Please review your work and submit.' });
             }
 
             // Peer review hour ended -> auto-finalize and redirect
@@ -188,7 +207,7 @@ export default function Assessment() {
             try {
                 const { data, error } = await supabase
                     .from('assessment_registrations')
-                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, started_at, finished_at, peer_review_assigned_at')
+                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, started_at, finished_at, peer_review_assigned_at, total_paused_ms, access_revoked_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
@@ -204,6 +223,25 @@ export default function Assessment() {
                     setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
                     setPeerReviewAssignedAt(data.peer_review_assigned_at);
                     setIsFinished(!!data.finished_at);
+                    if (data.total_paused_ms) {
+                        setTotalPausedMs(data.total_paused_ms);
+                        totalPausedMsRef.current = data.total_paused_ms;
+                    }
+                    if (data.access_revoked_at) {
+                        setAccessRevokedAt(data.access_revoked_at);
+                        adminRevokedAtRef.current = new Date(data.access_revoked_at).getTime();
+                    }
+
+                    const hasStarted = !!data.started_at;
+
+                    // Explicitly restore state if revoked and already started.
+                    // access_revoked_at is set only by revoke-assessment-access, so this correctly
+                    // distinguishes an explicit admin revoke from a freshly provisioned (never-granted)
+                    // registration which also has access_granted=false + started_at set.
+                    if (data.access_granted === false && hasStarted && !data.finished_at && data.access_revoked_at) {
+                        setAdminRevokedAccess(true);
+                        setShowAdminRevokeDialog(true);
+                    }
                 }
 
                 // fetch user DOB and GitHub username for validation
@@ -216,6 +254,21 @@ export default function Assessment() {
                     }
                 }
 
+                // Calculate server clock skew
+                try {
+                    const clientSendTime = Date.now();
+                    const { data: serverTimeStr } = await supabase.rpc('get_server_time');
+                    if (serverTimeStr) {
+                        const serverTime = new Date(serverTimeStr).getTime();
+                        // Offset = ServerTime - ClientTime (middle of roundtrip ideally but simple is fine)
+                        const offset = serverTime - clientSendTime;
+                        setServerTimeOffset(offset);
+                        console.log(`Server time offset calculated: ${offset}ms`);
+                    }
+                } catch (e) {
+                    console.debug('Failed to get server time offset', e);
+                }
+
             } catch (err) {
                 // If the registrations table doesn't exist or another error occurs,
                 // we fail-safe by not marking the user as registered.
@@ -225,52 +278,110 @@ export default function Assessment() {
         return () => { mounted = false; };
     }, [id, profile?.id]);
 
+
     // Continuous access verification: poll every 30 seconds to ensure access is correct (sync)
     useEffect(() => {
         if (!id || !isRegistered || !privateRepoUrl || isFinished) return;
+        let mounted = true;
 
         const checkAccess = async () => {
             // Always check the DB for the current access_granted state first
             // This ensures admin revocations are respected
             const { data: regCheck } = await supabase
                 .from('assessment_registrations')
-                .select('access_granted')
+                .select('access_granted, finished_at, started_at, peer_review_assigned_at, total_paused_ms, access_revoked_at')
                 .eq('assessment_id', id)
                 .eq('user_id', profile?.id)
                 .single();
+            if (regCheck) {
+                if (regCheck.started_at) setRegistrationStartedAt(regCheck.started_at);
+                if (regCheck.peer_review_assigned_at) setPeerReviewAssignedAt(regCheck.peer_review_assigned_at);
+                if (regCheck.total_paused_ms !== undefined) {
+                    setTotalPausedMs(regCheck.total_paused_ms);
+                    totalPausedMsRef.current = regCheck.total_paused_ms;
+                }
+                if (regCheck.access_revoked_at) {
+                    setAccessRevokedAt(regCheck.access_revoked_at);
+                    adminRevokedAtRef.current = new Date(regCheck.access_revoked_at).getTime();
+                } else {
+                    setAccessRevokedAt(null);
+                    adminRevokedAtRef.current = null;
+                }
+
+                // ALSO refresh assessment data to catch emergency_abandoned or status changes
+                const { data: assesData } = await supabase
+                    .from('assessments')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+                if (assesData && mounted) {
+                    setAssessment(assesData);
+                }
+
+                if (regCheck.finished_at && mounted) {
+                    setIsFinished(true);
+                }
+            }
+            // Update isFinished based on regCheck.finished_at or assessment.emergency_abandoned
+            setIsFinished(!!regCheck?.finished_at || !!assessment?.emergency_abandoned);
 
             // If access was explicitly revoked (false) or registration deleted, don't re-grant
-            if (!regCheck || regCheck.access_granted === false) {
-                if (accessGranted) setAccessGranted(false);
+            if (!regCheck || regCheck.access_granted === false || assessment?.emergency_abandoned) {
+                if (accessGranted || (regCheck && regCheck.access_granted === false && !adminRevokedAccess)) {
+                    // Determine whether this is an admin revoke vs natural time expiry
+                    const now = Date.now();
+                    const codingEnd = codingEndMsRef.current;
+                    const timeExpired = codingEnd !== null && now >= codingEnd;
+
+                    if (!timeExpired && !assessment?.emergency_abandoned && regCheck?.access_revoked_at) {
+                        // Admin explicitly revoked access — access_revoked_at is only set by revoke-assessment-access.
+                        // A freshly provisioned registration (access_granted=false, access_revoked_at=null) must NOT
+                        // trigger this dialog; that state is normal between provision and the first grant.
+                        const dbRevokedTime = new Date(regCheck.access_revoked_at).getTime();
+                        adminRevokedAtRef.current = dbRevokedTime;
+                        setAdminRevokedAccess(true);
+                        setShowAdminRevokeDialog(true);
+                        console.log(`Manual revocation detected. Freeze time: ${dbRevokedTime}`);
+                    }
+                    setAccessGranted(false);
+                }
+
+                // If access was restored via regCheck but state is still revoked (sync back)
+                if (regCheck && regCheck.access_granted === true && adminRevokedAccess) {
+                    // This block is actually redundant now because of the next section, but keeping for safety
+                    setAdminRevokedAccess(false);
+                    setShowAdminRevokeDialog(false);
+                    adminRevokedAtRef.current = null;
+                    setAccessGranted(true);
+                }
                 return;
+            }
+
+            // DB shows access = true. If we were in admin-revoked state, sync local state
+            if (adminRevokedAccess) {
+                setAdminRevokedAccess(false);
+                setShowAdminRevokeDialog(false);
+                adminRevokedAtRef.current = null;
+                setAccessGranted(true);
             }
 
             if (assessment?.is_sample) {
                 // For sample rounds, start time is when they clicked Start Now (provisioned repo)
                 if (registrationStartedAt || registrationCreatedAt) {
-                    // Prefer started_at, fallback to created_at if old registration
-                    const startTime = new Date(registrationStartedAt || registrationCreatedAt).getTime();
-                    const now = Date.now();
-                    const duration = (assessment.duration_minutes || 0) * 60000;
-                    const endTime = startTime + duration;
+                    // Use codingEndMsRef which already accounts for paused time
+                    const now = Date.now() + serverTimeOffset;
+                    const endTime = codingEndMsRef.current;
 
-                    if (now > endTime) {
-                        if (accessGranted) {
-                            console.log('Sample assessment time ended, revoking access...');
-                            supabase.functions.invoke('revoke-assessment-access', {
-                                body: {
-                                    assessmentId: id,
-                                    candidateUserId: profile?.id,
-                                }
-                            }).then(({ error }) => {
-                                if (!error) setAccessGranted(false);
-                            });
-                        }
+                    // Add 30s grace period for client-side display logic
+                    if (endTime !== null && now > (endTime + 30000)) {
+                        console.log('Sample round time expired based on local clock.');
+                        if (mounted) setAccessGranted(false);
                         return;
                     }
 
                     // Otherwise, ensure they have access (if repo url exists)
-                    if (privateRepoUrl) {
+                    // CRITICAL FIX: Only re-grant access if it wasn't explicitly revoked by admin (use Ref to avoid stale captures)
+                    if (privateRepoUrl && adminRevokedAtRef.current === null) {
                         console.log('Syncing sample round access...');
                         supabase.functions.invoke('grant-assessment-access', {
                             body: {
@@ -288,28 +399,20 @@ export default function Assessment() {
             // Only try if assessment is started or close to starting (1 hour)
             if (assessment?.start_at) {
                 const startTime = new Date(assessment.start_at).getTime();
-                const now = Date.now();
+                const now = Date.now() + serverTimeOffset;
                 const duration = (assessment.duration_minutes || 0) * 60000;
                 const endTime = startTime + duration;
 
-                // Stop giving access if time is over
-                if (now > endTime) {
-                    if (accessGranted) {
-                        console.log('Assessment ended, revoking access...');
-                        supabase.functions.invoke('revoke-assessment-access', {
-                            body: {
-                                assessmentId: id,
-                                candidateUserId: profile?.id,
-                            }
-                        }).then(({ error }) => {
-                            if (!error) setAccessGranted(false);
-                        });
-                    }
+                // Stop giving access if time is over (plus 30s grace)
+                if (now > (endTime + 30000)) {
+                    console.log('Scheduled round time expired based on local clock.');
+                    if (mounted) setAccessGranted(false);
                     return;
                 }
 
                 // If now is past start time OR within 1 hour before
-                if (now >= startTime - 60 * 60 * 1000) {
+                // CRITICAL FIX: Only re-grant access if it wasn't explicitly revoked by admin
+                if (now >= (startTime - 60 * 60 * 1000) && adminRevokedAtRef.current === null) {
                     console.log('Running scheduled access verification...');
                     supabase.functions.invoke('grant-assessment-access', {
                         body: {
@@ -332,9 +435,47 @@ export default function Assessment() {
         checkAccess();
 
         // Poll every 30s
-        const interval = setInterval(checkAccess, 30000);
-        return () => clearInterval(interval);
-    }, [id, isRegistered, privateRepoUrl, assessment, accessGranted, isFinished]);
+        const interval = setInterval(() => {
+            // Also refresh server time offset during polling to stay accurate
+            supabase.rpc('get_server_time').then(({ data }) => {
+                if (data) setServerTimeOffset(new Date(data).getTime() - Date.now());
+            });
+            checkAccess();
+        }, 30000);
+        return () => {
+            mounted = false;
+            clearInterval(interval);
+        };
+    }, [id, isRegistered, privateRepoUrl, isFinished, accessGranted, adminRevokedAccess, assessment?.id, assessment?.status, assessment?.start_at, assessment?.duration_minutes, assessment?.emergency_abandoned, profile?.id, registrationCreatedAt, registrationStartedAt]);
+
+    // Countdown timer — updates every second, paused for sample rounds when admin revoked
+    useEffect(() => {
+        if (_codingEndMs === null || !isRegistered || isPeerReviewPhase || isFinished) return;
+
+        const update = () => {
+            const now = Date.now() + serverTimeOffset;
+            let remaining = 0;
+
+            if (assessment?.is_sample && adminRevokedAccess) {
+                // If currently paused, freeze at the revocation timestamp
+                // Both endMs and revokedAt are essentially server-time based now
+                const pauseStart = adminRevokedAtRef.current || now;
+                remaining = _codingEndMs - pauseStart;
+            } else {
+                remaining = _codingEndMs - now;
+            }
+
+            setTimeRemainingMs(remaining > 0 ? remaining : 0);
+
+            if (remaining <= 0 && !isFinished && !(assessment?.is_sample && adminRevokedAccess)) {
+                setShowTimeExpiredDialog(true);
+            }
+        };
+
+        update();
+        const iv = setInterval(update, 1000);
+        return () => clearInterval(iv);
+    }, [_codingEndMs, isRegistered, isPeerReviewPhase, isFinished, adminRevokedAccess, assessment?.is_sample]);
 
     // Age check helper
     const isUnderage = (() => {
@@ -481,26 +622,30 @@ export default function Assessment() {
 
                 // 1. Manually verify access immediately via the edge function to avoid polling delay
                 try {
-                    const { error: verifyError } = await supabase.functions.invoke('grant-assessment-access', {
+                    await supabase.functions.invoke('grant-assessment-access', {
                         body: {
                             assessmentId: id,
                             candidateUserId: profile.id,
                         }
                     });
-                    if (!verifyError) setAccessGranted(true);
+                    setAccessGranted(true);
+
+                    // 1b. Mark as started in registration table for precise timer tracking (especially sample rounds)
+                    await supabase.rpc('candidate_start_assessment', { p_assessment_id: id });
                 } catch (e) {
-                    console.debug('Manual access verification after provisioning failed', e);
+                    console.debug('Manual access verification or start RPC failed', e);
                 }
 
                 // 2. Refresh registration data from DB
                 const { data: regData } = await supabase
                     .from('assessment_registrations')
-                    .select('private_repo_url, access_granted, anonymous_id')
+                    .select('private_repo_url, access_granted, anonymous_id, started_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
 
                 if (regData) {
+                    if (regData.started_at) setRegistrationStartedAt(regData.started_at);
                     setPrivateRepoUrl(regData.private_repo_url || result.repoUrl || '');
                     setAccessGranted(regData.access_granted || true); // Default to true if provision was successful
                     setAnonymousId(regData.anonymous_id);
@@ -615,20 +760,43 @@ export default function Assessment() {
                                         }
 
                                         if (isFinished) {
-                                            return (
-                                                <div className="text-center p-8 bg-black/20 rounded-md border border-dashed border-indigo-500/30">
-                                                    <div className="flex flex-col items-center gap-4">
-                                                        <Clock className="h-8 w-8 text-indigo-500/50" />
-                                                        <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Submission Received</h3>
-                                                        <p className="font-mono text-xs text-muted-foreground">
-                                                            {assessment?.is_sample
-                                                                ? "Waiting for a competitor to finish... peer-review round will be available soon"
-                                                                : "Waiting for peer review round to start..."
-                                                            }
+                                            if (assessment?.emergency_abandoned) {
+                                                return (
+                                                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-red-500/20 bg-red-500/5 rounded-sm animate-in fade-in zoom-in-95">
+                                                        <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
+                                                            <XCircle className="h-6 w-6 text-red-500" />
+                                                        </div>
+                                                        <h3 className="text-sm font-mono font-bold text-red-400 uppercase tracking-widest mb-3 italic">
+                                                            Round Emergency Abandoned
+                                                        </h3>
+                                                        <p className="text-[10px] font-mono text-gray-400 uppercase tracking-tight leading-relaxed max-w-[240px]">
+                                                            This assessment has been formally abandoned by the administrator. Access is permanently revoked.
                                                         </p>
                                                     </div>
-                                                </div>
-                                            );
+                                                );
+                                            } else {
+                                                return (
+                                                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-primary/20 bg-primary/5 rounded-sm animate-in fade-in zoom-in-95">
+                                                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                                                            <CheckCircle className="h-6 w-6 text-primary" />
+                                                        </div>
+                                                        <h3 className="text-sm font-mono font-bold text-primary uppercase tracking-widest mb-3 italic">
+                                                            Submission Received
+                                                        </h3>
+                                                        <p className="text-[10px] font-mono text-gray-300 uppercase tracking-tight leading-relaxed max-w-[240px]">
+                                                            Your round is officially complete. You can view the final result status on your dashboard.
+                                                        </p>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="mt-8 font-mono text-[9px] uppercase tracking-widest h-8 px-4 rounded-none border-primary/30 text-primary hover:bg-primary/5 transition-all"
+                                                            onClick={() => navigate(`/candidate/assessment/${id}/status`)}
+                                                        >
+                                                            View Live Status
+                                                        </Button>
+                                                    </div>
+                                                );
+                                            }
                                         }
 
                                         const hasStarted = assessment?.is_sample ? true : (assessment?.start_at ? new Date() >= new Date(assessment.start_at) : false);
@@ -879,7 +1047,7 @@ export default function Assessment() {
                                 <div className="space-y-4">
                                     <div>
                                         <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">Start Time</p>
-                                        <p className="font-mono text-sm">{assessment.start_at ? new Date(assessment.start_at).toLocaleString() : '—'}</p>
+                                        <p className="font-mono text-sm">{(assessment?.is_sample) ? (registrationStartedAt ? new Date(registrationStartedAt).toLocaleString() : '—') : (assessment?.start_at ? new Date(assessment.start_at).toLocaleString() : '—')}</p>
                                     </div>
                                     <div>
                                         <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">Duration</p>
@@ -895,6 +1063,30 @@ export default function Assessment() {
                                             <p className="font-mono text-sm text-green-500 font-bold">
                                                 ₹{assessment.min_salary.toLocaleString('en-IN')} - ₹{assessment.max_salary.toLocaleString('en-IN')}
                                             </p>
+                                        </div>
+                                    )}
+                                    {/* Live countdown timer — visible once the candidate is registered */}
+                                    {isRegistered && !isPeerReviewPhase && !isFinished && _codingEndMs !== null && (
+                                        <div className={`border-t pt-4 mt-2 ${adminRevokedAccess ? 'border-orange-500/30' : 'border-border'}`}>
+                                            <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">
+                                                {adminRevokedAccess && assessment?.is_sample ? 'Time Remaining (Paused)' : 'Time Remaining'}
+                                            </p>
+                                            <p className={`font-mono text-xl font-bold tabular-nums ${adminRevokedAccess && assessment?.is_sample
+                                                ? 'text-orange-400'
+                                                : timeRemainingMs !== null && timeRemainingMs < 5 * 60 * 1000
+                                                    ? 'text-red-400 animate-pulse'
+                                                    : 'text-primary'
+                                                }`}>
+                                                {adminRevokedAccess && assessment?.is_sample
+                                                    ? `⏸ PAUSED (${timeRemainingMs !== null ? formatTimeRemaining(timeRemainingMs) : '—'})`
+                                                    : timeRemainingMs !== null
+                                                        ? formatTimeRemaining(timeRemainingMs)
+                                                        : '—'
+                                                }
+                                            </p>
+                                            {adminRevokedAccess && !assessment?.is_sample && (
+                                                <p className="text-[10px] font-mono text-orange-400 mt-1">Timer still running</p>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -947,12 +1139,24 @@ export default function Assessment() {
                                             (() => {
                                                 const hasStarted = assessment.is_sample || (assessment.start_at && new Date() >= new Date(assessment.start_at));
                                                 if (isFinished) {
+                                                    const hasPeer = !!peerReviewRepoUrl;
                                                     return (
                                                         <div className="p-4 bg-primary/5 border border-primary/20 rounded-sm text-center">
-                                                            <p className="font-mono text-xs text-primary uppercase tracking-widest">
-                                                                {assessment?.is_sample
-                                                                    ? (peerReviewRepoUrl ? "Peer Review Active" : "Waiting for Opponent")
-                                                                    : (isPeerReviewPhase && !peerReviewRepoUrl ? "Waiting for Opponent" : "Awaiting Peer Review Phase")
+                                                            {assessment?.emergency_abandoned ? (
+                                                                <p className="text-[10px] font-mono font-bold text-red-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                                                                    <XCircle className="h-3 w-3" /> Round Abandoned
+                                                                </p>
+                                                            ) : (
+                                                                <p className="text-[10px] font-mono font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                                                                    <CheckCircle className="h-3 w-3" /> Phase 2: {assessment?.emergency_abandoned ? "Abandoned" : hasPeer ? "Review Active" : "Waiting for Opponent"}
+                                                                </p>
+                                                            )}
+                                                            <p className="text-[9px] font-mono text-white/50 uppercase leading-relaxed mt-1">
+                                                                {assessment?.emergency_abandoned
+                                                                    ? "This round was emergency abandoned by the administrator."
+                                                                    : hasPeer
+                                                                        ? "Coding ended. You have been assigned a peer review task."
+                                                                        : "Coding ended. Waiting for a competitor to finish... peer-review soon"
                                                                 }
                                                             </p>
                                                         </div>
@@ -960,9 +1164,20 @@ export default function Assessment() {
                                                 }
                                                 return hasStarted ? (
                                                     <div className="space-y-3">
+                                                        {adminRevokedAccess && (
+                                                            <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-sm flex items-center gap-2">
+                                                                <AlertTriangle className="h-4 w-4 text-orange-400 shrink-0" />
+                                                                <p className="text-[10px] font-mono text-orange-300 leading-relaxed">
+                                                                    {assessment?.is_sample
+                                                                        ? 'Admin paused your access. Timer is paused.'
+                                                                        : 'Admin revoked your access. Timer is still running.'}
+                                                                </p>
+                                                            </div>
+                                                        )}
                                                         <Button
-                                                            className="w-full font-mono text-sm h-12 uppercase tracking-widest"
+                                                            className={`w-full font-mono text-sm h-12 uppercase tracking-widest ${adminRevokedAccess ? 'opacity-50' : ''}`}
                                                             size="lg"
+                                                            disabled={adminRevokedAccess}
                                                             onClick={async () => {
                                                                 if (!id) return;
                                                                 const ok = window.confirm('Finish this assessment? Your GitHub repository access will be revoked and your work will be submitted for review.');
@@ -1116,6 +1331,94 @@ export default function Assessment() {
                 onGoToDashboard={() => window.location.href = '/candidate/dashboard'}
                 isSampleRound={assessment?.is_sample}
             />
+
+            {/* Admin Revoked Access Dialog */}
+            <Dialog open={showAdminRevokeDialog} onOpenChange={setShowAdminRevokeDialog}>
+                <DialogContent className="sm:max-w-md bg-background border-border font-mono">
+                    <DialogHeader className="flex flex-col items-center gap-4 py-4">
+                        <div className="h-16 w-16 bg-orange-500/10 rounded-full flex items-center justify-center">
+                            <AlertTriangle className="h-10 w-10 text-orange-400" />
+                        </div>
+                        <DialogTitle className="text-xl font-bold uppercase tracking-widest text-center">
+                            Access Revoked
+                        </DialogTitle>
+                    </DialogHeader>
+                    {assessment?.is_sample ? (
+                        <div className="space-y-3 pb-4 px-2">
+                            <p className="text-sm text-muted-foreground text-center font-mono leading-relaxed">
+                                The admin has temporarily paused your repository access.
+                            </p>
+                            <p className="text-sm text-orange-300 text-center font-mono font-bold">
+                                ⏸ Your timer has been paused.
+                            </p>
+                            <p className="text-xs text-muted-foreground text-center font-mono leading-relaxed">
+                                Time will be extended by however long the pause lasts once access is restored.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3 pb-4 px-2">
+                            <p className="text-sm text-muted-foreground text-center font-mono leading-relaxed">
+                                The admin has revoked your repository access.
+                            </p>
+                            <p className="text-sm text-orange-300 text-center font-mono font-bold">
+                                ⚠️ Your timer is still running.
+                            </p>
+                            <p className="text-xs text-muted-foreground text-center font-mono leading-relaxed">
+                                Access may be restored shortly. If you think this is a mistake,
+                                contact{' '}
+                                <a href="mailto:thewirrecompany@gmail.com" className="text-primary hover:underline">
+                                    thewirrecompany@gmail.com
+                                </a>.
+                            </p>
+                        </div>
+                    )}
+                    <div className="flex justify-center pb-4">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowAdminRevokeDialog(false)}
+                            className="font-mono uppercase tracking-widest text-xs"
+                        >
+                            Dismiss
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Time Expired Dialog */}
+            <Dialog open={showTimeExpiredDialog} onOpenChange={() => { }}>
+                <DialogContent
+                    className="sm:max-w-md bg-background border-border font-mono"
+                    onPointerDownOutside={(e) => e.preventDefault()}
+                    onEscapeKeyDown={(e) => e.preventDefault()}
+                >
+                    <DialogHeader className="flex flex-col items-center gap-4 py-4">
+                        <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
+                            <TimerOff className="h-10 w-10 text-primary" />
+                        </div>
+                        <DialogTitle className="text-xl font-bold uppercase tracking-widest text-center">
+                            Time's Up!
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3 pb-4 px-2">
+                        <p className="text-sm text-muted-foreground text-center font-mono leading-relaxed">
+                            Your coding time has ended. Please wait for the{' '}
+                            <span className="text-primary font-bold">peer review round</span>{' '}
+                            to begin.
+                        </p>
+                        <p className="text-xs text-muted-foreground text-center font-mono">
+                            You'll be notified here once a peer reviewer is assigned.
+                        </p>
+                    </div>
+                    <div className="flex justify-center pb-4">
+                        <Button
+                            onClick={() => setShowTimeExpiredDialog(false)}
+                            className="font-mono uppercase tracking-widest text-xs"
+                        >
+                            Got It
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Layout>
     );
 }
@@ -1128,4 +1431,16 @@ function getStatusBadgeText(start_at: string) {
         if (hours > 24) return `${Math.floor(hours / 24)} days`;
         return `${hours}h ${mins}m`;
     } catch (e) { return '...'; }
+}
+
+function formatTimeRemaining(ms: number): string {
+    if (ms <= 0) return '00:00';
+    const totalSeconds = Math.floor(ms / 1000);
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    if (hrs > 0) {
+        return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
