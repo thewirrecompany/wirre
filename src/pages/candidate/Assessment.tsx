@@ -238,12 +238,17 @@ export default function Assessment() {
                     }
 
                     const hasStarted = !!data.started_at;
+                    // Guard: if coding time has already passed (peer review phase), access_revoked_at
+                    // was set by timer expiry — not an admin action — so don't show the dialog.
+                    const nowOnLoad = Date.now();
+                    const codingEndOnLoad = codingEndMsRef.current;
+                    const alreadyPastCoding = codingEndOnLoad !== null && nowOnLoad > codingEndOnLoad;
 
                     // Explicitly restore state if revoked and already started.
                     // access_revoked_at is set only by revoke-assessment-access, so this correctly
                     // distinguishes an explicit admin revoke from a freshly provisioned (never-granted)
                     // registration which also has access_granted=false + started_at set.
-                    if (data.access_granted === false && hasStarted && !data.finished_at && data.access_revoked_at) {
+                    if (data.access_granted === false && hasStarted && !data.finished_at && data.access_revoked_at && !alreadyPastCoding) {
                         setAdminRevokedAccess(true);
                         setShowAdminRevokeDialog(true);
                     }
@@ -290,6 +295,17 @@ export default function Assessment() {
         let mounted = true;
 
         const checkAccess = async () => {
+            // If coding time has already expired (peer review phase) and adminRevokedAccess is still
+            // flagged (e.g. from initial page load before assessment data was available, a race
+            // condition that can make it look like an admin revoke), clear it now.
+            const _nowCleanup = Date.now();
+            const _codingEndCleanup = codingEndMsRef.current;
+            if (_codingEndCleanup !== null && _nowCleanup > _codingEndCleanup && adminRevokedAccess) {
+                setAdminRevokedAccess(false);
+                setShowAdminRevokeDialog(false);
+                adminRevokedAtRef.current = null;
+            }
+
             // Always check the DB for the current access_granted state first
             // This ensures admin revocations are respected
             const { data: regCheck } = await supabase
