@@ -79,14 +79,19 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
                 // Check for active rounds (for warning logic)
                 const { data: currentRegs } = await supabase
                     .from('assessment_registrations')
-                    .select('assessment_id, assessments(start_at, duration_minutes)')
+                    .select('assessment_id, finished_at, assessments(start_at, duration_minutes, emergency_abandoned, is_sample)')
                     .eq('user_id', targetId);
 
                 if (currentRegs) {
                     const now = Date.now();
                     const active = currentRegs.some((reg: any) => {
+                        if (reg.finished_at) return false;
                         const assessment = reg.assessments;
-                        if (!assessment || !assessment.start_at) return false;
+                        if (!assessment) return false;
+                        if (assessment.emergency_abandoned) return false;
+                        // Sample rounds: active if repo is provisioned (no fixed start_at)
+                        if (assessment.is_sample) return false; // sample rounds don't affect GitHub username warning
+                        if (!assessment.start_at) return false;
                         const start = new Date(assessment.start_at).getTime();
                         const end = start + (assessment.duration_minutes * 60 * 1000);
                         return now >= start && now <= end;

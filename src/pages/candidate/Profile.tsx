@@ -65,31 +65,24 @@ export default function CandidateProfile() {
             // Check for active rounds
             const { data: currentRegs } = await supabase
                 .from('assessment_registrations')
-                .select('assessment_id, assessments(start_at, duration_minutes)')
+                .select('assessment_id, finished_at, assessments(start_at, duration_minutes, emergency_abandoned, is_sample)')
                 .eq('user_id', user.id);
 
             if (currentRegs) {
                 const now = Date.now();
-                console.log('DEBUG: Checking active rounds at', new Date(now).toISOString());
-                console.log('DEBUG: Registrations found:', currentRegs.length, currentRegs);
 
                 const active = currentRegs.some((reg: any) => {
+                    if (reg.finished_at) return false;
                     const assessment = reg.assessments;
-                    if (!assessment || !assessment.start_at) return false;
+                    if (!assessment) return false;
+                    if (assessment.emergency_abandoned) return false;
+                    if (assessment.is_sample) return false; // sample rounds don't have a fixed window
+                    if (!assessment.start_at) return false;
 
                     const start = new Date(assessment.start_at).getTime();
                     const end = start + (assessment.duration_minutes * 60 * 1000);
-
-                    console.log(`DEBUG: Assessment ${assessment.id}`);
-                    console.log(`DEBUG: Start: ${new Date(start).toISOString()} (${start})`);
-                    console.log(`DEBUG: End:   ${new Date(end).toISOString()} (${end})`);
-                    console.log(`DEBUG: Now:   ${new Date(now).toISOString()} (${now})`);
-
-                    const isActive = now >= start && now <= end;
-                    console.log(`DEBUG: Result: ${isActive ? 'ACTIVE' : 'INACTIVE'}`);
-                    return isActive;
+                    return now >= start && now <= end;
                 });
-                console.log('DEBUG: Final hasActiveRounds:', active);
                 setHasActiveRounds(active);
             }
 

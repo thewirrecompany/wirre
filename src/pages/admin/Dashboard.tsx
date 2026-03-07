@@ -307,6 +307,50 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleForceRevokeAccess(assessmentId: string) {
+    setRevokingAccess(assessmentId);
+    try {
+      const assessment = upcomingAssessments.find(a => a.id === assessmentId);
+      if (!assessment) return;
+
+      const registrations = assessment.assessment_registrations.filter((reg: any) => reg.private_repo_url);
+
+      if (registrations.length === 0) {
+        toast({ title: 'Nothing to revoke', description: 'No candidates with provisioned repos found.' });
+        setRevokingAccess(null);
+        return;
+      }
+
+      let successCount = 0;
+      let failCount = 0;
+
+      // Call edge function per-candidate with candidateUserId so it bypasses the access_granted filter
+      for (const reg of registrations) {
+        try {
+          const { error } = await supabase.functions.invoke('revoke-assessment-access', {
+            body: { assessmentId, candidateUserId: reg.user_id }
+          });
+          if (error) throw error;
+          successCount++;
+        } catch (err) {
+          console.error('Force revoke failed for', reg.github_username, err);
+          failCount++;
+        }
+      }
+
+      toast({
+        title: 'Force Revoke Complete',
+        description: `GitHub access removed for ${successCount} candidate${successCount !== 1 ? 's' : ''}.${failCount > 0 ? ` (${failCount} failed — check GitHub manually)` : ''}`,
+        variant: failCount > 0 ? 'destructive' : 'default',
+      });
+    } catch (err: any) {
+      console.error('Force revoke error:', err);
+      toast({ title: 'Error', description: err.message || 'Failed to force revoke', variant: 'destructive' });
+    } finally {
+      setRevokingAccess(null);
+    }
+  }
+
   async function handleRevokeAccess(assessmentId: string) {
     setRevokingAccess(assessmentId);
     try {
@@ -412,16 +456,17 @@ export default function AdminDashboard() {
       const assessment = upcomingAssessments.find(a => a.id === assessmentId);
       if (!assessment) return;
 
-      // 1. Call admin RPC to mark all registrations finished + complete the round as abandoned
+      // 1. Revoke all GitHub collaborator access FIRST (while access_granted is still true in DB,
+      //    so the edge function can find the registrations to process)
+      await supabase.functions.invoke('revoke-assessment-access', {
+        body: { assessmentId }
+      });
+
+      // 2. Now mark all registrations finished + complete the round as abandoned
       const { error: rpcError } = await supabase.rpc('admin_emergency_delete_round', {
         p_assessment_id: assessmentId
       });
       if (rpcError) throw rpcError;
-
-      // 2. Revoke all GitHub collaborator access via edge function
-      await supabase.functions.invoke('revoke-assessment-access', {
-        body: { assessmentId }
-      });
 
       // 3. Update UI immediately
       setUpcomingAssessments(prev => prev.map(a => {
@@ -1230,10 +1275,21 @@ export default function AdminDashboard() {
                           <div className="flex flex-col gap-3 mt-auto pt-6">
                             {(assessment.status === 'completed' || assessment.status === 'under_review') ? (
                               // Read-only view for completed assessments
-                              <div className="p-3 bg-secondary/10 border border-white/10 rounded-sm text-center">
-                                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground font-bold">
-                                  Assessment Completed • Read Only
-                                </p>
+                              <div className="flex flex-col gap-2">
+                                <div className="p-3 bg-secondary/10 border border-white/10 rounded-sm text-center">
+                                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground font-bold">
+                                    Assessment Completed • Read Only
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleForceRevokeAccess(assessment.id)}
+                                  disabled={revokingAccess === assessment.id}
+                                  className="w-full font-mono text-[10px] uppercase tracking-widest text-red-500 border-red-500/30 hover:bg-red-500/5 h-9 rounded-none"
+                                >
+                                  {revokingAccess === assessment.id ? 'Revoking...' : '⚠ Force Revoke GitHub Access'}
+                                </Button>
                               </div>
                             ) : (
                               // Active assessment - show actions

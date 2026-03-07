@@ -61,9 +61,8 @@ export default function Assessment() {
         ? (registrationStartedAt ? new Date(registrationStartedAt).getTime() : null)
         : (assessment?.start_at ? new Date(assessment.start_at).getTime() : null);
     const _durationMs = (assessment?.duration_minutes || 0) * 60000;
-    // For sample rounds, extend coding end time by any admin-paused duration
     const _codingEndMs = _codingStartMs !== null
-        ? _codingStartMs + _durationMs + (assessment?.is_sample ? totalPausedMs : 0)
+        ? _codingStartMs + _durationMs
         : null;
     // Keep ref up-to-date for use inside polling closure without stale captures
     codingEndMsRef.current = _codingEndMs;
@@ -448,26 +447,17 @@ export default function Assessment() {
         };
     }, [id, isRegistered, privateRepoUrl, isFinished, accessGranted, adminRevokedAccess, assessment?.id, assessment?.status, assessment?.start_at, assessment?.duration_minutes, assessment?.emergency_abandoned, profile?.id, registrationCreatedAt, registrationStartedAt]);
 
-    // Countdown timer — updates every second, paused for sample rounds when admin revoked
+    // Countdown timer — updates every second
     useEffect(() => {
         if (_codingEndMs === null || !isRegistered || isPeerReviewPhase || isFinished) return;
 
         const update = () => {
             const now = Date.now() + serverTimeOffset;
-            let remaining = 0;
-
-            if (assessment?.is_sample && adminRevokedAccess) {
-                // If currently paused, freeze at the revocation timestamp
-                // Both endMs and revokedAt are essentially server-time based now
-                const pauseStart = adminRevokedAtRef.current || now;
-                remaining = _codingEndMs - pauseStart;
-            } else {
-                remaining = _codingEndMs - now;
-            }
+            const remaining = _codingEndMs - now;
 
             setTimeRemainingMs(remaining > 0 ? remaining : 0);
 
-            if (remaining <= 0 && !isFinished && !(assessment?.is_sample && adminRevokedAccess)) {
+            if (remaining <= 0 && !isFinished) {
                 setShowTimeExpiredDialog(true);
             }
         };
@@ -1068,25 +1058,14 @@ export default function Assessment() {
                                     {/* Live countdown timer — visible once the candidate is registered */}
                                     {isRegistered && !isPeerReviewPhase && !isFinished && _codingEndMs !== null && (
                                         <div className={`border-t pt-4 mt-2 ${adminRevokedAccess ? 'border-orange-500/30' : 'border-border'}`}>
-                                            <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">
-                                                {adminRevokedAccess && assessment?.is_sample ? 'Time Remaining (Paused)' : 'Time Remaining'}
-                                            </p>
-                                            <p className={`font-mono text-xl font-bold tabular-nums ${adminRevokedAccess && assessment?.is_sample
-                                                ? 'text-orange-400'
-                                                : timeRemainingMs !== null && timeRemainingMs < 5 * 60 * 1000
+                                            <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">Time Remaining</p>
+                                            <p className={`font-mono text-xl font-bold tabular-nums ${
+                                                timeRemainingMs !== null && timeRemainingMs < 5 * 60 * 1000
                                                     ? 'text-red-400 animate-pulse'
                                                     : 'text-primary'
-                                                }`}>
-                                                {adminRevokedAccess && assessment?.is_sample
-                                                    ? `⏸ PAUSED (${timeRemainingMs !== null ? formatTimeRemaining(timeRemainingMs) : '—'})`
-                                                    : timeRemainingMs !== null
-                                                        ? formatTimeRemaining(timeRemainingMs)
-                                                        : '—'
-                                                }
+                                            }`}>
+                                                {timeRemainingMs !== null ? formatTimeRemaining(timeRemainingMs) : '—'}
                                             </p>
-                                            {adminRevokedAccess && !assessment?.is_sample && (
-                                                <p className="text-[10px] font-mono text-orange-400 mt-1">Timer still running</p>
-                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -1168,9 +1147,7 @@ export default function Assessment() {
                                                             <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-sm flex items-center gap-2">
                                                                 <AlertTriangle className="h-4 w-4 text-orange-400 shrink-0" />
                                                                 <p className="text-[10px] font-mono text-orange-300 leading-relaxed">
-                                                                    {assessment?.is_sample
-                                                                        ? 'Admin paused your access. Timer is paused.'
-                                                                        : 'Admin revoked your access. Timer is still running.'}
+                                                                    {'Admin revoked your access. Timer is still running.'}
                                                                 </p>
                                                             </div>
                                                         )}
@@ -1343,19 +1320,7 @@ export default function Assessment() {
                             Access Revoked
                         </DialogTitle>
                     </DialogHeader>
-                    {assessment?.is_sample ? (
-                        <div className="space-y-3 pb-4 px-2">
-                            <p className="text-sm text-muted-foreground text-center font-mono leading-relaxed">
-                                The admin has temporarily paused your repository access.
-                            </p>
-                            <p className="text-sm text-orange-300 text-center font-mono font-bold">
-                                ⏸ Your timer has been paused.
-                            </p>
-                            <p className="text-xs text-muted-foreground text-center font-mono leading-relaxed">
-                                Time will be extended by however long the pause lasts once access is restored.
-                            </p>
-                        </div>
-                    ) : (
+                    {(
                         <div className="space-y-3 pb-4 px-2">
                             <p className="text-sm text-muted-foreground text-center font-mono leading-relaxed">
                                 The admin has revoked your repository access.
