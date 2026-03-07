@@ -131,14 +131,20 @@ export default function Assessment() {
         const checkPhaseTransitions = async () => {
             const now = Date.now();
 
-            // Coding phase just ended -> auto-submit (set status to under_review)
+            // Coding phase just ended -> revoke GitHub access and alert user
             if (now > _codingEndMs && accessGranted) {
-                console.log('Coding time expired, alerting user...');
-                // Note: We no longer auto-revoke or auto-submit from here to prevent sync loops.
-                // The candidate will see an overlay and the "Finish & Submit" button is still available
-                // but access should eventually be revoked by backend.
+                console.log('Coding time expired, revoking access...');
                 setAccessGranted(false);
-                toast({ title: 'Time\'s up!', description: 'Coding phase ended. Please review your work and submit.' });
+                // Revoke GitHub collaborator access
+                try {
+                    await supabase.functions.invoke('revoke-assessment-access', {
+                        body: { assessmentId: id, candidateUserId: profile?.id }
+                    });
+                    console.log('Access revoked on time expiry');
+                } catch (e) {
+                    console.error('Failed to revoke access on time expiry:', e);
+                }
+                toast({ title: 'Time\'s up!', description: 'Coding phase ended. Your repository access has been revoked.' });
             }
 
             // Peer review hour ended -> auto-finalize and redirect
