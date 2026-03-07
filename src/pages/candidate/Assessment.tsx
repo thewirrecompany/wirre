@@ -579,7 +579,6 @@ export default function Assessment() {
                                                     registrationId={String(registrationId)}
                                                     peerRepoUrl={peerReviewRepoUrl}
                                                     assignedPeerRegistrationId={assignedPeerRegistrationId || undefined}
-                                                    isSelfReview={peerReviewRepoUrl === privateRepoUrl}
                                                 />;
                                             }
                                             return (
@@ -587,7 +586,7 @@ export default function Assessment() {
                                                     <div className="flex flex-col items-center gap-4">
                                                         <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
                                                         <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Peer Review Phase</h3>
-                                                        <p className="font-mono text-xs text-muted-foreground">Transitioning to peer review... Assigning repository.</p>
+                                                        <p className="font-mono text-xs text-muted-foreground">Waiting for a competitor to finish... peer-review round will be available soon</p>
                                                     </div>
                                                 </div>
                                             );
@@ -599,7 +598,12 @@ export default function Assessment() {
                                                     <div className="flex flex-col items-center gap-4">
                                                         <Clock className="h-8 w-8 text-indigo-500/50" />
                                                         <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Submission Received</h3>
-                                                        <p className="font-mono text-xs text-muted-foreground">Waiting for peer review round to start...</p>
+                                                        <p className="font-mono text-xs text-muted-foreground">
+                                                            {assessment?.is_sample
+                                                                ? "Waiting for a competitor to finish... peer-review round will be available soon"
+                                                                : "Waiting for peer review round to start..."
+                                                            }
+                                                        </p>
                                                     </div>
                                                 </div>
                                             );
@@ -923,7 +927,12 @@ export default function Assessment() {
                                                 if (isFinished) {
                                                     return (
                                                         <div className="p-4 bg-primary/5 border border-primary/20 rounded-sm text-center">
-                                                            <p className="font-mono text-xs text-primary uppercase tracking-widest">Awaiting Peer Review Phase</p>
+                                                            <p className="font-mono text-xs text-primary uppercase tracking-widest">
+                                                                {assessment?.is_sample
+                                                                    ? (peerReviewRepoUrl ? "Peer Review Active" : "Waiting for Opponent")
+                                                                    : (isPeerReviewPhase && !peerReviewRepoUrl ? "Waiting for Opponent" : "Awaiting Peer Review Phase")
+                                                                }
+                                                            </p>
                                                         </div>
                                                     );
                                                 }

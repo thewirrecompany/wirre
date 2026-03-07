@@ -37,7 +37,7 @@ export default function AssessmentStatus() {
             // Load registration with score and selection status
             const { data: regData, error: regError } = await supabase
                 .from('assessment_registrations')
-                .select('id, score, notes, selection_status, created_at, anonymous_id')
+                .select('id, score, notes, selection_status, created_at, started_at, anonymous_id, peer_review_repo_url')
                 .eq('assessment_id', id)
                 .eq('user_id', profile.id)
                 .single();
@@ -160,29 +160,38 @@ export default function AssessmentStatus() {
             <div className="py-8 md:py-12">
                 <div className="container px-4 md:px-6 max-w-4xl">
                     {(() => {
-                        const isPeerReviewPhase = assessment?.start_at && assessment.duration_minutes && 
-                            (Date.now() > new Date(assessment.start_at).getTime() + assessment.duration_minutes * 60000) &&
-                            (Date.now() < new Date(assessment.start_at).getTime() + assessment.duration_minutes * 60000 + 60 * 60000);
-                        
+                        const _codingStartMs = assessment?.is_sample
+                            ? (registration?.started_at ? new Date(registration.started_at).getTime() : null)
+                            : (assessment?.start_at ? new Date(assessment.start_at).getTime() : null);
+                        const _durationMs = (assessment?.duration_minutes || 0) * 60000;
+                        const _codingEndMs = _codingStartMs !== null ? _codingStartMs + _durationMs : null;
+                        const isPeerReviewPhase = _codingEndMs !== null && Date.now() > _codingEndMs && Date.now() < _codingEndMs + 60 * 60000;
+
                         if (isPeerReviewPhase) {
-                             return (
+                            const hasPeer = !!registration?.peer_review_repo_url;
+                            return (
                                 <div className="mb-8 p-6 bg-indigo-500/10 border border-indigo-500/30 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                                     <div>
                                         <h3 className="text-lg font-mono font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
-                                            <CheckCircle className="h-5 w-5" /> Phase 2: Peer Review Active
+                                            <CheckCircle className="h-5 w-5" /> Phase 2: {hasPeer ? "Peer Review Active" : "Waiting for Opponent"}
                                         </h3>
                                         <p className="text-sm text-muted-foreground font-mono mt-2">
-                                            The coding round has ended. You have been assigned a peer review task.
+                                            {hasPeer
+                                                ? "The coding round has ended. You have been assigned a peer review task."
+                                                : "The coding round has ended. Waiting for a competitor to finish... peer-review round will be available soon"
+                                            }
                                         </p>
                                     </div>
-                                    <Button 
-                                        onClick={() => window.location.href = `/candidate/assessment/${id}`}
-                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-mono uppercase tracking-widest text-xs min-w-[160px]"
-                                    >
-                                        Start Peer Review
-                                    </Button>
+                                    {hasPeer && (
+                                        <Button
+                                            onClick={() => window.location.href = `/candidate/assessment/${id}`}
+                                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-mono uppercase tracking-widest text-xs min-w-[160px]"
+                                        >
+                                            Start Peer Review
+                                        </Button>
+                                    )}
                                 </div>
-                             );
+                            );
                         }
                         return null;
                     })()}
