@@ -31,6 +31,7 @@ export default function Assessment() {
     const [registrationId, setRegistrationId] = useState<string | null>(null);
     const [registrationCreatedAt, setRegistrationCreatedAt] = useState<string | null>(null);
     const [registrationStartedAt, setRegistrationStartedAt] = useState<string | null>(null);
+    const [peerReviewAssignedAt, setPeerReviewAssignedAt] = useState<string | null>(null);
 
     // For scheduled rounds: use assessment.start_at.
     // For sample/per-candidate rounds (start_at is null): use the candidate's own started_at.
@@ -39,7 +40,11 @@ export default function Assessment() {
         : (assessment?.start_at ? new Date(assessment.start_at).getTime() : null);
     const _durationMs = (assessment?.duration_minutes || 0) * 60000;
     const _codingEndMs = _codingStartMs !== null ? _codingStartMs + _durationMs : null;
-    const _peerReviewEndMs = _codingEndMs !== null ? _codingEndMs + 60 * 60 * 1000 : null;
+    // For sample rounds: peer review timer starts when competitor is assigned, not when coding ends.
+    // If no competitor assigned yet, _peerReviewEndMs is null (timer hasn't started).
+    const _peerReviewEndMs = assessment?.is_sample
+        ? (peerReviewAssignedAt ? new Date(peerReviewAssignedAt).getTime() + 60 * 60 * 1000 : null)
+        : (_codingEndMs !== null ? _codingEndMs + 60 * 60 * 1000 : null);
     const isPeerReviewPhase = _codingEndMs !== null && new Date().getTime() > _codingEndMs;
     const isPeerReviewExpiredCalc = _peerReviewEndMs !== null && new Date().getTime() > _peerReviewEndMs;
     const [isFinished, setIsFinished] = useState(false);
@@ -156,7 +161,7 @@ export default function Assessment() {
                 // Refresh local state regardless (assignment may have been done by another client)
                 const { data } = await supabase
                     .from('assessment_registrations')
-                    .select('peer_review_repo_url, assigned_peer_registration_id')
+                    .select('peer_review_repo_url, assigned_peer_registration_id, peer_review_assigned_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile?.id)
                     .single();
@@ -164,6 +169,7 @@ export default function Assessment() {
                 if (data?.peer_review_repo_url) {
                     setPeerReviewRepoUrl(data.peer_review_repo_url);
                     setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
+                    setPeerReviewAssignedAt(data.peer_review_assigned_at);
                 }
             }
         };
@@ -182,7 +188,7 @@ export default function Assessment() {
             try {
                 const { data, error } = await supabase
                     .from('assessment_registrations')
-                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, started_at, finished_at')
+                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, started_at, finished_at, peer_review_assigned_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
@@ -196,6 +202,7 @@ export default function Assessment() {
                     setAnonymousId(data.anonymous_id);
                     setPeerReviewRepoUrl(data.peer_review_repo_url);
                     setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
+                    setPeerReviewAssignedAt(data.peer_review_assigned_at);
                     setIsFinished(!!data.finished_at);
                 }
 
