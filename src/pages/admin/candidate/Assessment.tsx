@@ -107,7 +107,22 @@ export default function Assessment() {
   useEffect(() => {
     if (!id || !isRegistered || !privateRepoUrl) return;
 
-    const checkAccess = () => {
+    const checkAccess = async () => {
+      // Always check the DB for the current access_granted state first
+      // This ensures admin revocations are respected
+      const { data: regCheck } = await supabase
+        .from('assessment_registrations')
+        .select('access_granted')
+        .eq('assessment_id', id)
+        .eq('user_id', profile?.id)
+        .single();
+
+      // If access was explicitly revoked (false) or registration deleted, don't re-grant
+      if (!regCheck || regCheck.access_granted === false) {
+        if (accessGranted) setAccessGranted(false);
+        return;
+      }
+
       // Only try if assessment is started or close to starting (1 hour)
       if (assessment?.start_at) {
         const startTime = new Date(assessment.start_at).getTime();
