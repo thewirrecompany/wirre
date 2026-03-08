@@ -79,13 +79,13 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
                 // Check for active rounds (for warning logic)
                 const { data: currentRegs } = await supabase
                     .from('assessment_registrations')
-                    .select('assessment_id, finished_at, assessments(start_at, duration_minutes, emergency_abandoned, is_sample)')
+                    .select('assessment_id, coding_finished_at, assessments(start_at, duration_minutes, emergency_abandoned, is_sample)')
                     .eq('user_id', targetId);
 
                 if (currentRegs) {
                     const now = Date.now();
                     const active = currentRegs.some((reg: any) => {
-                        if (reg.finished_at) return false;
+                        if (reg.coding_finished_at) return false;
                         const assessment = reg.assessments;
                         if (!assessment) return false;
                         if (assessment.emergency_abandoned) return false;

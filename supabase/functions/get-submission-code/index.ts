@@ -58,20 +58,25 @@ serve(async (req) => {
     // Verify the assessment exists and get registration + company info to check ownership
     const { data: registration, error: regError } = await supabase
       .from('assessment_registrations')
-      .select('user_id, private_repo_url, repo_provisioned, access_granted, assessments!inner(company_user_id)')
+      .select('id, user_id, private_repo_url, repo_provisioned, access_granted, assessments!inner(company_user_id)')
       .eq('assessment_id', assessmentId)
       .eq('anonymous_id', anonymousId)
       .single();
 
     if (regError || !registration || !registration.repo_provisioned) {
+      console.error('Registration lookup failed:', { regError, hasReg: !!registration, repoProvisioned: registration?.repo_provisioned, assessmentId, anonymousId });
       return new Response(JSON.stringify({ error: 'Submission not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    console.log('Registration found:', { id: registration.id, userId: registration.user_id, accessGranted: registration.access_granted, repoProvisioned: registration.repo_provisioned });
+    console.log('Caller user.id:', user.id);
+
     // Access Control Logic
     const isCandidate = registration.user_id === user.id;
+    console.log('isCandidate:', isCandidate);
     let isAuthorized = false;
 
     if (isCandidate) {
@@ -90,6 +95,7 @@ serve(async (req) => {
         if (myReg?.assigned_peer_registration_id === registration.id) {
             isAuthorized = true;
         } else {
+            console.error('Candidate access denied: access_granted=false and not self-review', { myRegPeerRegId: myReg?.assigned_peer_registration_id, targetRegId: registration.id });
             return new Response(JSON.stringify({ error: 'Access revoked or not yet granted' }), {
             status: 403,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -100,21 +106,26 @@ serve(async (req) => {
       // Not the candidate? Check if Company Owner or Admin or PEER REVIEWER
       
       // 1. Check if Peer Reviewer
-      const { data: reviewerReg } = await supabase
+      const { data: reviewerReg, error: reviewerRegError } = await supabase
         .from('assessment_registrations')
-        .select('assigned_peer_registration_id')
+        .select('id, assigned_peer_registration_id, peer_review_repo_url')
         .eq('assessment_id', assessmentId)
         .eq('user_id', user.id)
         .maybeSingle();
       
-      if (reviewerReg && reviewerReg.assigned_peer_registration_id === registration.id) {
+      console.log('Reviewer reg lookup:', { reviewerReg, reviewerRegError });
+      console.log('Checking peer match (ID):', { assignedPeerRegId: reviewerReg?.assigned_peer_registration_id, targetRegId: registration.id });
+      console.log('Checking peer match (URL):', { reviewerPeerRepoUrl: reviewerReg?.peer_review_repo_url, targetPrivateRepoUrl: registration.private_repo_url });
+
+      if (reviewerReg && (
+        reviewerReg.assigned_peer_registration_id === registration.id ||
+        (reviewerReg.peer_review_repo_url && reviewerReg.peer_review_repo_url === registration.private_repo_url)
+      )) {
           isAuthorized = true;
       }
 
       // 2. Check if user is the company owner for this assessment
-      // The 'assessments' relation we fetched includes company_user_id.
-      // Company owner = user.id matches company_user_id directly
-      if (!isAuthorized && user.id === registration.assessments.company_user_id) {
+      if (!isAuthorized && user.id === (registration.assessments as any).company_user_id) {
         isAuthorized = true;
       } 
       
@@ -130,6 +141,8 @@ serve(async (req) => {
           isAuthorized = true;
         }
       }
+
+      console.log('Non-candidate isAuthorized:', isAuthorized);
     }
 
     if (!isAuthorized) {

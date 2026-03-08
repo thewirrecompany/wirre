@@ -141,7 +141,6 @@ export default function SelectionReview() {
           .from('assessments')
           .update({
             identities_revealed: true,
-            finalized_at: new Date().toISOString(),
             start_at: currentAssessment?.start_at,
             status: 'completed'
           })

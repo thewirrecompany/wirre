@@ -123,7 +123,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from('assessments')
-        .select(`id,title,status,github_repo_owner,github_repo_name,company_user_id,created_at,start_at,duration_minutes,is_paid,positions,technologies`)
+        .select(`id,title,status,github_repo_owner,github_repo_name,company_user_id,created_at,start_at,duration_minutes,is_paid,positions,technologies,is_sample,emergency_abandoned`)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -307,143 +307,6 @@ export default function AdminDashboard() {
     }
   }
 
-  async function handleForceRevokeAccess(assessmentId: string) {
-    setRevokingAccess(assessmentId);
-    try {
-      const assessment = upcomingAssessments.find(a => a.id === assessmentId);
-      if (!assessment) return;
-
-      const registrations = assessment.assessment_registrations.filter((reg: any) => reg.private_repo_url);
-
-      if (registrations.length === 0) {
-        toast({ title: 'Nothing to revoke', description: 'No candidates with provisioned repos found.' });
-        setRevokingAccess(null);
-        return;
-      }
-
-      let successCount = 0;
-      let failCount = 0;
-
-      // Call edge function per-candidate with candidateUserId so it bypasses the access_granted filter
-      for (const reg of registrations) {
-        try {
-          const { error } = await supabase.functions.invoke('revoke-assessment-access', {
-            body: { assessmentId, candidateUserId: reg.user_id }
-          });
-          if (error) throw error;
-          successCount++;
-        } catch (err) {
-          console.error('Force revoke failed for', reg.github_username, err);
-          failCount++;
-        }
-      }
-
-      toast({
-        title: 'Force Revoke Complete',
-        description: `GitHub access removed for ${successCount} candidate${successCount !== 1 ? 's' : ''}.${failCount > 0 ? ` (${failCount} failed — check GitHub manually)` : ''}`,
-        variant: failCount > 0 ? 'destructive' : 'default',
-      });
-    } catch (err: any) {
-      console.error('Force revoke error:', err);
-      toast({ title: 'Error', description: err.message || 'Failed to force revoke', variant: 'destructive' });
-    } finally {
-      setRevokingAccess(null);
-    }
-  }
-
-  async function handleRevokeAccess(assessmentId: string) {
-    setRevokingAccess(assessmentId);
-    try {
-      const assessment = upcomingAssessments.find(a => a.id === assessmentId);
-      if (!assessment) return;
-
-      const registrations = assessment.assessment_registrations.filter((reg: any) =>
-        reg.access_granted
-      );
-
-      if (registrations.length === 0) {
-        toast({
-          title: 'No Access to Revoke',
-          description: 'No candidates have been granted access yet',
-        });
-        setRevokingAccess(null);
-        return;
-      }
-
-      // 1. Call Edge Function FIRST to revoke GitHub access
-      // We pass assessmentId so it iterates all granted users for this assessment
-      // capture registrations to delete BEFORE calling edge function just in case
-      // actually we want to delete only the ones that were granted, which we filtered above.
-
-      const { data, error } = await supabase.functions.invoke('revoke-assessment-access', {
-        body: { assessmentId }
-      });
-
-      let partialFailure = false;
-      if (error) {
-        console.error('GitHub revoke error (PROCEEDING WITH DB DELETE ANYWAY):', error);
-        partialFailure = true;
-      }
-
-      const successCount = data?.results?.filter((r: any) => r.success).length || 0;
-      const failCount = data?.results?.filter((r: any) => !r.success).length || 0;
-
-      // 2. Optimistically update UI - remove the revoked users from local state
-      setUpcomingAssessments(prev => prev.map(a => {
-        if (a.id !== assessmentId) return a;
-        return {
-          ...a,
-          assessment_registrations: a.assessment_registrations.filter((reg: any) =>
-            !reg.access_granted
-          )
-        };
-      }));
-
-      // 3. Update Database - DELETE registrations that were revoked
-      // Only delete those that we intended to revoke (access_granted = true)
-      // CRITICAL FIX: Proceed with delete even if edge function failed
-      const { error: dbError } = await supabase
-        .from('assessment_registrations')
-        .delete()
-        .eq('assessment_id', assessmentId)
-        .eq('access_granted', true);
-
-      if (dbError) {
-        console.error('DB Delete Error:', dbError);
-        toast({
-          title: 'Database Error',
-          description: 'GitHub access revoked (or attempted) but failed to remove registrations from database.',
-          variant: 'destructive'
-        });
-        loadUpcomingAssessments(); // Reload to sync
-      } else {
-        if (partialFailure) {
-          toast({
-            title: 'Access Revoked (Force Clean)',
-            description: `Registrations deleted. GitHub revocation had errors - check repo permissions manually if needed.`,
-            variant: 'default' // warning variant if available, else default
-          });
-        } else {
-          toast({
-            title: 'Access Revoked',
-            description: `Revoked access and removed ${successCount} candidate${successCount !== 1 ? 's' : ''}.${failCount > 0 ? ` (${failCount} failed to revoke on GitHub)` : ''}`,
-          });
-        }
-      }
-
-    } catch (err: any) {
-      console.error('Error revoking access:', err);
-      loadUpcomingAssessments();
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to revoke access',
-        variant: 'destructive'
-      });
-    } finally {
-      setRevokingAccess(null);
-    }
-  }
-
   async function handleEmergencyDeleteRound(assessmentId: string) {
     if (revokingAccess) return;
     const confirmed = window.confirm(
@@ -499,8 +362,6 @@ export default function AdminDashboard() {
     }
   }
 
-  // --- Individual Access Management ---
-
   async function handleGrantSingleAccess(assessmentId: string, registration: any) {
     if (grantingAccess) return; // simple lock
     setGrantingAccess(`${assessmentId}-${registration.id}`);
@@ -543,73 +404,6 @@ export default function AdminDashboard() {
       });
     } finally {
       setGrantingAccess(null);
-    }
-  }
-
-  async function handleRevokeSingleAccess(assessmentId: string, registration: any) {
-    if (revokingAccess) return;
-    setRevokingAccess(`${assessmentId}-${registration.id}`);
-
-    try {
-      // 1. Call Edge Function FIRST
-      // passing candidateUserId ensures we target just this user
-      const { error: edgeError } = await supabase.functions.invoke('revoke-assessment-access', {
-        body: {
-          assessmentId,
-          candidateUserId: registration.user_id
-        }
-      });
-
-      if (edgeError) {
-        console.error('Edge function error (PROCEEDING WITH DB DELETE ANYWAY):', edgeError);
-        // Do NOT return here. Continue to delete.
-        toast({
-          title: 'GitHub Revoke Warning',
-          description: 'Could not remove GitHub access automatically. Removing from database anyway. Please check GitHub manually.',
-          variant: 'destructive'
-        });
-      }
-
-      // 2. Optimistic Update - Set access_granted to false in local state
-      setUpcomingAssessments(prev => prev.map(a => {
-        if (a.id !== assessmentId) return a;
-        return {
-          ...a,
-          assessment_registrations: a.assessment_registrations.map((reg: any) => {
-            if (reg.id !== registration.id) return reg;
-            return { ...reg, access_granted: false };
-          })
-        };
-      }));
-
-      // 3. Also update the database directly as a reliable fallback.
-      // The edge function may update the DB too, but this ensures it's done.
-      // IMPORTANT: also set access_revoked_at so the candidate page can correctly
-      // detect an explicit admin revoke (vs a freshly provisioned, never-granted registration).
-      const { error: dbError } = await supabase
-        .from('assessment_registrations')
-        .update({ access_granted: false, access_revoked_at: new Date().toISOString() })
-        .eq('id', registration.id);
-
-      if (dbError) {
-        console.error('Failed to update DB:', dbError);
-        throw new Error('Failed to update database');
-      }
-
-      toast({
-        title: 'Access Revoked',
-        description: `Revoked access for ${registration.github_username}.`,
-      });
-    } catch (err: any) {
-      console.error('Failed to revoke single access:', err);
-      loadUpcomingAssessments();
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to revoke access',
-        variant: 'destructive'
-      });
-    } finally {
-      setRevokingAccess(null);
     }
   }
 
@@ -1052,9 +846,9 @@ export default function AdminDashboard() {
                     // Active = started but not ended
                     // Completed = time has elapsed
                     const needsSetup = a.status === 'awaiting_classroom_setup' || a.status === 'draft';
-                    const isReady = (a.status === 'ready' || a.status === 'started') && !hasStarted;
-                    const isActive = hasStarted && !hasEnded;
-                    const isCompleted = hasEnded;
+                    const isReady = ((a.status === 'ready' || a.status === 'started') && !hasStarted) || (a.is_sample && (a.status === 'ready' || a.status === 'started'));
+                    const isActive = hasStarted && !hasEnded && !a.is_sample;
+                    const isCompleted = hasEnded && !a.is_sample;
 
                     // Determine display status based purely on time
                     const displayStatus = needsSetup ? 'Setup Required' :
@@ -1193,7 +987,7 @@ export default function AdminDashboard() {
                       const timeUntilStart = Math.round((startTime.getTime() - now.getTime()) / 60000);
                       const hasStarted = now >= startTime;
 
-                      if (hasEnded) {
+                      if (hasEnded && !assessment.is_sample) {
                         timingText = 'COMPLETED';
                       } else if (hasStarted) {
                         timingText = `ACTIVE: ${Math.abs(timeUntilStart)}m ago`;
@@ -1281,15 +1075,6 @@ export default function AdminDashboard() {
                                     Assessment Completed • Read Only
                                   </p>
                                 </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleForceRevokeAccess(assessment.id)}
-                                  disabled={revokingAccess === assessment.id}
-                                  className="w-full font-mono text-[10px] uppercase tracking-widest text-red-500 border-red-500/30 hover:bg-red-500/5 h-9 rounded-none"
-                                >
-                                  {revokingAccess === assessment.id ? 'Revoking...' : '⚠ Force Revoke GitHub Access'}
-                                </Button>
                               </div>
                             ) : (
                               // Active assessment - show actions
@@ -1364,16 +1149,6 @@ export default function AdminDashboard() {
                                           <Badge variant={reg.selection_status === 'selected' ? 'default' : reg.selection_status === 'rejected' ? 'destructive' : 'outline'} className="text-[8px] font-mono uppercase tracking-widest h-5 px-2 rounded-none">
                                             {!assessment.is_paid ? `Score: ${reg.score !== null ? reg.score : '-'}/10` : reg.selection_status === 'selected' ? (assessment.identities_revealed ? 'Selected' : 'Advanced') : reg.selection_status === 'rejected' ? 'Rejected' : 'Not Selected'}
                                           </Badge>
-                                        ) : reg.access_granted ? (
-                                          <Button
-                                            size="sm"
-                                            variant="destructive"
-                                            className="h-7 px-3 text-[9px] font-mono uppercase tracking-widest rounded-none"
-                                            onClick={() => handleRevokeSingleAccess(assessment.id, reg)}
-                                            disabled={revokingAccess === `${assessment.id}-${reg.id}`}
-                                          >
-                                            {revokingAccess === `${assessment.id}-${reg.id}` ? '...' : 'Revoke'}
-                                          </Button>
                                         ) : (
                                           <Button
                                             size="sm"
@@ -1382,7 +1157,7 @@ export default function AdminDashboard() {
                                             onClick={() => handleGrantSingleAccess(assessment.id, reg)}
                                             disabled={grantingAccess === `${assessment.id}-${reg.id}` || !reg.repo_provisioned}
                                           >
-                                            {grantingAccess === `${assessment.id}-${reg.id}` ? '...' : 'Grant'}
+                                            {grantingAccess === `${assessment.id}-${reg.id}` ? '...' : reg.access_granted ? 'Re-Grant' : 'Grant'}
                                           </Button>
                                         )}
                                       </div>
@@ -1573,16 +1348,6 @@ export default function AdminDashboard() {
                       >
                         {!selectedAssessmentForModal.is_paid ? `Score: ${reg.score !== null ? reg.score : '-'}/10` : reg.selection_status === 'selected' ? (selectedAssessmentForModal.identities_revealed ? 'Selected' : 'Advanced') : reg.selection_status === 'rejected' ? 'Rejected' : 'Pending'}
                       </Badge>
-                    ) : reg.access_granted ? (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="h-7 px-3 text-[9px] font-mono uppercase tracking-widest rounded-none"
-                        onClick={() => handleRevokeSingleAccess(selectedAssessmentForModal.id, reg)}
-                        disabled={revokingAccess === `${selectedAssessmentForModal.id}-${reg.id}`}
-                      >
-                        {revokingAccess === `${selectedAssessmentForModal.id}-${reg.id}` ? '...' : 'Revoke'}
-                      </Button>
                     ) : (
                       <Button
                         size="sm"
@@ -1591,7 +1356,7 @@ export default function AdminDashboard() {
                         onClick={() => handleGrantSingleAccess(selectedAssessmentForModal.id, reg)}
                         disabled={grantingAccess === `${selectedAssessmentForModal.id}-${reg.id}` || !reg.repo_provisioned}
                       >
-                        {grantingAccess === `${selectedAssessmentForModal.id}-${reg.id}` ? '...' : 'Grant'}
+                        {grantingAccess === `${selectedAssessmentForModal.id}-${reg.id}` ? '...' : reg.access_granted ? 'Re-Grant' : 'Grant'}
                       </Button>
                     )}
                   </div>

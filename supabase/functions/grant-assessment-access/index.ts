@@ -57,10 +57,10 @@ serve(async (req) => {
 
     let query = supabase
       .from('assessment_registrations')
-      .select('id, user_id, github_username, private_repo_url, access_granted, finished_at, access_revoked_at, total_paused_ms')
+      .select('id, user_id, github_username, private_repo_url, access_granted, coding_finished_at')
       .eq('assessment_id', assessmentId)
       .eq('repo_provisioned', true)
-      .is('finished_at', null); // Only grant access if NOT finished
+      .is('coding_finished_at', null); // Only grant access if NOT finished
 
     // If targeting a specific user, we check them regardless of current access status (to support manual resumes)
     if (candidateUserId) {
@@ -208,18 +208,10 @@ serve(async (req) => {
           continue;
         }
 
-        // Update registration to mark access as granted and calculate pause duration
-        const updates: any = { access_granted: true, access_revoked_at: null };
-        
-        if (registration.access_revoked_at) {
-          const pausedMs = Date.now() - new Date(registration.access_revoked_at).getTime();
-          updates.total_paused_ms = (registration.total_paused_ms || 0) + Math.max(0, pausedMs);
-          console.log(`Calculated pause duration for ${registration.github_username}: ${pausedMs}ms. New total: ${updates.total_paused_ms}ms`);
-        }
-
+        // Update registration to mark access as granted
         const { error: updateError } = await supabase
           .from('assessment_registrations')
-          .update(updates)
+          .update({ access_granted: true })
           .eq('id', registration.id);
 
         if (updateError) {

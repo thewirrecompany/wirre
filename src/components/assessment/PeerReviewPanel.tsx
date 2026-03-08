@@ -17,6 +17,7 @@ interface PeerReviewPanelProps {
   registrationId: string;
   peerRepoUrl: string;
   assignedPeerRegistrationId?: string;
+  onComplete?: () => void;
 }
 
 interface Bug {
@@ -27,7 +28,7 @@ interface Bug {
   created_at: string;
 }
 
-export function PeerReviewPanel({ assessmentId, registrationId, peerRepoUrl, assignedPeerRegistrationId }: PeerReviewPanelProps) {
+export function PeerReviewPanel({ assessmentId, registrationId, peerRepoUrl, assignedPeerRegistrationId, onComplete }: PeerReviewPanelProps) {
   const [bugs, setBugs] = useState<Bug[]>([]);
   const [downloading, setDownloading] = useState(false);
   const [title, setTitle] = useState('');
@@ -48,22 +49,15 @@ export function PeerReviewPanel({ assessmentId, registrationId, peerRepoUrl, ass
     loadBugs();
   }, [registrationId]);
 
-  // Fetch Peer Anonymous ID
+  // Fetch Peer Anonymous ID via security-definer RPC (direct DB select is blocked by RLS)
   useEffect(() => {
-    if (assignedPeerRegistrationId) {
-      const fetchPeerId = async () => {
-        const { data, error } = await supabase
-          .from('assessment_registrations')
-          .select('anonymous_id')
-          .eq('id', assignedPeerRegistrationId)
-          .single();
-        if (data) {
-          setPeerAnonymousId(data.anonymous_id);
-        }
-      };
-      fetchPeerId();
+    if (registrationId) {
+      supabase.rpc('get_peer_anonymous_id', { p_my_registration_id: registrationId })
+        .then(({ data, error }) => {
+          if (!error && data) setPeerAnonymousId(data);
+        });
     }
-  }, [assignedPeerRegistrationId]);
+  }, [registrationId]);
 
   // Load files when peer ID is available
   useEffect(() => {
@@ -204,7 +198,7 @@ export function PeerReviewPanel({ assessmentId, registrationId, peerRepoUrl, ass
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header / Instructions */}
       <div className="border border-indigo-500/30 bg-indigo-500/10 p-6 rounded-md">
         <div className="flex items-start gap-4">
@@ -222,191 +216,181 @@ export function PeerReviewPanel({ assessmentId, registrationId, peerRepoUrl, ass
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Left Column: Repo & Form */}
-        <div className="space-y-8">
-          {/* Peer Repo Card */}
-          <Card className="bg-card/40 border-indigo-500/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-wider text-indigo-400">
-                <GitBranch className="h-4 w-4" />
-                Assigned Review Repository
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4">
-                {/* File Browser / Code Preview */}
-                <div className="border border-border rounded-md overflow-hidden bg-black/40 shadow-sm transition-all duration-300">
-                  {/* Header Bar */}
-                  <div className="p-3 border-b border-white/10 flex items-center justify-between bg-black/20">
-                    <div className="flex items-center gap-2 overflow-hidden flex-1 mr-2">
-                      {fileViewerPath && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 shrink-0 hover:bg-white/10"
-                          onClick={handleGoBackDir}
-                        >
-                          <ArrowLeft className="h-3 w-3" />
-                        </Button>
-                      )}
-                      <span className="font-mono text-xs text-muted-foreground truncate direction-rtl select-none flex items-center">
-                        <GitBranch className="h-3 w-3 mr-2 text-indigo-400" />
-                        root
-                        {fileViewerPath ? `/${fileViewerPath}` : ''}
+      {/* Full-width Repo Viewer */}
+      <Card className="bg-card/40 border-indigo-500/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-wider text-indigo-400">
+            <GitBranch className="h-4 w-4" />
+            Assigned Review Repository
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4">
+            <div className="border border-border rounded-md overflow-hidden bg-black/40 shadow-sm transition-all duration-300">
+              {/* Header Bar */}
+              <div className="p-3 border-b border-white/10 flex items-center justify-between bg-black/20">
+                <div className="flex items-center gap-2 overflow-hidden flex-1 mr-2">
+                  {fileViewerPath && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0 hover:bg-white/10"
+                      onClick={handleGoBackDir}
+                    >
+                      <ArrowLeft className="h-3 w-3" />
+                    </Button>
+                  )}
+                  <span className="font-mono text-xs text-muted-foreground truncate direction-rtl select-none flex items-center">
+                    <GitBranch className="h-3 w-3 mr-2 text-indigo-400" />
+                    root
+                    {fileViewerPath ? `/${fileViewerPath}` : ''}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[10px] font-mono uppercase tracking-widest gap-2 shrink-0 border-indigo-500/20 hover:bg-indigo-500/10 hover:text-indigo-400"
+                  onClick={handleDownloadZip}
+                  disabled={downloading}
+                >
+                  {downloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                  {downloading ? 'Zipping...' : 'Download Code'}
+                </Button>
+              </div>
+
+              {/* Content Area */}
+              <div className="min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar bg-black/20 relative">
+                {loadingFiles ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[1px]">
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+                      <span className="text-xs font-mono text-muted-foreground">Loading contents...</span>
+                    </div>
+                  </div>
+                ) : null}
+
+                {!loadingFiles && currentFileContent ? (
+                  <div className="p-0">
+                    <div className="sticky top-0 z-10 bg-black/80 backdrop-blur border-b border-white/5 p-2 flex items-center gap-2 text-indigo-400/80">
+                      <File className="h-3 w-3" />
+                      <span className="font-mono text-xs font-semibold">{currentFileContent.name}</span>
+                      <span className="text-[10px] text-muted-foreground ml-auto bg-white/5 px-2 py-0.5 rounded-full">
+                        {(currentFileContent.size / 1024).toFixed(1)} KB
                       </span>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-[10px] font-mono uppercase tracking-widest gap-2 shrink-0 border-indigo-500/20 hover:bg-indigo-500/10 hover:text-indigo-400"
-                      onClick={handleDownloadZip}
-                      disabled={downloading}
-                    >
-                      {downloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                      {downloading ? 'Zipping...' : 'Download Code'}
-                    </Button>
+                    <div className="p-4">
+                      <pre className="text-[11px] font-mono leading-relaxed tab-4 overflow-x-auto text-gray-300">
+                        <code>{currentFileContent.decoded_content || currentFileContent.content || '// Unable to display content'}</code>
+                      </pre>
+                    </div>
                   </div>
-
-                  {/* Content Area */}
-                  <div className="min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar bg-black/20 relative">
-                    {loadingFiles ? (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[1px]">
-                        <div className="flex flex-col items-center gap-2">
-                          <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
-                          <span className="text-xs font-mono text-muted-foreground">Loading contents...</span>
-                        </div>
+                ) : !loadingFiles ? (
+                  <div className="p-1 space-y-[1px]">
+                    {fileViewerContents.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+                        <Folder className="h-8 w-8 opacity-20" />
+                        <span className="text-xs font-mono">Empty directory</span>
                       </div>
-                    ) : null}
-
-                    {!loadingFiles && currentFileContent ? (
-                      <div className="p-0">
-                        <div className="sticky top-0 z-10 bg-black/80 backdrop-blur border-b border-white/5 p-2 flex items-center gap-2 text-indigo-400/80">
-                          <File className="h-3 w-3" />
-                          <span className="font-mono text-xs font-semibold">{currentFileContent.name}</span>
-                          <span className="text-[10px] text-muted-foreground ml-auto bg-white/5 px-2 py-0.5 rounded-full">
-                            {(currentFileContent.size / 1024).toFixed(1)} KB
-                          </span>
-                        </div>
-                        <div className="p-4">
-                          <pre className="text-[11px] font-mono leading-relaxed tab-4 overflow-x-auto text-gray-300">
-                            <code>{currentFileContent.decoded_content || currentFileContent.content || '// Unable to display content'}</code>
-                          </pre>
-                        </div>
-                      </div>
-                    ) : !loadingFiles ? (
-                      <div className="p-1 space-y-[1px]">
-                        {fileViewerContents.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
-                            <Folder className="h-8 w-8 opacity-20" />
-                            <span className="text-xs font-mono">Empty directory</span>
-                          </div>
-                        ) : (
-                          fileViewerContents
-                            .sort((a, b) => {
-                              if (a.type === b.type) return a.name.localeCompare(b.name);
-                              return a.type === 'dir' ? -1 : 1;
-                            })
-                            .map((item) => (
-                              <button
-                                key={item.path}
-                                onClick={() => handleNavigatePath(item.path)}
-                                className="w-full flex items-center gap-3 p-2.5 hover:bg-white/5 active:bg-white/10 rounded-sm transition-all text-left group border border-transparent hover:border-white/5"
-                              >
-                                {item.type === 'dir' ? (
-                                  <Folder className="h-4 w-4 text-indigo-400/70 group-hover:text-indigo-400 transition-colors" />
-                                ) : (
-                                  <File className="h-4 w-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
-                                )}
-                                <span className={`font-mono text-xs truncate flex-1 ${item.type === 'dir' ? 'text-indigo-100 font-medium' : 'text-slate-400'}`}>
-                                  {item.name}
-                                </span>
-                                {item.type === 'dir' && (
-                                  <ChevronRight className="h-3 w-3 text-white/10 group-hover:text-white/30" />
-                                )}
-                                <span className="text-[10px] text-white/10 tabular-nums w-16 text-right font-mono">
-                                  {item.size ? (item.size < 1024 ? `${item.size} B` : `${(item.size / 1024).toFixed(0)} KB`) : '-'}
-                                </span>
-                              </button>
-                            ))
-                        )}
-                      </div>
-                    ) : null}
+                    ) : (
+                      fileViewerContents
+                        .sort((a, b) => {
+                          if (a.type === b.type) return a.name.localeCompare(b.name);
+                          return a.type === 'dir' ? -1 : 1;
+                        })
+                        .map((item) => (
+                          <button
+                            key={item.path}
+                            onClick={() => handleNavigatePath(item.path)}
+                            className="w-full flex items-center gap-3 p-2.5 hover:bg-white/5 active:bg-white/10 rounded-sm transition-all text-left group border border-transparent hover:border-white/5"
+                          >
+                            {item.type === 'dir' ? (
+                              <Folder className="h-4 w-4 text-indigo-400/70 group-hover:text-indigo-400 transition-colors" />
+                            ) : (
+                              <File className="h-4 w-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
+                            )}
+                            <span className={`font-mono text-xs truncate flex-1 ${item.type === 'dir' ? 'text-indigo-100 font-medium' : 'text-slate-400'}`}>
+                              {item.name}
+                            </span>
+                            {item.type === 'dir' && (
+                              <ChevronRight className="h-3 w-3 text-white/10 group-hover:text-white/30" />
+                            )}
+                            <span className="text-[10px] text-white/10 tabular-nums w-16 text-right font-mono">
+                              {item.size ? (item.size < 1024 ? `${item.size} B` : `${(item.size / 1024).toFixed(0)} KB`) : '-'}
+                            </span>
+                          </button>
+                        ))
+                    )}
                   </div>
-                </div>
-
-
-                <p className="text-[10px] text-muted-foreground font-mono italic">
-                  Note: Access will be revoked automatically after 1 hour.
-                </p>
+                ) : null}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Report Form */}
-          <Card className="bg-card/40 border-border">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-wider">
-                <AlertCircle className="h-4 w-4 text-orange-400" />
-                Report Issue
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title" className="font-mono text-xs uppercase text-muted-foreground">Issue Title</Label>
-                  <Input
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Memory leak in handler function"
-                    className="font-mono text-sm bg-background/50"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="severity" className="font-mono text-xs uppercase text-muted-foreground">Severity</Label>
-                    <Select value={severity} onValueChange={(v: any) => setSeverity(v)}>
-                      <SelectTrigger className="font-mono text-sm bg-background/50">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low (Cosmetic)</SelectItem>
-                        <SelectItem value="medium">Medium (Functional)</SelectItem>
-                        <SelectItem value="high">High (Major)</SelectItem>
-                        <SelectItem value="critical">Critical (Crash/Security)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="font-mono text-xs uppercase text-muted-foreground">Description & Steps to Reproduce</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe the issue in detail..."
-                    className="font-mono text-sm min-h-[120px] bg-background/50"
-                  />
-                </div>
-
-                <Button type="submit" disabled={loading} className="w-full font-mono text-xs uppercase tracking-widest">
-                  {loading ? 'Submitting...' : 'Submit Issue'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column: List of Bugs */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-mono text-sm font-bold uppercase tracking-wider text-muted-foreground">Submitted Issues ({bugs.length})</h3>
+            </div>
+            <p className="text-[10px] text-muted-foreground font-mono italic">
+              Note: Access will be revoked automatically after 1 hour.
+            </p>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="space-y-3 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
+      {/* Two-col: Report Form + Submitted Issues */}
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* Report Issue Form */}
+        <Card className="bg-card/40 border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-wider">
+              <AlertCircle className="h-4 w-4 text-orange-400" />
+              Report Issue
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="title" className="font-mono text-xs uppercase text-muted-foreground">Issue Title</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. Memory leak in handler function"
+                  className="font-mono text-sm bg-background/50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="severity" className="font-mono text-xs uppercase text-muted-foreground">Severity</Label>
+                <Select value={severity} onValueChange={(v: any) => setSeverity(v)}>
+                  <SelectTrigger className="font-mono text-sm bg-background/50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low (Cosmetic)</SelectItem>
+                    <SelectItem value="medium">Medium (Functional)</SelectItem>
+                    <SelectItem value="high">High (Major)</SelectItem>
+                    <SelectItem value="critical">Critical (Crash/Security)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description" className="font-mono text-xs uppercase text-muted-foreground">Description & Steps to Reproduce</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe the issue in detail..."
+                  className="font-mono text-sm min-h-[120px] bg-background/50"
+                />
+              </div>
+
+              <Button type="submit" disabled={loading} className="w-full font-mono text-xs uppercase tracking-widest">
+                {loading ? 'Submitting...' : 'Submit Issue'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Submitted Issues */}
+        <div className="space-y-4">
+          <h3 className="font-mono text-sm font-bold uppercase tracking-wider text-muted-foreground">Submitted Issues ({bugs.length})</h3>
+          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
             {bugs.length === 0 ? (
               <div className="text-center py-12 border border-dashed border-border rounded-md">
                 <p className="text-muted-foreground font-mono text-xs">No issues reported yet.</p>

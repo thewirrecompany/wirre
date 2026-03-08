@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -15,6 +15,8 @@ interface SubmissionSuccessModalProps {
     onClose: () => void;
     onGoToDashboard: () => void;
     isSampleRound?: boolean;
+    isPeerReviewSkip?: boolean;
+    isPeerReviewSubmit?: boolean;
 }
 
 export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
@@ -22,7 +24,19 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
     onClose,
     onGoToDashboard,
     isSampleRound = false,
+    isPeerReviewSkip = false,
+    isPeerReviewSubmit = false,
 }) => {
+    // Auto-redirect when submission is finalized (peer review submitted or skipped)
+    useEffect(() => {
+        if (!isOpen) return;
+        if (!isPeerReviewSubmit && !isPeerReviewSkip) return;
+        const timer = setTimeout(() => {
+            onGoToDashboard();
+        }, 5000);
+        return () => clearTimeout(timer);
+    }, [isOpen, isPeerReviewSubmit, isPeerReviewSkip]);
+
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-md bg-background border-border font-mono">
@@ -31,36 +45,64 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
                         <CheckCircle2 className="h-10 w-10 text-primary" />
                     </div>
                     <DialogTitle className="text-xl font-bold uppercase tracking-widest text-center">
-                        Submission Finalized
+                        {isPeerReviewSubmit ? 'Peer Review Submitted' : isPeerReviewSkip ? 'Peer Review Skipped' : 'Submission Finalized'}
                     </DialogTitle>
                     <DialogDescription className="text-center text-muted-foreground text-sm leading-relaxed">
-                        {isSampleRound
-                            ? "Your sample repository access has been revoked. Since this is a sample round, you can see how the platform transitions through the workflow."
-                            : "Your repository access has been successfully revoked. Your work has been submitted for evaluation."}
+                        {isPeerReviewSubmit
+                            ? "Your findings have been submitted. Your full submission is now finalized."
+                            : isPeerReviewSkip
+                            ? "You've opted out of the peer review phase. Your coding submission has been recorded."
+                            : isSampleRound
+                                ? "Your sample repository access has been revoked. Since this is a sample round, you can see how the platform transitions through the workflow."
+                                : "Your repository access has been successfully revoked. Your work has been submitted for evaluation."}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
                     <div className="p-4 bg-muted/50 border border-border rounded-sm space-y-3">
-                        <div className="flex items-start gap-3">
-                            <Clock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-wider mb-1">What's Next?</p>
-                                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                    After the round duration expires, the Peer Review phase will start automatically. You will be assigned a fellow candidate's repository to review.
-                                </p>
+                        {isPeerReviewSubmit ? (
+                            <div className="flex items-start gap-3">
+                                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-wider mb-1">What's Next?</p>
+                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                        Your peer review findings have been recorded. Final results will be visible once the evaluation period ends.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        ) : isPeerReviewSkip ? (
+                            <div className="flex items-start gap-3">
+                                <Clock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-wider mb-1">What's Next?</p>
+                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                        Your coding submission is under review. Since you skipped the peer review round, you will receive 0 points for that component. Final results will be visible once the evaluation period ends.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex items-start gap-3">
+                                    <Clock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-wider mb-1">What's Next?</p>
+                                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                            After the round duration expires, the Peer Review phase will start automatically. You will be assigned a fellow candidate's repository to review.
+                                        </p>
+                                    </div>
+                                </div>
 
-                        <div className="flex items-start gap-3">
-                            <GitPullRequest className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-wider mb-1">Peer Review Phase</p>
-                                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                    You'll have a 1-hour window to explore their code and report any bugs you find.
-                                </p>
-                            </div>
-                        </div>
+                                <div className="flex items-start gap-3">
+                                    <GitPullRequest className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-wider mb-1">Peer Review Phase</p>
+                                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                            You'll have a 1-hour window to explore their code and report any bugs you find.
+                                        </p>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -71,13 +113,20 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
                     >
                         Go to Dashboard
                     </Button>
-                    <Button
-                        variant="ghost"
-                        className="w-full text-[10px] uppercase tracking-tighter text-muted-foreground hover:bg-transparent"
-                        onClick={onClose}
-                    >
-                        Close and Wait
-                    </Button>
+                    {!isPeerReviewSubmit && !isPeerReviewSkip && (
+                        <Button
+                            variant="ghost"
+                            className="w-full text-[10px] uppercase tracking-tighter text-muted-foreground hover:bg-transparent"
+                            onClick={onClose}
+                        >
+                            Close and Wait
+                        </Button>
+                    )}
+                    {(isPeerReviewSubmit || isPeerReviewSkip) && (
+                        <p className="text-[10px] text-muted-foreground text-center font-mono">
+                            Redirecting to dashboard in 5 seconds...
+                        </p>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>

@@ -166,12 +166,15 @@ serve(async (req) => {
         // 2. Is it the assigned peer reviewer?
         const { data: reviewerReg } = await supabaseClient
             .from('assessment_registrations')
-            .select('assigned_peer_registration_id')
+            .select('assigned_peer_registration_id, peer_review_repo_url')
             .eq('assessment_id', assessmentId)
             .eq('user_id', user.id)
             .maybeSingle();
 
-        if (reviewerReg?.assigned_peer_registration_id === registration.id) {
+        if (reviewerReg && (
+          reviewerReg.assigned_peer_registration_id === registration.id ||
+          (reviewerReg.peer_review_repo_url && reviewerReg.peer_review_repo_url === registration.private_repo_url)
+        )) {
             isAuthorized = true;
         }
     }

@@ -340,8 +340,7 @@ export default function SubmissionDetail() {
       const { error: updateError } = await supabase
         .from('assessments')
         .update({
-          identities_revealed: true,
-          finalized_at: new Date().toISOString()
+          identities_revealed: true
         })
         .eq('id', id);
 
