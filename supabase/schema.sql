@@ -18,13 +18,14 @@ CREATE TABLE public.assessment_registrations (
   ai_score integer CHECK (ai_score >= 0 AND ai_score <= 10),
   ai_report text,
   ai_grading_started_at timestamp with time zone,
+  peer_review_repo_url text,
+  assigned_peer_registration_id uuid,
   coding_started_at timestamp with time zone,
   coding_finished_at timestamp with time zone,
   peer_review_assigned_at timestamp with time zone,
-  peer_review_skipped boolean DEFAULT false,
-  peer_review_repo_url text,
-  assigned_peer_registration_id uuid,
+  peer_review_skipped boolean NOT NULL DEFAULT false,
   CONSTRAINT assessment_registrations_pkey PRIMARY KEY (id),
+  CONSTRAINT assessment_registrations_assigned_peer_registration_id_fkey FOREIGN KEY (assigned_peer_registration_id) REFERENCES public.assessment_registrations(id),
   CONSTRAINT assessment_registrations_assessment_id_fkey FOREIGN KEY (assessment_id) REFERENCES public.assessments(id),
   CONSTRAINT assessment_registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
@@ -55,6 +56,8 @@ CREATE TABLE public.assessments (
   round_number integer DEFAULT 1,
   parent_assessment_id uuid,
   grading_status USER-DEFINED DEFAULT 'pending'::grading_status,
+  is_sample boolean NOT NULL DEFAULT false,
+  emergency_abandoned boolean DEFAULT false,
   CONSTRAINT assessments_pkey PRIMARY KEY (id),
   CONSTRAINT assessments_parent_assessment_id_fkey FOREIGN KEY (parent_assessment_id) REFERENCES public.assessments(id)
 );
@@ -68,6 +71,8 @@ CREATE TABLE public.candidates (
   private_repo_url text,
   email text,
   date_of_birth date,
+  username text UNIQUE,
+  is_public boolean DEFAULT true,
   CONSTRAINT candidates_pkey PRIMARY KEY (id),
   CONSTRAINT candidates_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
@@ -89,6 +94,20 @@ CREATE TABLE public.feedback (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT feedback_pkey PRIMARY KEY (id),
   CONSTRAINT feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.peer_review_bugs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  reporter_id uuid NOT NULL,
+  assessment_id uuid NOT NULL,
+  target_registration_id uuid NOT NULL,
+  title text NOT NULL,
+  description text NOT NULL,
+  severity text NOT NULL CHECK (severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT peer_review_bugs_pkey PRIMARY KEY (id),
+  CONSTRAINT peer_review_bugs_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES auth.users(id),
+  CONSTRAINT peer_review_bugs_assessment_id_fkey FOREIGN KEY (assessment_id) REFERENCES public.assessments(id),
+  CONSTRAINT peer_review_bugs_target_registration_id_fkey FOREIGN KEY (target_registration_id) REFERENCES public.assessment_registrations(id)
 );
 CREATE TABLE public.profiles (
   id uuid NOT NULL,
