@@ -38,7 +38,7 @@ import NotFound from "./pages/NotFound";
 import Maintenance from "./pages/Maintenance";
 import Leaderboard from "./pages/Leaderboard";
 import Feedback from "./pages/Feedback";
-import RateUs from "./pages/RateUs";
+
 
 const queryClient = new QueryClient();
 
@@ -61,7 +61,7 @@ const App = () => (
             <Route path="/set-password" element={<SetPassword />} />
             <Route path="/tnc" element={<TnC />} />
             <Route path="/feedback" element={<Feedback />} />
-            <Route path="/rateus" element={<RateUs />} />
+            <Route path="/rateus" element={<Feedback />} />
             <Route path="/leaderboard" element={
               <ProtectedRoute>
                 <Leaderboard />
