@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, File, Folder, Star, CheckCircle, XCircle, Bot, Loader2, Play } from 'lucide-react';
+import { ArrowLeft, File, Folder, Star, CheckCircle, XCircle, Bot, Loader2, Play, Bug } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,7 @@ export default function SubmissionDetail() {
   const [revealing, setRevealing] = useState(false);
   const [hasSelectedCandidates, setHasSelectedCandidates] = useState(false);
   const [aiResult, setAiResult] = useState<{ status: string, score: number | null, report: string | null }>({ status: 'pending', score: null, report: null });
+  const [peerReviewData, setPeerReviewData] = useState<{ peerAnonymousId: string | null, skipped: boolean, bugs: any[] }>({ peerAnonymousId: null, skipped: false, bugs: [] });
 
   useEffect(() => {
     loadContents(currentPath);
@@ -55,23 +56,12 @@ export default function SubmissionDetail() {
     if (!id || !anonymousId) return;
 
     try {
-      // First, let's see what records exist
-      const { data: allRecords, error: allError } = await supabase
-        .from('assessment_registrations')
-        .select('*')
-        .eq('assessment_id', id);
-
-      console.log('All registrations for this assessment:', allRecords);
-      console.log('Looking for anonymous_id:', anonymousId);
-
       const { data, error } = await supabase
         .from('assessment_registrations')
-        .select('score, notes, anonymous_id, assessment_id, selection_status, user_id, ai_score, ai_report, ai_grading_status')
+        .select('score, notes, anonymous_id, assessment_id, selection_status, user_id, ai_score, ai_report, ai_grading_status, assigned_peer_registration_id, peer_review_skipped')
         .eq('assessment_id', id)
         .eq('anonymous_id', anonymousId)
         .single();
-
-      console.log('Found registration data:', data, 'error:', error);
 
       if (error) throw error;
       if (data) {
@@ -84,19 +74,52 @@ export default function SubmissionDetail() {
           report: data.ai_report
         });
 
-        // Always try to load candidate info if we have user_id
+        // Only load real identity data if identities have been revealed
         if (data.user_id) {
-          const [candidateRes, profileRes] = await Promise.all([
-            supabase.from('candidates').select('full_name, github_username').eq('user_id', data.user_id).single(),
-            supabase.from('profiles').select('email').eq('id', data.user_id).single()
-          ]);
+          // Always load candidate display info (needed when revealed)
+          const { data: candidateRes } = await supabase
+            .from('candidates').select('full_name, github_username').eq('user_id', data.user_id).single();
+          if (candidateRes) setCandidateInfo(candidateRes);
 
-          console.log('Candidate data:', candidateRes.data);
-          console.log('Profile data:', profileRes.data);
-
-          if (candidateRes.data) setCandidateInfo(candidateRes.data);
-          if (profileRes.data) setProfileInfo(profileRes.data);
+          // Only fetch email (from profiles) when identities are revealed — avoids 406 RLS error
+          if (identitiesRevealed) {
+            const { data: profileRes } = await supabase
+              .from('profiles').select('email').eq('id', data.user_id).single();
+            if (profileRes) setProfileInfo(profileRes);
+          }
         }
+
+        // Load peer review info
+        const peerRegId = data.assigned_peer_registration_id;
+        let peerAnonymousId: string | null = null;
+        let peerBugs: any[] = [];
+
+        if (peerRegId) {
+          // Get the peer's anonymous_id
+          const { data: peerReg } = await supabase
+            .from('assessment_registrations')
+            .select('anonymous_id')
+            .eq('id', peerRegId)
+            .single();
+          peerAnonymousId = peerReg?.anonymous_id ?? null;
+        }
+
+        if (data.user_id) {
+          // Get bugs this candidate reported on their assigned peer
+          const { data: bugs } = await supabase
+            .from('peer_review_bugs')
+            .select('*')
+            .eq('assessment_id', id)
+            .eq('reporter_id', data.user_id)
+            .order('created_at', { ascending: true });
+          peerBugs = bugs || [];
+        }
+
+        setPeerReviewData({
+          peerAnonymousId,
+          skipped: !!data.peer_review_skipped,
+          bugs: peerBugs,
+        });
       }
     } catch (error: any) {
       console.error('Error loading submission data:', error);
@@ -215,8 +238,6 @@ export default function SubmissionDetail() {
         .eq('assessment_id', id)
         .eq('anonymous_id', anonymousId)
         .select();
-
-      console.log('Save result:', { data, error });
 
       if (error) throw error;
 
@@ -369,17 +390,10 @@ export default function SubmissionDetail() {
   };
 
   const handleRunAi = async () => {
-    console.log('🔵 handleRunAi called, aiResult.status:', aiResult.status);
-    if (!id || !anonymousId) {
-      console.log('🔴 Missing id or anonymousId');
-      return;
-    }
+    if (!id || !anonymousId) return;
 
     // Check if running only once
-    if (aiResult.status !== 'pending' && aiResult.status !== 'error') {
-      console.log('🔴 Status is not pending/error, it is:', aiResult.status);
-      return;
-    }
+    if (aiResult.status !== 'pending' && aiResult.status !== 'error') return;
 
     setAiResult(prev => ({ ...prev, status: 'processing' }));
     toast({
@@ -388,8 +402,6 @@ export default function SubmissionDetail() {
     });
 
     try {
-      console.log('🟢 Fetching registration data...');
-      // Fetch current private repo url
       const { data: regData } = await supabase
         .from('assessment_registrations')
         .select('private_repo_url, id')
@@ -397,11 +409,8 @@ export default function SubmissionDetail() {
         .eq('anonymous_id', anonymousId)
         .single();
 
-      console.log('🟢 Got regData:', regData);
       if (!regData?.private_repo_url) throw new Error('Repo not found');
 
-      console.log('🟢 About to call edge function...');
-      // Call Edge Function
       const { data, error } = await supabase.functions.invoke('grade-submission', {
         body: {
           assessmentId: id,
@@ -410,16 +419,9 @@ export default function SubmissionDetail() {
           privateRepoUrl: regData.private_repo_url
         }
       });
-      console.log('🟢 Edge function returned:', { data, error });
 
-      if (error) {
-        console.error('Edge function error object:', error);
-        throw error;
-      }
-      if (data && data.success === false) {
-        console.error('Backend failure response:', data);
-        throw new Error(data.error || 'AI Grading returned failure.');
-      }
+      if (error) throw error;
+      if (data && data.success === false) throw new Error(data.error || 'AI Grading returned failure.');
 
       // Wait 5s and reload
       setTimeout(() => loadSubmissionData(), 5000);
@@ -502,6 +504,45 @@ export default function SubmissionDetail() {
                           <span className="font-mono text-sm">{item.name}</span>
                         </button>
                       ))
+                    )}
+                  </div>
+                )}
+              </Card>
+
+              {/* Peer Review Section */}
+              <Card className="p-6">
+                <h3 className="font-mono font-bold mb-4 flex items-center gap-2 text-sm">
+                  <Bug className="h-4 w-4 text-orange-400" />
+                  Peer Review Submitted
+                </h3>
+                {peerReviewData.skipped && peerReviewData.bugs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground font-mono">Candidate skipped the peer review phase.</p>
+                ) : !peerReviewData.peerAnonymousId ? (
+                  <p className="text-xs text-muted-foreground font-mono">No peer was assigned to this candidate.</p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-xs font-mono text-muted-foreground">
+                      Reviewed: <span className="text-foreground font-bold">{peerReviewData.peerAnonymousId}</span>
+                    </div>
+                    {peerReviewData.bugs.length === 0 ? (
+                      <p className="text-xs text-muted-foreground font-mono italic">No issues were reported.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {peerReviewData.bugs.map((bug: any) => (
+                          <div key={bug.id} className="border border-border rounded-md p-3 space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-mono text-xs font-semibold">{bug.title}</span>
+                              <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded uppercase font-bold ${
+                                bug.severity === 'critical' ? 'bg-red-500/20 text-red-400' :
+                                bug.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                                bug.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                'bg-slate-500/20 text-slate-400'
+                              }`}>{bug.severity}</span>
+                            </div>
+                            <p className="font-mono text-xs text-muted-foreground leading-relaxed">{bug.description}</p>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}
