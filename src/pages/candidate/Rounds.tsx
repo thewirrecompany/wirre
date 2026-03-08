@@ -23,7 +23,8 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
 
     useEffect(() => {
         let mounted = true;
-        (async () => {
+
+        const loadRounds = async () => {
             setLoading(true);
             const targetId = userId || profile?.id;
             if (!targetId) {
@@ -127,8 +128,24 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
             } finally {
                 if (mounted) setLoading(false);
             }
-        })();
-        return () => { mounted = false; };
+        };
+
+        loadRounds();
+
+        const channel = supabase
+            .channel('rounds-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'assessment_registrations' }, () => {
+                if (mounted) loadRounds();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'assessments' }, () => {
+                if (mounted) loadRounds();
+            })
+            .subscribe();
+
+        return () => {
+            mounted = false;
+            supabase.removeChannel(channel);
+        };
     }, [profile?.id]);
 
     const getStatusBadge = (status: string, start_at?: string | null, isCompleted: boolean = false) => {

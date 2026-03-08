@@ -22,6 +22,18 @@ export default function SelectionReview() {
 
   useEffect(() => {
     loadData();
+
+    const channel = supabase
+      .channel('selection-review-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assessments', filter: `id=eq.${id}` }, () => {
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assessment_registrations' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [id]);
 
   const loadData = async () => {
@@ -68,8 +80,6 @@ export default function SelectionReview() {
         throw regError;
       }
 
-      console.log('Registrations:', registrations);
-
       // Get candidate details if we have user IDs
       const userIds = registrations?.map(r => r.user_id).filter(Boolean) || [];
       let candidateData = [];
@@ -80,7 +90,6 @@ export default function SelectionReview() {
           .select('user_id, full_name, github_username, email')
           .in('user_id', userIds);
 
-        console.log('Candidates response:', { data, error });
         candidateData = data || [];
       }
 
@@ -89,8 +98,6 @@ export default function SelectionReview() {
         ...reg,
         candidate: candidateData?.find(c => c.user_id === reg.user_id)
       })) || [];
-
-      console.log('Merged candidates:', merged);
 
       setCandidates(merged);
     } catch (error: any) {
@@ -111,8 +118,6 @@ export default function SelectionReview() {
     const positions = assessment?.positions || 1;
     const selectedCount = candidates.length;
 
-    console.log('handleRevealIdentities called', { positions, selectedCount, assessmentId: id });
-
     setRevealing(true);
     try {
       // First, mark all candidates as "selected" in database
@@ -127,8 +132,6 @@ export default function SelectionReview() {
 
       if (selectedCount <= positions) {
         // Can reveal identities directly
-        console.log('Selections within limit, revealing identities...');
-
         // Get current assessment data to preserve start_at
         const { data: currentAssessment } = await supabase
           .from('assessments')
@@ -168,15 +171,12 @@ export default function SelectionReview() {
               assessmentTitle: assessment.title,
             }
           });
-          console.log('Selection emails sent successfully');
         } catch (emailError) {
           console.error('Failed to send selection emails:', emailError);
           // Don't block the UI - emails are best-effort
         }
       } else {
         // Too many selections - proceed to Round 2 without revealing identities
-        console.log('Selections exceed positions, proceeding to Round 2...');
-
         // Update assessment status to under_review (candidates stay anonymous)
         const { error: updateError } = await supabase
           .from('assessments')
@@ -213,7 +213,6 @@ export default function SelectionReview() {
               nextRoundNumber: nextRound
             }
           });
-          console.log('Advancement emails sent successfully');
         } catch (emailError) {
           console.error('Failed to send advancement emails:', emailError);
         }

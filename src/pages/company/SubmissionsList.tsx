@@ -21,6 +21,18 @@ export default function SubmissionsList() {
 
   useEffect(() => {
     loadData();
+
+    const channel = supabase
+      .channel('submissions-list-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assessments', filter: `id=eq.${id}` }, () => {
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assessment_registrations' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [id]);
 
   const loadData = async () => {

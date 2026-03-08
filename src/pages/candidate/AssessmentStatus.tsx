@@ -57,9 +57,21 @@ export default function AssessmentStatus() {
 
         loadData(true);
         const interval = setInterval(() => loadData(false), 30000);
+
+        const channel = supabase
+            .channel('assessment-status-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'assessments', filter: `id=eq.${id}` }, () => {
+                loadData(false);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'assessment_registrations' }, () => {
+                loadData(false);
+            })
+            .subscribe();
+
         return () => {
             mounted = false;
             clearInterval(interval);
+            supabase.removeChannel(channel);
         };
     }, [id, profile?.id]);
 

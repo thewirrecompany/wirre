@@ -50,6 +50,18 @@ export default function CandidateOpportunities() {
 
         checkProfileCompletion();
         loadOpportunities();
+
+        const channel = supabase
+            .channel('opportunities-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'assessments' }, () => {
+                loadOpportunities();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'assessment_registrations' }, () => {
+                loadOpportunities();
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
     }, [profile?.id]);
 
     async function loadOpportunities() {
@@ -63,9 +75,6 @@ export default function CandidateOpportunities() {
                 .select('id,title,company_user_id,created_at,technologies,duration_minutes,start_at,positions,is_paid')
                 .eq('status', 'ready')
                 .order('created_at', { ascending: false });
-
-            console.log('Opportunities raw data:', data);
-            console.log('Opportunities error:', error);
 
             if (error) {
                 console.error('Error loading opportunities:', error);
@@ -83,13 +92,10 @@ export default function CandidateOpportunities() {
                     .select('user_id,name,domain')
                     .in('user_id', userIds as any[]);
                 if (companies) {
-                    console.log('Fetched companies:', companies);
                     companiesMap = Object.fromEntries((companies as any[]).map(c => [
                         c.user_id,
                         { name: c.name, domain: c.domain }
                     ] as any));
-                } else {
-                    console.log('No companies fetched (likely RLS restriction)');
                 }
             }
 
