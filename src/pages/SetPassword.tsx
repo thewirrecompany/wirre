@@ -18,7 +18,10 @@ export default function SetPassword() {
     const { toast } = useToast();
     const navigate = useNavigate();
     const location = useLocation();
-    const email = new URLSearchParams(location.search).get("email");
+    const params = new URLSearchParams(location.search);
+    const email = params.get("email");
+    const rawRedirect = params.get("redirect");
+    const redirectTo = rawRedirect && rawRedirect.startsWith("/") ? rawRedirect : null;
 
     useEffect(() => {
         if (!email) {
@@ -84,7 +87,7 @@ export default function SetPassword() {
                 .single();
 
             const role = profileData?.role || 'candidate';
-            navigate(`/${role}/dashboard`);
+            navigate(redirectTo ?? `/${role}/dashboard`);
         } catch (error: any) {
             console.error('Set password error:', error);
             toast({

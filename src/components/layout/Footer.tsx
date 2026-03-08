@@ -104,6 +104,14 @@ export function Footer() {
               >
                 <Link to="/feedback">Give Feedback</Link>
               </Button>
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="font-mono uppercase text-xs tracking-widest h-8 justify-start md:justify-end px-0 hover:bg-transparent hover:text-primary"
+              >
+                <Link to="/rateus">Rate Us</Link>
+              </Button>
             </div>
           </div>
         </div>

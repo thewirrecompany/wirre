@@ -1,7 +1,7 @@
 //lgiin
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,10 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Only allow local paths to prevent open redirect
+  const rawRedirect = searchParams.get("redirect");
+  const redirectTo = rawRedirect && rawRedirect.startsWith("/") ? rawRedirect : null;
 
   const handleSendOtp = async () => {
     if (!email) {
@@ -50,7 +54,8 @@ export default function Login() {
         description: `A verification code/link has been sent to ${email}`,
       });
 
-      navigate(`/set-password?email=${encodeURIComponent(email)}`);
+      const setPasswordUrl = `/set-password?email=${encodeURIComponent(email)}${redirectTo ? `&redirect=${encodeURIComponent(redirectTo)}` : ""}`;
+      navigate(setPasswordUrl);
     } catch (error: any) {
       console.error('OTP error:', error);
 
@@ -95,6 +100,12 @@ export default function Login() {
       if (!profile || !profile.role) throw new Error('Profile not found or missing role');
 
       // Allow admins and superadmins to login from any tab
+      if (redirectTo && profile.role !== 'superadmin' && profile.role !== 'admin') {
+        navigate(redirectTo);
+        toast({ title: "Login successful", description: "Welcome back!" });
+        return;
+      }
+
       if (profile.role === 'superadmin') {
         navigate('/superadmin/dashboard');
         toast({
@@ -114,7 +125,9 @@ export default function Login() {
       });
 
       // Navigate to appropriate dashboard
-      if (profile.role === 'admin') {
+      if (redirectTo) {
+        navigate(redirectTo);
+      } else if (profile.role === 'admin') {
         navigate('/admin/dashboard');
       } else if (profile.role === 'company') {
         navigate('/company/dashboard');
