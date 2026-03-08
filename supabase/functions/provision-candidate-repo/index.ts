@@ -149,7 +149,7 @@ serve(async (req) => {
         github_username: candidateGithubUsername,
         repo_provisioned: true,
         access_granted: false, // Will be set to true when assessment starts
-        started_at: new Date().toISOString(), // For sample rounds
+        coding_started_at: new Date().toISOString(), // For sample rounds
       })
       .eq('user_id', candidateUserId)
       .eq('assessment_id', assessmentId);

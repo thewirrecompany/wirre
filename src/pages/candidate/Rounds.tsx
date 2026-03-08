@@ -40,21 +40,23 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                 // 1) Fetch this user's registrations (IDs) and then load assessments by id (two-step avoids RLS recursion)
                 const { data: regs, error: regsErr } = await supabase
                     .from('assessment_registrations')
-                    .select('assessment_id,created_at,access_granted')
+                    .select('assessment_id,created_at,access_granted,coding_finished_at,peer_review_assigned_at,peer_review_skipped')
                     .eq('user_id', targetId)
                     .order('created_at', { ascending: false });
 
                 let registeredAssessments: any[] = [];
                 const accessGrantedMap: Record<string, boolean> = {};
+                const registrationDataMap: Record<string, any> = {};
                 if (!regsErr && regs && regs.length > 0) {
                     const ids = Array.from(new Set(regs.map((r: any) => r.assessment_id)));
-                    // Build map of access_granted status
+                    // Build maps from registration data
                     regs.forEach((r: any) => {
                         accessGrantedMap[r.assessment_id] = r.access_granted;
+                        registrationDataMap[r.assessment_id] = r;
                     });
                     const { data: asses } = await supabase
                         .from('assessments')
-                        .select('id,title,status,start_at,duration_minutes,positions,company_user_id,created_at,is_paid,emergency_abandoned')
+                        .select('id,title,status,start_at,duration_minutes,positions,company_user_id,created_at,is_paid,emergency_abandoned,is_sample')
                         .in('id', ids as any[])
                         .order('created_at', { ascending: false });
                     registeredAssessments = asses || [];
@@ -81,20 +83,31 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                     new Date(a.start_at) > now
                 );
 
-                // 2. Completed: status is completed/under_review OR time has expired (start + duration < now)
+                // 2. Completed: status=completed OR peer_review_skipped (explicit skip, both round types)
+                //    OR time-based expiry for non-sample rounds.
                 const completed = registeredAssessments.filter((a: any) => {
                     if (upcomingRegistered.includes(a)) return false;
 
-                    // 1. Explicitly finished status (completed only - under_review is active for peer reviews)
+                    const reg = registrationDataMap[a.id];
+
+                    // Explicitly completed at assessment level
                     if (a.status === 'completed') return true;
 
-                    // 2. Time expired (coding duration + 1 hour peer review buffer)
+                    // Candidate explicitly skipped peer review — applies to both sample and normal rounds.
+                    // This is the canonical "fully done" signal regardless of round type.
+                    if (reg?.peer_review_skipped) return true;
+
+                    // For sample rounds: no time-based completion — each candidate runs independently.
+                    // Only peer_review_skipped (above) or assessment-level status signals completion.
+                    if (a.is_sample) return false;
+
+                    // For normal rounds: completed once the full window (coding + 1h peer review) has elapsed.
+                    // finished_at only means coding submitted; peer review may still be in progress.
                     if (a.start_at && a.duration_minutes) {
                         const endTime = new Date(new Date(a.start_at).getTime() + (a.duration_minutes + 60) * 60000);
                         if (now > endTime) return true;
                     }
 
-                    // Otherwise, it's not completed (even if access_granted is false, we keep it active until time runs out or status changes)
                     return false;
                 });
 

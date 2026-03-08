@@ -28,7 +28,7 @@ export default function AssessmentStatus() {
             const [assessmentRes, regRes, serverTimeRes] = await Promise.all([
                 supabase.from('assessments').select('*').eq('id', id).single(),
                 supabase.from('assessment_registrations')
-                    .select('id, score, notes, selection_status, created_at, started_at, anonymous_id, peer_review_repo_url, peer_review_assigned_at, total_paused_ms, access_granted, finished_at')
+                    .select('id, score, notes, selection_status, created_at, coding_started_at, anonymous_id, peer_review_repo_url, peer_review_assigned_at, access_granted, coding_finished_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single(),
@@ -170,11 +170,11 @@ export default function AssessmentStatus() {
 
                     {(() => {
                         const _codingStartMs = assessment?.is_sample
-                            ? (registration?.started_at ? new Date(registration.started_at).getTime() : null)
+                            ? (registration?.coding_started_at ? new Date(registration.coding_started_at).getTime() : null)
                             : (assessment?.start_at ? new Date(assessment.start_at).getTime() : null);
                         const _durationMs = (assessment?.duration_minutes || 0) * 60000;
                         const _codingEndMs = _codingStartMs !== null
-                            ? _codingStartMs + _durationMs + (assessment?.is_sample ? (registration?.total_paused_ms || 0) : 0)
+                            ? _codingStartMs + _durationMs
                             : null;
 
                         // Peer review phase: starts when coding ends, window duration is based on assignment time (for sample rounds)
@@ -183,7 +183,9 @@ export default function AssessmentStatus() {
                             : (_codingEndMs !== null ? _codingEndMs + 60 * 60 * 1000 : null);
 
                         const now = Date.now();
-                        const isPeerReviewPhase = _codingEndMs !== null && now > _codingEndMs && (_peerReviewEndMs === null || now < _peerReviewEndMs);
+                        // If candidate has already finished (submitted or skipped peer review), never show the peer review banner.
+                        const candidateFinished = !!registration?.coding_finished_at;
+                        const isPeerReviewPhase = !candidateFinished && _codingEndMs !== null && now > _codingEndMs && (_peerReviewEndMs === null || now < _peerReviewEndMs);
 
                         if (isPeerReviewPhase) {
                             const hasPeer = !!registration?.peer_review_repo_url;

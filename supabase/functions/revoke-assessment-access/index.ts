@@ -405,8 +405,7 @@ async function revokeAccessForRegistrations(
         await supabase
           .from('assessment_registrations')
           .update({ 
-            access_granted: false,
-            access_revoked_at: new Date().toISOString()
+            access_granted: false
           })
           .eq('id', registration.id);
 
@@ -424,8 +423,7 @@ async function revokeAccessForRegistrations(
       const { error: updateError } = await supabase
         .from('assessment_registrations')
         .update({ 
-          access_granted: false,
-          access_revoked_at: new Date().toISOString()
+          access_granted: false
         })
         .eq('id', registration.id);
 
@@ -492,7 +490,7 @@ serve(async (req) => {
         .from('assessment_registrations')
         .select('*, assessments!inner(is_sample, start_at, duration_minutes)')
         .eq('access_granted', true)
-        .is('finished_at', null); // Only cleanup those not already finished
+        .is('coding_finished_at', null); // Only cleanup those not already finished
 
       if (fetchError) throw fetchError;
 
@@ -505,9 +503,9 @@ serve(async (req) => {
 
         let startTimeMs = 0;
         if (assessment.is_sample) {
-          // For sample rounds, use the individual started_at
-          if (!reg.started_at) return false; // Haven't even started yet
-          startTimeMs = new Date(reg.started_at).getTime();
+          // For sample rounds, use the individual coding_started_at
+          if (!reg.coding_started_at) return false; // Haven't even started yet
+          startTimeMs = new Date(reg.coding_started_at).getTime();
         } else {
           // For scheduled rounds, use assessment start_at
           if (!assessment.start_at) return false;
@@ -515,11 +513,9 @@ serve(async (req) => {
         }
 
         const durationMs = (assessment.duration_minutes || 0) * 60 * 1000;
-        const totalPausedMs = reg.total_paused_ms || 0;
         
-        // True expiry = Start + Duration + All Paused Time
-        // Add 30s grace period to prevent immediate re-revocation upon grant/pause-edge
-        const trueExpiryMs = startTimeMs + durationMs + totalPausedMs + 30000;
+        // True expiry = Start + Duration + 30s grace period
+        const trueExpiryMs = startTimeMs + durationMs + 30000;
 
         return now > trueExpiryMs;
       });

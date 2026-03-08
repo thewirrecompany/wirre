@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GitBranch, Terminal, Clock, File, Folder, Download, ArrowLeft, AlertTriangle, TimerOff, CheckCircle, XCircle } from "lucide-react";
+import { GitBranch, Terminal, Clock, File, Folder, Download, ArrowLeft, TimerOff, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/card';
@@ -27,6 +27,7 @@ export default function Assessment() {
     const [companyData, setCompanyData] = useState<{ name: string, domain?: string } | null>(null);
     const [privateRepoUrl, setPrivateRepoUrl] = useState<string>('');
     const [accessGranted, setAccessGranted] = useState(false);
+    const accessGrantedRef = useRef(false);
     const [userDob, setUserDob] = useState<string | null>(null);
     const [githubUsername, setGithubUsername] = useState<string | null>(null);
     const [username, setUsername] = useState<string | null>(null);
@@ -37,35 +38,32 @@ export default function Assessment() {
     const [assignedPeerRegistrationId, setAssignedPeerRegistrationId] = useState<string | null>(null);
     const [registrationId, setRegistrationId] = useState<string | null>(null);
     const [registrationCreatedAt, setRegistrationCreatedAt] = useState<string | null>(null);
-    const [registrationStartedAt, setRegistrationStartedAt] = useState<string | null>(null);
+    const [codingStartedAt, setCodingStartedAt] = useState<string | null>(null);
     const [peerReviewAssignedAt, setPeerReviewAssignedAt] = useState<string | null>(null);
 
     const [isFinished, setIsFinished] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [skippedPeerReview, setSkippedPeerReview] = useState(false);
+    const [submittedPeerReview, setSubmittedPeerReview] = useState(false);
 
-    // Admin revoke / countdown state — declared before computed values that depend on them
-    const [adminRevokedAccess, setAdminRevokedAccess] = useState(false);
-    const [showAdminRevokeDialog, setShowAdminRevokeDialog] = useState(false);
+    // Countdown state
     const [showTimeExpiredDialog, setShowTimeExpiredDialog] = useState(false);
-    const [totalPausedMs, setTotalPausedMs] = useState(0);
     const [timeRemainingMs, setTimeRemainingMs] = useState<number | null>(null);
-    const [accessRevokedAt, setAccessRevokedAt] = useState<string | null>(null);
     const [serverTimeOffset, setServerTimeOffset] = useState(0);
-    const adminRevokedAtRef = useRef<number | null>(null);
-    const totalPausedMsRef = useRef(0);
     const codingEndMsRef = useRef<number | null>(null);
 
     // For scheduled rounds: use assessment.start_at.
-    // For sample/per-candidate rounds (start_at is null): use the candidate's own started_at.
+    // For sample/per-candidate rounds (start_at is null): use the candidate's own coding_started_at.
     const _codingStartMs = assessment?.is_sample
-        ? (registrationStartedAt ? new Date(registrationStartedAt).getTime() : null)
+        ? (codingStartedAt ? new Date(codingStartedAt).getTime() : null)
         : (assessment?.start_at ? new Date(assessment.start_at).getTime() : null);
     const _durationMs = (assessment?.duration_minutes || 0) * 60000;
     const _codingEndMs = _codingStartMs !== null
         ? _codingStartMs + _durationMs
         : null;
-    // Keep ref up-to-date for use inside polling closure without stale captures
+    // Keep ref up-to-date for use inside polling closures without stale captures
     codingEndMsRef.current = _codingEndMs;
+    accessGrantedRef.current = accessGranted;
     // For sample rounds: peer review timer starts when competitor is assigned, not when coding ends.
     // If no competitor assigned yet, _peerReviewEndMs is null (timer hasn't started).
     const _peerReviewEndMs = assessment?.is_sample
@@ -131,20 +129,31 @@ export default function Assessment() {
         const checkPhaseTransitions = async () => {
             const now = Date.now();
 
-            // Coding phase just ended -> revoke GitHub access and alert user
-            if (now > _codingEndMs && accessGranted) {
-                console.log('Coding time expired, revoking access...');
-                setAccessGranted(false);
-                // Revoke GitHub collaborator access
-                try {
-                    await supabase.functions.invoke('revoke-assessment-access', {
-                        body: { assessmentId: id, candidateUserId: profile?.id }
-                    });
-                    console.log('Access revoked on time expiry');
-                } catch (e) {
-                    console.error('Failed to revoke access on time expiry:', e);
+            // Coding phase just ended -> mark as finished, revoke GitHub access if still held, then record in DB.
+            // NOTE: accessGranted is intentionally NOT in the condition — if checkAccess already revoked
+            // access (setting accessGranted=false), we still need to call candidate_finish_assessment so
+            // finished_at gets set. Without that, isFinished stays false and admin re-grants cause a loop.
+            if (now > _codingEndMs && !isFinished) {
+                // Set finished immediately — prevents any future loop trigger, even if async calls below fail.
+                setIsFinished(true);
+                // Only revoke GitHub access if the candidate currently has it
+                if (accessGrantedRef.current) {
+                    setAccessGranted(false);
+                    try {
+                        await supabase.functions.invoke('revoke-assessment-access', {
+                            body: { assessmentId: id, candidateUserId: profile?.id }
+                        });
+                    } catch (e) {
+                        console.error('Failed to revoke access on time expiry:', e);
+                    }
+                    toast({ title: 'Time\'s up!', description: 'Coding phase ended. Your repository access has been revoked.' });
                 }
-                toast({ title: 'Time\'s up!', description: 'Coding phase ended. Your repository access has been revoked.' });
+                // Formally mark coding done in DB (idempotent — safe to call even if already finished)
+                try {
+                    await supabase.rpc('candidate_finish_assessment', { p_assessment_id: id });
+                } catch (e) {
+                    console.error('Failed to auto-finish coding phase:', e);
+                }
             }
 
             // Peer review hour ended -> auto-finalize and redirect
@@ -165,7 +174,10 @@ export default function Assessment() {
         checkPhaseTransitions();
         const interval = setInterval(checkPhaseTransitions, 15000);
         return () => clearInterval(interval);
-    }, [id, isRegistered, privateRepoUrl, _codingEndMs, _peerReviewEndMs, accessGranted, profile?.id]);
+    // NOTE: accessGranted intentionally excluded from dep array — we use accessGrantedRef.current
+    // so that admin re-granting access doesn't cause this effect to re-instantiate and
+    // immediately re-revoke (which would create an infinite revocation loop).
+    }, [id, isRegistered, privateRepoUrl, _codingEndMs, _peerReviewEndMs, isFinished, profile?.id]);
 
     // Peer Review Assignment Hook
     useEffect(() => {
@@ -174,8 +186,10 @@ export default function Assessment() {
         const checkPeerReview = async () => {
             const now = new Date().getTime();
             const isPeerReviewPhase = _codingEndMs !== null && now > _codingEndMs;
+            // For sample rounds, also trigger assignment when the candidate has finished early
+            const shouldTryAssign = isPeerReviewPhase || (assessment?.is_sample && isFinished);
 
-            if (isPeerReviewPhase && !peerReviewRepoUrl) {
+            if (shouldTryAssign && !peerReviewRepoUrl) {
                 // Try to trigger assignment if missing
                 const { error: rpcError } = await supabase.rpc('assign_peer_reviews', { target_assessment_id: id });
                 if (rpcError) {
@@ -202,7 +216,7 @@ export default function Assessment() {
         checkPeerReview();
         const interval = setInterval(checkPeerReview, 15000);
         return () => clearInterval(interval);
-    }, [id, isRegistered, assessment, peerReviewRepoUrl, profile?.id]);
+    }, [id, isRegistered, assessment, peerReviewRepoUrl, profile?.id, isFinished]);
 
     // check registration (if table exists) so we only reveal classroom/repo when allowed
     useEffect(() => {
@@ -212,7 +226,7 @@ export default function Assessment() {
             try {
                 const { data, error } = await supabase
                     .from('assessment_registrations')
-                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, started_at, finished_at, peer_review_assigned_at, total_paused_ms, access_revoked_at')
+                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, coding_started_at, coding_finished_at, peer_review_assigned_at, peer_review_skipped')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
@@ -220,38 +234,15 @@ export default function Assessment() {
                     setIsRegistered(true);
                     setRegistrationId(data.id);
                     setRegistrationCreatedAt(data.created_at);
-                    setRegistrationStartedAt(data.started_at);
+                    setCodingStartedAt(data.coding_started_at);
                     setPrivateRepoUrl(data.private_repo_url || '');
                     setAccessGranted(data.access_granted || false);
                     setAnonymousId(data.anonymous_id);
                     setPeerReviewRepoUrl(data.peer_review_repo_url);
                     setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
                     setPeerReviewAssignedAt(data.peer_review_assigned_at);
-                    setIsFinished(!!data.finished_at);
-                    if (data.total_paused_ms) {
-                        setTotalPausedMs(data.total_paused_ms);
-                        totalPausedMsRef.current = data.total_paused_ms;
-                    }
-                    if (data.access_revoked_at) {
-                        setAccessRevokedAt(data.access_revoked_at);
-                        adminRevokedAtRef.current = new Date(data.access_revoked_at).getTime();
-                    }
-
-                    const hasStarted = !!data.started_at;
-                    // Guard: if coding time has already passed (peer review phase), access_revoked_at
-                    // was set by timer expiry — not an admin action — so don't show the dialog.
-                    const nowOnLoad = Date.now();
-                    const codingEndOnLoad = codingEndMsRef.current;
-                    const alreadyPastCoding = codingEndOnLoad !== null && nowOnLoad > codingEndOnLoad;
-
-                    // Explicitly restore state if revoked and already started.
-                    // access_revoked_at is set only by revoke-assessment-access, so this correctly
-                    // distinguishes an explicit admin revoke from a freshly provisioned (never-granted)
-                    // registration which also has access_granted=false + started_at set.
-                    if (data.access_granted === false && hasStarted && !data.finished_at && data.access_revoked_at && !alreadyPastCoding) {
-                        setAdminRevokedAccess(true);
-                        setShowAdminRevokeDialog(true);
-                    }
+                    setIsFinished(!!data.coding_finished_at || !!data.peer_review_skipped);
+                    if (data.peer_review_skipped) setSkippedPeerReview(true);
                 }
 
                 // fetch user DOB and GitHub username for validation
@@ -289,166 +280,56 @@ export default function Assessment() {
     }, [id, profile?.id]);
 
 
-    // Continuous access verification: poll every 30 seconds to ensure access is correct (sync)
+    // Continuous access verification: polls DB every 30s to sync state
     useEffect(() => {
         if (!id || !isRegistered || !privateRepoUrl || isFinished) return;
         let mounted = true;
 
         const checkAccess = async () => {
-            // If coding time has already expired (peer review phase) and adminRevokedAccess is still
-            // flagged (e.g. from initial page load before assessment data was available, a race
-            // condition that can make it look like an admin revoke), clear it now.
-            const _nowCleanup = Date.now();
-            const _codingEndCleanup = codingEndMsRef.current;
-            if (_codingEndCleanup !== null && _nowCleanup > _codingEndCleanup && adminRevokedAccess) {
-                setAdminRevokedAccess(false);
-                setShowAdminRevokeDialog(false);
-                adminRevokedAtRef.current = null;
-            }
-
-            // Always check the DB for the current access_granted state first
-            // This ensures admin revocations are respected
             const { data: regCheck } = await supabase
                 .from('assessment_registrations')
-                .select('access_granted, finished_at, started_at, peer_review_assigned_at, total_paused_ms, access_revoked_at')
+                .select('access_granted, coding_finished_at, coding_started_at, peer_review_assigned_at, peer_review_skipped')
                 .eq('assessment_id', id)
                 .eq('user_id', profile?.id)
                 .single();
+
+            if (!mounted) return;
+
             if (regCheck) {
-                if (regCheck.started_at) setRegistrationStartedAt(regCheck.started_at);
+                if (regCheck.coding_started_at) setCodingStartedAt(regCheck.coding_started_at);
                 if (regCheck.peer_review_assigned_at) setPeerReviewAssignedAt(regCheck.peer_review_assigned_at);
-                if (regCheck.total_paused_ms !== undefined) {
-                    setTotalPausedMs(regCheck.total_paused_ms);
-                    totalPausedMsRef.current = regCheck.total_paused_ms;
-                }
-                if (regCheck.access_revoked_at) {
-                    setAccessRevokedAt(regCheck.access_revoked_at);
-                    adminRevokedAtRef.current = new Date(regCheck.access_revoked_at).getTime();
-                } else {
-                    setAccessRevokedAt(null);
-                    adminRevokedAtRef.current = null;
-                }
-
-                // ALSO refresh assessment data to catch emergency_abandoned or status changes
-                const { data: assesData } = await supabase
-                    .from('assessments')
-                    .select('*')
-                    .eq('id', id)
-                    .single();
-                if (assesData && mounted) {
-                    setAssessment(assesData);
-                }
-
-                if (regCheck.finished_at && mounted) {
+                // If DB marks as finished, update local state and stop polling
+                if (regCheck.coding_finished_at || regCheck.peer_review_skipped) {
                     setIsFinished(true);
-                }
-            }
-            // Update isFinished based on regCheck.finished_at or assessment.emergency_abandoned
-            setIsFinished(!!regCheck?.finished_at || !!assessment?.emergency_abandoned);
-
-            // If access was explicitly revoked (false) or registration deleted, don't re-grant
-            if (!regCheck || regCheck.access_granted === false || assessment?.emergency_abandoned) {
-                if (accessGranted || (regCheck && regCheck.access_granted === false && !adminRevokedAccess)) {
-                    // Determine whether this is an admin revoke vs natural time expiry
-                    const now = Date.now();
-                    const codingEnd = codingEndMsRef.current;
-                    const timeExpired = codingEnd !== null && now >= codingEnd;
-
-                    if (!timeExpired && !assessment?.emergency_abandoned && regCheck?.access_revoked_at) {
-                        // Admin explicitly revoked access — access_revoked_at is only set by revoke-assessment-access.
-                        // A freshly provisioned registration (access_granted=false, access_revoked_at=null) must NOT
-                        // trigger this dialog; that state is normal between provision and the first grant.
-                        const dbRevokedTime = new Date(regCheck.access_revoked_at).getTime();
-                        adminRevokedAtRef.current = dbRevokedTime;
-                        setAdminRevokedAccess(true);
-                        setShowAdminRevokeDialog(true);
-                        console.log(`Manual revocation detected. Freeze time: ${dbRevokedTime}`);
-                    }
-                    setAccessGranted(false);
-                }
-
-                // If access was restored via regCheck but state is still revoked (sync back)
-                if (regCheck && regCheck.access_granted === true && adminRevokedAccess) {
-                    // This block is actually redundant now because of the next section, but keeping for safety
-                    setAdminRevokedAccess(false);
-                    setShowAdminRevokeDialog(false);
-                    adminRevokedAtRef.current = null;
-                    setAccessGranted(true);
-                }
-                return;
-            }
-
-            // DB shows access = true. If we were in admin-revoked state, sync local state
-            if (adminRevokedAccess) {
-                setAdminRevokedAccess(false);
-                setShowAdminRevokeDialog(false);
-                adminRevokedAtRef.current = null;
-                setAccessGranted(true);
-            }
-
-            if (assessment?.is_sample) {
-                // For sample rounds, start time is when they clicked Start Now (provisioned repo)
-                if (registrationStartedAt || registrationCreatedAt) {
-                    // Use codingEndMsRef which already accounts for paused time
-                    const now = Date.now() + serverTimeOffset;
-                    const endTime = codingEndMsRef.current;
-
-                    // Add 30s grace period for client-side display logic
-                    if (endTime !== null && now > (endTime + 30000)) {
-                        console.log('Sample round time expired based on local clock.');
-                        if (mounted) setAccessGranted(false);
-                        return;
-                    }
-
-                    // Otherwise, ensure they have access (if repo url exists)
-                    // CRITICAL FIX: Only re-grant access if it wasn't explicitly revoked by admin (use Ref to avoid stale captures)
-                    if (privateRepoUrl && adminRevokedAtRef.current === null) {
-                        console.log('Syncing sample round access...');
-                        supabase.functions.invoke('grant-assessment-access', {
-                            body: {
-                                assessmentId: id,
-                                candidateUserId: profile?.id,
-                            }
-                        }).then(({ error }) => {
-                            if (!error) setAccessGranted(true);
-                        });
-                    }
-                }
-                return;
-            }
-
-            // Only try if assessment is started or close to starting (1 hour)
-            if (assessment?.start_at) {
-                const startTime = new Date(assessment.start_at).getTime();
-                const now = Date.now() + serverTimeOffset;
-                const duration = (assessment.duration_minutes || 0) * 60000;
-                const endTime = startTime + duration;
-
-                // Stop giving access if time is over (plus 30s grace)
-                if (now > (endTime + 30000)) {
-                    console.log('Scheduled round time expired based on local clock.');
-                    if (mounted) setAccessGranted(false);
+                    if (regCheck.peer_review_skipped) setSkippedPeerReview(true);
                     return;
                 }
+                // Sync access state directly from DB (single source of truth)
+                setAccessGranted(regCheck.access_granted ?? false);
+            }
 
-                // If now is past start time OR within 1 hour before
-                // CRITICAL FIX: Only re-grant access if it wasn't explicitly revoked by admin
-                if (now >= (startTime - 60 * 60 * 1000) && adminRevokedAtRef.current === null) {
-                    console.log('Running scheduled access verification...');
-                    supabase.functions.invoke('grant-assessment-access', {
-                        body: {
-                            assessmentId: id,
-                            candidateUserId: profile?.id,
-                        }
-                    }).then(({ error }) => {
-                        if (!error) {
-                            console.log('Access verification/sync successful');
-                            setAccessGranted(true);
-                        } else {
-                            console.error('Access verification sync failed', error);
-                        }
-                    });
+            // Also refresh assessment data to catch emergency_abandoned or status changes
+            const { data: assesData } = await supabase
+                .from('assessments')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (assesData && mounted) {
+                setAssessment(assesData);
+                if (assesData.emergency_abandoned) {
+                    setIsFinished(true);
+                    setAccessGranted(false);
+                    return;
                 }
+            }
+
+            // Time expiry safety net (belt-and-suspenders alongside checkPhaseTransitions)
+            const now = Date.now() + serverTimeOffset;
+            const endTime = codingEndMsRef.current;
+            if (endTime !== null && now > (endTime + 30000)) {
+                setAccessGranted(false);
+                setIsFinished(true);
+                return;
             }
         };
 
@@ -457,7 +338,6 @@ export default function Assessment() {
 
         // Poll every 30s
         const interval = setInterval(() => {
-            // Also refresh server time offset during polling to stay accurate
             supabase.rpc('get_server_time').then(({ data }) => {
                 if (data) setServerTimeOffset(new Date(data).getTime() - Date.now());
             });
@@ -467,7 +347,8 @@ export default function Assessment() {
             mounted = false;
             clearInterval(interval);
         };
-    }, [id, isRegistered, privateRepoUrl, isFinished, accessGranted, adminRevokedAccess, assessment?.id, assessment?.status, assessment?.start_at, assessment?.duration_minutes, assessment?.emergency_abandoned, profile?.id, registrationCreatedAt, registrationStartedAt]);
+    // NOTE: accessGranted intentionally excluded — syncing FROM db, not re-triggering on local state changes
+    }, [id, isRegistered, privateRepoUrl, isFinished, profile?.id]);
 
     // Countdown timer — updates every second
     useEffect(() => {
@@ -487,7 +368,7 @@ export default function Assessment() {
         update();
         const iv = setInterval(update, 1000);
         return () => clearInterval(iv);
-    }, [_codingEndMs, isRegistered, isPeerReviewPhase, isFinished, adminRevokedAccess, assessment?.is_sample]);
+    }, [_codingEndMs, isRegistered, isPeerReviewPhase, isFinished, assessment?.is_sample]);
 
     // Age check helper
     const isUnderage = (() => {
@@ -651,13 +532,13 @@ export default function Assessment() {
                 // 2. Refresh registration data from DB
                 const { data: regData } = await supabase
                     .from('assessment_registrations')
-                    .select('private_repo_url, access_granted, anonymous_id, started_at')
+                    .select('private_repo_url, access_granted, anonymous_id, coding_started_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
 
                 if (regData) {
-                    if (regData.started_at) setRegistrationStartedAt(regData.started_at);
+                    if (regData.coding_started_at) setCodingStartedAt(regData.coding_started_at);
                     setPrivateRepoUrl(regData.private_repo_url || result.repoUrl || '');
                     setAccessGranted(regData.access_granted || true); // Default to true if provision was successful
                     setAnonymousId(regData.anonymous_id);
@@ -758,6 +639,11 @@ export default function Assessment() {
                                                     registrationId={String(registrationId)}
                                                     peerRepoUrl={peerReviewRepoUrl}
                                                     assignedPeerRegistrationId={assignedPeerRegistrationId || undefined}
+                                                    onComplete={() => {
+                                                        setIsFinished(true);
+                                                        setSkippedPeerReview(true);
+                                                        setShowSuccessModal(true);
+                                                    }}
                                                 />;
                                             }
                                             return (
@@ -786,26 +672,27 @@ export default function Assessment() {
                                                         </p>
                                                     </div>
                                                 );
+                                            } else if (peerReviewRepoUrl && registrationId && id) {
+                                                // Peer has been assigned — show the review panel even if coding timer hasn't expired yet
+                                                return <PeerReviewPanel
+                                                    assessmentId={String(id)}
+                                                    registrationId={String(registrationId)}
+                                                    peerRepoUrl={peerReviewRepoUrl}
+                                                    assignedPeerRegistrationId={assignedPeerRegistrationId || undefined}
+                                                    onComplete={() => {
+                                                        setIsFinished(true);
+                                                        setSubmittedPeerReview(true);
+                                                        setShowSuccessModal(true);
+                                                    }}
+                                                />;
                                             } else {
                                                 return (
-                                                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-primary/20 bg-primary/5 rounded-sm animate-in fade-in zoom-in-95">
-                                                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                                                            <CheckCircle className="h-6 w-6 text-primary" />
+                                                    <div className="text-center p-8 bg-black/20 rounded-md border border-dashed border-indigo-500/30">
+                                                        <div className="flex flex-col items-center gap-4">
+                                                            <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
+                                                            <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Coding Submitted</h3>
+                                                            <p className="font-mono text-xs text-muted-foreground">Waiting for a competitor to finish... peer review will be assigned shortly.</p>
                                                         </div>
-                                                        <h3 className="text-sm font-mono font-bold text-primary uppercase tracking-widest mb-3 italic">
-                                                            Submission Received
-                                                        </h3>
-                                                        <p className="text-[10px] font-mono text-gray-300 uppercase tracking-tight leading-relaxed max-w-[240px]">
-                                                            Your round is officially complete. You can view the final result status on your dashboard.
-                                                        </p>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="mt-8 font-mono text-[9px] uppercase tracking-widest h-8 px-4 rounded-none border-primary/30 text-primary hover:bg-primary/5 transition-all"
-                                                            onClick={() => navigate(`/candidate/assessment/${id}/status`)}
-                                                        >
-                                                            View Live Status
-                                                        </Button>
                                                     </div>
                                                 );
                                             }
@@ -1059,7 +946,7 @@ export default function Assessment() {
                                 <div className="space-y-4">
                                     <div>
                                         <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">Start Time</p>
-                                        <p className="font-mono text-sm">{(assessment?.is_sample) ? (registrationStartedAt ? new Date(registrationStartedAt).toLocaleString() : '—') : (assessment?.start_at ? new Date(assessment.start_at).toLocaleString() : '—')}</p>
+                                        <p className="font-mono text-sm">{(assessment?.is_sample) ? (codingStartedAt ? new Date(codingStartedAt).toLocaleString() : '—') : (assessment?.start_at ? new Date(assessment.start_at).toLocaleString() : '—')}</p>
                                     </div>
                                     <div>
                                         <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">Duration</p>
@@ -1079,7 +966,7 @@ export default function Assessment() {
                                     )}
                                     {/* Live countdown timer — visible once the candidate is registered */}
                                     {isRegistered && !isPeerReviewPhase && !isFinished && _codingEndMs !== null && (
-                                        <div className={`border-t pt-4 mt-2 ${adminRevokedAccess ? 'border-orange-500/30' : 'border-border'}`}>
+                                        <div className="border-t pt-4 mt-2 border-border">
                                             <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">Time Remaining</p>
                                             <p className={`font-mono text-xl font-bold tabular-nums ${
                                                 timeRemainingMs !== null && timeRemainingMs < 5 * 60 * 1000
@@ -1139,85 +1026,163 @@ export default function Assessment() {
                                             // Has repo -> show Finish Assignment button (only if started)
                                             (() => {
                                                 const hasStarted = assessment.is_sample || (assessment.start_at && new Date() >= new Date(assessment.start_at));
+                                                // Shared handler: finish only the coding phase (sets finished_at, revokes GitHub access)
+                                                const handleFinishCodingRound = async () => {
+                                                    if (!id) return;
+                                                    const ok = window.confirm('Finish coding round? Your GitHub repository access will be revoked and you will enter the peer review phase.');
+                                                    if (!ok) return;
+                                                    try {
+                                                        const { error: finishError } = await supabase.rpc('candidate_finish_assessment', { p_assessment_id: id });
+                                                        if (finishError) throw finishError;
+                                                        const { error: revokeError } = await supabase.functions.invoke('revoke-assessment-access', { body: { assessmentId: id, candidateUserId: profile?.id } });
+                                                        if (revokeError) console.error('GitHub revoke failed:', revokeError);
+                                                        setAccessGranted(false);
+                                                        setIsFinished(true);
+                                                        setShowSuccessModal(true);
+                                                        toast({ title: 'Coding Round Finished', description: 'Waiting for peer review to be assigned.' });
+                                                    } catch (err: any) {
+                                                        toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+                                                    }
+                                                };
+                                                // Handler: submit peer review findings and finalize
+                                                const handleSubmitPeerReview = async () => {
+                                                    if (!id) return;
+                                                    const ok = window.confirm('Finalize and submit your peer review?\n\nOnce submitted, you cannot add more findings.');
+                                                    if (!ok) return;
+                                                    try {
+                                                        const { error } = await supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id });
+                                                        if (error) throw error;
+                                                        setIsFinished(true);
+                                                        setSubmittedPeerReview(true);
+                                                        setShowSuccessModal(true);
+                                                        toast({ title: 'Peer Review Submitted', description: 'Your findings have been submitted.' });
+                                                    } catch (err: any) {
+                                                        toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+                                                    }
+                                                };
+                                                // Handler: skip peer review entirely (no opponent assigned)
+                                                const handleFinalizAndSkipPeerReview = async () => {
+                                                    if (!id) return;
+                                                    const ok = window.confirm('Finalize and skip peer review?\n\nYou will receive 0 points for the peer review component. This cannot be undone.');
+                                                    if (!ok) return;
+                                                    try {
+                                                        const { error } = await supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id });
+                                                        if (error) throw error;
+                                                        setIsFinished(true);
+                                                        setSkippedPeerReview(true);
+                                                        setShowSuccessModal(true);
+                                                        toast({ title: 'Peer Review Skipped', description: 'Your submission has been fully finalized.' });
+                                                    } catch (err: any) {
+                                                        toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+                                                    }
+                                                };
+
                                                 if (isFinished) {
                                                     const hasPeer = !!peerReviewRepoUrl;
                                                     return (
-                                                        <div className="p-4 bg-primary/5 border border-primary/20 rounded-sm text-center">
-                                                            {assessment?.emergency_abandoned ? (
-                                                                <p className="text-[10px] font-mono font-bold text-red-400 uppercase tracking-widest flex items-center justify-center gap-2">
-                                                                    <XCircle className="h-3 w-3" /> Round Abandoned
+                                                        <div className="space-y-3">
+                                                            <div className="p-4 bg-primary/5 border border-primary/20 rounded-sm text-center">
+                                                                {assessment?.emergency_abandoned ? (
+                                                                    <p className="text-[10px] font-mono font-bold text-red-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                                                                        <XCircle className="h-3 w-3" /> Round Abandoned
+                                                                    </p>
+                                                                ) : (
+                                                                    <p className="text-[10px] font-mono font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                                                                        <CheckCircle className="h-3 w-3" /> Phase 2: {hasPeer ? 'Review Active' : skippedPeerReview ? 'Skipped' : 'Waiting for Opponent'}
+                                                                    </p>
+                                                                )}
+                                                                <p className="text-[9px] font-mono text-white/50 uppercase leading-relaxed mt-1">
+                                                                    {assessment?.emergency_abandoned
+                                                                        ? 'This round was emergency abandoned by the administrator.'
+                                                                        : hasPeer
+                                                                            ? 'Coding ended. You have been assigned a peer review task.'
+                                                                            : skippedPeerReview
+                                                                                ? 'You skipped peer review. Submission fully finalized.'
+                                                                                : 'Coding ended. Waiting for a competitor to finish...'
+                                                                    }
                                                                 </p>
-                                                            ) : (
-                                                                <p className="text-[10px] font-mono font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                                                                    <CheckCircle className="h-3 w-3" /> Phase 2: {assessment?.emergency_abandoned ? "Abandoned" : hasPeer ? "Review Active" : "Waiting for Opponent"}
-                                                                </p>
+                                                            </div>
+                                                            {/* Finalize & Submit Peer Review — shown when peer is assigned and reviewing */}
+                                                            {hasPeer && !assessment?.emergency_abandoned && !skippedPeerReview && (
+                                                                <>
+                                                                    <Button
+                                                                        className="w-full font-mono text-xs h-10 uppercase tracking-widest bg-green-600 hover:bg-green-500 text-white"
+                                                                        onClick={handleSubmitPeerReview}
+                                                                    >
+                                                                        Finalize & Submit Peer Review
+                                                                    </Button>
+                                                                    <p className="text-[9px] text-muted-foreground text-center font-mono leading-relaxed">
+                                                                        Submit your findings and fully finalize your submission.
+                                                                    </p>
+                                                                </>
                                                             )}
-                                                            <p className="text-[9px] font-mono text-white/50 uppercase leading-relaxed mt-1">
-                                                                {assessment?.emergency_abandoned
-                                                                    ? "This round was emergency abandoned by the administrator."
-                                                                    : hasPeer
-                                                                        ? "Coding ended. You have been assigned a peer review task."
-                                                                        : "Coding ended. Waiting for a competitor to finish... peer-review soon"
-                                                                }
-                                                            </p>
+                                                            {/* Skip peer review (no opponent yet) */}
+                                                            {!hasPeer && !assessment?.emergency_abandoned && !skippedPeerReview && (
+                                                                <>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        className="w-full font-mono text-xs h-10 uppercase tracking-widest text-red-400 border-red-400/30 hover:bg-red-400/5"
+                                                                        onClick={handleFinalizAndSkipPeerReview}
+                                                                    >
+                                                                        Finalize & Submit (Skip Peer Review)
+                                                                    </Button>
+                                                                    <p className="text-[9px] text-muted-foreground text-center font-mono leading-relaxed">
+                                                                        Permanently skips peer review. You will receive 0 points for that component.
+                                                                    </p>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     );
                                                 }
                                                 return hasStarted ? (
                                                     <div className="space-y-3">
-                                                        {adminRevokedAccess && (
-                                                            <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-sm flex items-center gap-2">
-                                                                <AlertTriangle className="h-4 w-4 text-orange-400 shrink-0" />
-                                                                <p className="text-[10px] font-mono text-orange-300 leading-relaxed">
-                                                                    {'Admin revoked your access. Timer is still running.'}
+                                                        {isPeerReviewPhase ? (
+                                                            // Coding time expired but candidate hasn't formally submitted yet
+                                                            <>
+                                                                <div className="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-sm text-center">
+                                                                    <p className="text-[10px] font-mono font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                                                                        <CheckCircle className="h-3 w-3" /> Phase 2: Waiting for Opponent
+                                                                    </p>
+                                                                    <p className="text-[9px] font-mono text-white/50 uppercase leading-relaxed mt-1">
+                                                                        Coding time ended. Submit your work to enter peer review.
+                                                                    </p>
+                                                                </div>
+                                                                <Button
+                                                                    className="w-full font-mono text-sm h-12 uppercase tracking-widest"
+                                                                    size="lg"
+                                                                    onClick={handleFinishCodingRound}
+                                                                >
+                                                                    Finish Coding Round
+                                                                </Button>
+                                                                <p className="text-[10px] text-muted-foreground text-center font-mono leading-relaxed">
+                                                                    Submits your code and waits for peer review to be assigned.
                                                                 </p>
-                                                            </div>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    className="w-full font-mono text-xs h-10 uppercase tracking-widest text-red-400 border-red-400/30 hover:bg-red-400/5"
+                                                                    onClick={handleFinalizAndSkipPeerReview}
+                                                                >
+                                                                    Finalize & Submit (Skip Peer Review)
+                                                                </Button>
+                                                                <p className="text-[9px] text-muted-foreground text-center font-mono leading-relaxed">
+                                                                    Permanently skips peer review. You will receive 0 points for that component.
+                                                                </p>
+                                                            </>
+                                                        ) : (
+                                                            // Active coding phase
+                                                            <>
+                                                                <Button
+                                                                    className="w-full font-mono text-sm h-12 uppercase tracking-widest"
+                                                                    size="lg"
+                                                                    onClick={handleFinishCodingRound}
+                                                                >
+                                                                    Finish Coding Round
+                                                                </Button>
+                                                                <p className="text-[10px] text-muted-foreground text-center font-mono leading-relaxed">
+                                                                    Revokes write access and waits for peer review phase.
+                                                                </p>
+                                                            </>
                                                         )}
-                                                        <Button
-                                                            className={`w-full font-mono text-sm h-12 uppercase tracking-widest ${adminRevokedAccess ? 'opacity-50' : ''}`}
-                                                            size="lg"
-                                                            disabled={adminRevokedAccess}
-                                                            onClick={async () => {
-                                                                if (!id) return;
-                                                                const ok = window.confirm('Finish this assessment? Your GitHub repository access will be revoked and your work will be submitted for review.');
-                                                                if (!ok) return;
-                                                                try {
-                                                                    // Call RPC function to finish assessment and revoke access
-                                                                    const { data, error: finishError } = await supabase.rpc('candidate_finish_assessment', {
-                                                                        p_assessment_id: id
-                                                                    });
-                                                                    if (finishError) throw finishError;
-
-                                                                    // Also call the revoke edge function to remove GitHub collaborator access
-                                                                    const { error: revokeError } = await supabase.functions.invoke('revoke-assessment-access', {
-                                                                        body: {
-                                                                            assessmentId: id,
-                                                                            candidateUserId: profile?.id
-                                                                        }
-                                                                    });
-                                                                    if (revokeError) {
-                                                                        console.error('GitHub revoke failed:', revokeError);
-                                                                    }
-
-                                                                    setAccessGranted(false);
-                                                                    setIsFinished(true);
-                                                                    setShowSuccessModal(true);
-
-                                                                    toast({
-                                                                        title: 'Round Finished',
-                                                                        description: 'Your submission has been finalized.'
-                                                                    });
-                                                                } catch (err: any) {
-                                                                    console.error('Finish failed', err);
-                                                                    toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
-                                                                }
-                                                            }}
-                                                        >
-                                                            Finish & Submit
-                                                        </Button>
-                                                        <p className="text-[10px] text-muted-foreground text-center font-mono leading-relaxed">
-                                                            Submitting will immediately revoke your write access to the repository.
-                                                        </p>
                                                     </div>
                                                 ) : (
                                                     <div className="p-6 border border-border bg-muted/20 text-center rounded-sm">
@@ -1329,47 +1294,9 @@ export default function Assessment() {
                 onClose={() => setShowSuccessModal(false)}
                 onGoToDashboard={() => window.location.href = '/candidate/dashboard'}
                 isSampleRound={assessment?.is_sample}
+                isPeerReviewSkip={skippedPeerReview}
+                isPeerReviewSubmit={submittedPeerReview}
             />
-
-            {/* Admin Revoked Access Dialog */}
-            <Dialog open={showAdminRevokeDialog} onOpenChange={setShowAdminRevokeDialog}>
-                <DialogContent className="sm:max-w-md bg-background border-border font-mono">
-                    <DialogHeader className="flex flex-col items-center gap-4 py-4">
-                        <div className="h-16 w-16 bg-orange-500/10 rounded-full flex items-center justify-center">
-                            <AlertTriangle className="h-10 w-10 text-orange-400" />
-                        </div>
-                        <DialogTitle className="text-xl font-bold uppercase tracking-widest text-center">
-                            Access Revoked
-                        </DialogTitle>
-                    </DialogHeader>
-                    {(
-                        <div className="space-y-3 pb-4 px-2">
-                            <p className="text-sm text-muted-foreground text-center font-mono leading-relaxed">
-                                The admin has revoked your repository access.
-                            </p>
-                            <p className="text-sm text-orange-300 text-center font-mono font-bold">
-                                ⚠️ Your timer is still running.
-                            </p>
-                            <p className="text-xs text-muted-foreground text-center font-mono leading-relaxed">
-                                Access may be restored shortly. If you think this is a mistake,
-                                contact{' '}
-                                <a href="mailto:thewirrecompany@gmail.com" className="text-primary hover:underline">
-                                    thewirrecompany@gmail.com
-                                </a>.
-                            </p>
-                        </div>
-                    )}
-                    <div className="flex justify-center pb-4">
-                        <Button
-                            variant="outline"
-                            onClick={() => setShowAdminRevokeDialog(false)}
-                            className="font-mono uppercase tracking-widest text-xs"
-                        >
-                            Dismiss
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
 
             {/* Time Expired Dialog */}
             <Dialog open={showTimeExpiredDialog} onOpenChange={() => { }}>

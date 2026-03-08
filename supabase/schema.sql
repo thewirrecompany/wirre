@@ -18,6 +18,12 @@ CREATE TABLE public.assessment_registrations (
   ai_score integer CHECK (ai_score >= 0 AND ai_score <= 10),
   ai_report text,
   ai_grading_started_at timestamp with time zone,
+  coding_started_at timestamp with time zone,
+  coding_finished_at timestamp with time zone,
+  peer_review_assigned_at timestamp with time zone,
+  peer_review_skipped boolean DEFAULT false,
+  peer_review_repo_url text,
+  assigned_peer_registration_id uuid,
   CONSTRAINT assessment_registrations_pkey PRIMARY KEY (id),
   CONSTRAINT assessment_registrations_assessment_id_fkey FOREIGN KEY (assessment_id) REFERENCES public.assessments(id),
   CONSTRAINT assessment_registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
@@ -44,9 +50,6 @@ CREATE TABLE public.assessments (
   github_repo_owner text,
   github_repo_name text,
   github_repo_verified boolean DEFAULT false,
-  github_installation_id text,
-  github_repo_verified_at timestamp with time zone,
-  finalized_at timestamp with time zone,
   identities_revealed boolean DEFAULT false,
   is_paid boolean NOT NULL DEFAULT true,
   round_number integer DEFAULT 1,
@@ -75,7 +78,6 @@ CREATE TABLE public.companies (
   domain text,
   linkedin_url text,
   created_at timestamp with time zone DEFAULT now(),
-  github_installation_id text,
   CONSTRAINT companies_pkey PRIMARY KEY (id),
   CONSTRAINT companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
