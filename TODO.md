@@ -59,3 +59,17 @@ For the Top `2 * N` candidates, we perform a deep, multi-pass analysis. **We sti
 # ADD EMAIL NOTIFICATIONS ABOUT ROUND REGISTRATIONS
 
 # CREATE A NEW ROUND THAT BASICALLY IS A CODE PEER REVIEW ROUND AFTER THE 3 HORUS IS OVER. IF YOU FINSIH EARLY HTEN YOU HAVE TO WAIT TILL THOSE 3 HOURS GET OVER AS TO PREVENT GAMING THE SYSTEM WHERE 2 POEPLE CAN SUBMIT IT VERY FAST ADN TOGETHER SO IN THE RANDOM THEY BOTH ARE THE ONLY ONES.
+
+---
+
+## Technical Debt & New Requirements
+
+### Backend Requirements
+- [ ] **AI Usage Tracking:** Add a `used_ai` boolean column to the `assessment_registrations` table. This should be triggered when a candidate utilizes any internal AI features (to be defined).
+
+### Repository Access & IDE Strategy
+- **Consistent Access Control:** Do NOT give candidates direct collaborator access to repositories in the first round (Individual Coding). This aligns with the Peer Review access model, ensuring all work is funneled through the WIRRE platform's controlled interface.
+- **Local vs. Platform IDE:**
+    - [REJECTED/SCRAPPED]: Providing a choice between local and platform-based IDE (monaco-like).
+    - **Reasoning:** Implementing a full local-like environment (with terminal, package installation, etc.) within the browser is a mammoth task and introduces significant security/complexity overhead.
+    - **Current Direction:** Focus on a refined platform-based submission flow that maintains control over the candidate's environment.
