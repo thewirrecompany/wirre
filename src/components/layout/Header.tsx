@@ -131,7 +131,7 @@ export function Header() {
   );
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/60 bg-background/60 backdrop-blur-md">
       <div className="flex w-full h-14 items-center justify-between px-4 lg:px-8 xl:px-12">
         <div className="flex items-center gap-1.5 lg:gap-4">
           {location.pathname !== '/' && (
