@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase, type Profile, type Candidate } from '@/lib/supabase';
-import CandidateDashboard from '@/pages/candidate/Dashboard';
+import CandidateRounds from '@/pages/candidate/Rounds';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
@@ -109,7 +109,7 @@ export default function ViewAsCandidate() {
 
       {/* Add padding to account for fixed admin header */}
       <div className="pt-12">
-        <CandidateDashboard candidateUserId={profile.id} />
+        <CandidateRounds userId={profile.id} embedded={true} />
       </div>
     </div>
   );

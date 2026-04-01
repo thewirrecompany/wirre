@@ -1,27 +1,8 @@
-
-
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, GitBranch, Terminal, Shield, Gauge, CheckCircle, Trophy, Star, SearchCode, Bug, FileSearch, Scale } from "lucide-react";
-
-const steps = [
-  { num: "01", title: "Choose or create a challenge", desc: "Students pick from a library of real-world challenges, or organizers create custom contests for their communities" },
-  { num: "02", title: "Clone your own repo", desc: "Each participant gets their own private repository — reproducible environments ensure everyone starts from the same baseline" },
-  { num: "03", title: "Code like you're contributing", desc: "Work in your IDE, debug locally, run tests, refactor — use the same tools you'd use for real open source contributions" },
-  { num: "04", title: "Push your code", desc: "Commit your changes and push to your private repository. Get feedback and scores automatically." },
-  { num: "05", title: "Get evaluated on what matters", desc: "Scored on functionality, performance, code quality, and engineering judgment — the skills that matter in real projects" },
-  { num: "06", title: "Rise the ranks", desc: "Climb the global and per-session leaderboards. Earn massive bonus points for getting selected by organizers." },
-];
-
-const metrics = [
-  { icon: CheckCircle, title: "Functional correctness", desc: "Does the solution work as specified?" },
-  { icon: Gauge, title: "Performance", desc: "Resource usage, latency, throughput under load" },
-  { icon: Terminal, title: "Code quality", desc: "Structure, readability, maintainability" },
-  { icon: Shield, title: "Security posture", desc: "Input validation, authentication, authorization patterns" },
-  { icon: GitBranch, title: "Production readiness", desc: "Error handling, logging, configuration management" },
-];
+import { ArrowRight, GitBranch, Terminal, Gauge, Trophy } from "lucide-react";
 
 export default function Index() {
   const { user, profile } = useAuth();
@@ -32,233 +13,136 @@ export default function Index() {
       ? '/admin/dashboard'
       : profile?.role === 'company'
         ? '/company/dashboard'
-        : '/candidate/dashboard';
+        : '/candidate/rounds';
 
   return (
     <Layout>
-      {/* Hero */}
-      <section className="min-h-[90vh] flex items-center border-b border-border">
-        <div className="container py-24">
-          <h1 className="text-6xl md:text-8xl font-bold tracking-tighter font-mono">
+      {/* ─── Hero ─── */}
+      <section className="min-h-[92vh] flex flex-col justify-center border-b border-border">
+        <div className="container py-32 max-w-5xl">
+          <p className="text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground mb-6">
+            The arena for competitive software engineering
+          </p>
+          <h1 className="text-7xl md:text-[clamp(4rem,11vw,9rem)] font-bold tracking-tighter font-mono leading-none">
             WIRRE
           </h1>
-          <p className="mt-4 text-xl md:text-2xl text-muted-foreground font-mono">
+          <p className="mt-5 text-2xl md:text-3xl font-mono text-muted-foreground tracking-tight">
             Compete in Commits.
           </p>
-          <p className="mt-8 max-w-2xl text-muted-foreground font-mono leading-relaxed">
-            The first arena for Competitive Software Engineering. While platforms like leetcode tests algorithms, WIRRE tests real systems work —
-            Git workflows, debugging, refactoring, optimization. Host debugging rounds,
-            refactoring contests, or performance sprints. Clone a repo, fix the bug, push your code, climb the leaderboard.
-            This isn't practice — it's a sport.
+          <p className="mt-6 text-base md:text-lg text-muted-foreground font-mono max-w-xl leading-relaxed">
+            Clone a repo. Fix the bug. Push your code. Climb the leaderboard.<br />
+            Engineering — not just algorithms — as a sport.
           </p>
-          <div className="mt-12 flex flex-wrap gap-4">
-            <Button asChild size="lg">
-              <Link to={user ? dashboardLink : "/login"}>{user ? "Dashboard" : "Start"}</Link>
+          <div className="mt-12 flex flex-wrap items-center gap-4">
+            <Button asChild size="lg" className="font-mono uppercase tracking-widest px-8 h-12">
+              <Link to={user ? dashboardLink : "/login"}>
+                {user ? "Dashboard" : "Start Competing"}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
+            {!user && (
+              <Button asChild variant="ghost" size="lg" className="font-mono uppercase tracking-widest px-8 h-12 text-muted-foreground hover:text-foreground">
+                <Link to="/about">How It Works</Link>
+              </Button>
+            )}
           </div>
         </div>
       </section>
 
-      {/* The Problem */}
+      {/* ─── Three Pillars ─── */}
       <section className="py-24 border-b border-border">
-        <div className="container">
-          <div className="max-w-3xl">
-            <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-4">
-              The Problem
-            </p>
-            <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight">
-              There's no arena for real engineering
-            </h2>
-            <div className="mt-8 space-y-6 text-muted-foreground font-mono leading-relaxed">
-              <p>
-                Platforms like codeforces have Competitive Programming (algorithms, trees, dynamic programming).
-                Hackathons are about building new apps from scratch.
-                But there's no platform for Competitive Software Engineering — debugging, refactoring sprints, latency optimization contests.
-              </p>
-              <p>
-                No one hosts "Fix the Memory Leak" tournaments. No leaderboards for "Reduce API Latency by 50%" challenges.
-                No 2-hour rounds where you race to refactor legacy code. The infrastructure to run these at scale doesn't exist.
-              </p>
-              <p>
-                Until now. WIRRE is the first arena where engineering — not just algorithms — becomes a competitive sport.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* The Solution */}
-      <section className="py-24 border-b border-border">
-        <div className="container">
-          <div className="max-w-3xl">
-            <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-4">
-              The Solution
-            </p>
-            <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight">
-              Competitive Software Engineering, not just algorithms
-            </h2>
-          </div>
-          <div className="mt-12 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="p-6 border border-border">
-              <Terminal className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Infinite Rounds</h3>
-              <p className="text-sm text-muted-foreground font-mono">
-                Contests where you race to fix bugs, optimize latency, or refactor legacy code - the possibilities are infintie. Like cf rounds, but for systems work instead of algorithms.
-              </p>
-            </div>
-            <div className="p-6 border border-border">
-              <GitBranch className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Your IDE, Your Tools</h3>
-              <p className="text-sm text-muted-foreground font-mono">
-                Work locally with your preferred editor and debugger. No browser-based editors. Use Git like a real developer — commit, push, iterate.
-              </p>
-            </div>
-            <div className="p-6 border border-border">
-              <Gauge className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Performance Matters</h3>
-              <p className="text-sm text-muted-foreground font-mono">
-                Get scored not just on correctness, but on latency, memory usage, and code quality. Build the habits that matter in production systems.
-              </p>
-            </div>
-            <div className="p-6 border border-border">
-              <Shield className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Host Engineering Contests</h3>
-              <p className="text-sm text-muted-foreground font-mono">
-                Run "Latency Optimization Sprints" or "Bug Hunt Tournaments" for your club. Leaderboards, time limits, real infrastructure — engineering as a competitive sport.
-              </p>
-            </div>
-            <div className="p-6 border border-border">
-              <Trophy className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Dual Leaderboards</h3>
-              <p className="text-sm text-muted-foreground font-mono">
-                Battle for the top rank globally across all platform activity, or dominate specific per-session leaderboards.
-              </p>
-            </div>
-            <div className="p-6 border border-border">
-              <Star className="h-6 w-6 mb-4" />
-              <h3 className="font-mono font-bold mb-2">Status & Perks</h3>
-              <p className="text-sm text-muted-foreground font-mono">
-                Stand out in paid rounds. Earning a "Selected" status by a company or organizer grants massive bonus points to your score.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-24 border-b border-border">
-        <div className="container">
-          <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-4">
-            How It Works
+        <div className="container max-w-5xl">
+          <p className="text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground mb-12">
+            What makes WIRRE different
           </p>
-          <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-12">
-            Six steps from practice to mastery
-          </h2>
-          <div className="space-y-0">
-            {steps.map((step, i) => (
-              <div key={step.num} className="flex border-t border-border py-8 last:border-b">
-                <span className="text-muted-foreground font-mono text-sm w-16 shrink-0">
-                  {step.num}
-                </span>
-                <div>
-                  <h3 className="font-mono font-bold">{step.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground font-mono">{step.desc}</p>
-                </div>
-              </div>
-            ))}
+          <div className="grid md:grid-cols-3 gap-px bg-border">
+            <div className="bg-background p-8">
+              <Terminal className="h-5 w-5 mb-6 text-muted-foreground" />
+              <h3 className="font-mono font-bold text-lg mb-3">Real engineering work</h3>
+              <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+                Debug memory leaks, optimize API latency, refactor legacy code.
+                Not algorithm puzzles — actual systems work.
+              </p>
+            </div>
+            <div className="bg-background p-8">
+              <GitBranch className="h-5 w-5 mb-6 text-muted-foreground" />
+              <h3 className="font-mono font-bold text-lg mb-3">Your IDE, your tools</h3>
+              <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+                Work locally with your own editor and debugger. Use Git like you
+                would on a real project — commit, push, iterate.
+              </p>
+            </div>
+            <div className="bg-background p-8">
+              <Gauge className="h-5 w-5 mb-6 text-muted-foreground" />
+              <h3 className="font-mono font-bold text-lg mb-3">Score what matters</h3>
+              <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+                Scored on correctness, performance, code quality, and peer review.
+                Skills that show up in your first week at work.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* What We Measure */}
+      {/* ─── How It Works ─── */}
       <section className="py-24 border-b border-border">
-        <div className="container">
-          <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-4">
-            What We Measure
+        <div className="container max-w-5xl">
+          <p className="text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground mb-12">
+            How it works
           </p>
-          <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-12">
-            Real engineering skills, not puzzle-solving
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {metrics.map((metric) => (
-              <div key={metric.title} className="p-6 border border-border">
-                <metric.icon className="h-5 w-5 mb-4 text-muted-foreground" />
-                <h3 className="font-mono font-bold mb-2">{metric.title}</h3>
-                <p className="text-sm text-muted-foreground font-mono">{metric.desc}</p>
-              </div>
-            ))}
+          <div className="grid md:grid-cols-3 gap-12">
+            <div>
+              <span className="font-mono text-5xl font-bold text-muted-foreground/20 block mb-4">01</span>
+              <h3 className="font-mono font-bold mb-2">Clone</h3>
+              <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+                You get a private repo pre-loaded with a real codebase and a challenge spec.
+              </p>
+            </div>
+            <div>
+              <span className="font-mono text-5xl font-bold text-muted-foreground/20 block mb-4">02</span>
+              <h3 className="font-mono font-bold mb-2">Code</h3>
+              <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+                Work in your own environment. Debug, refactor, optimize — then push.
+              </p>
+            </div>
+            <div>
+              <span className="font-mono text-5xl font-bold text-muted-foreground/20 block mb-4">03</span>
+              <h3 className="font-mono font-bold mb-2">Compete</h3>
+              <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+                Get scored automatically. Peer-review another submission. Climb the leaderboard.
+              </p>
+            </div>
           </div>
-
-
-
-
-
-          <p className="mt-6 text-xs text-muted-foreground font-mono italic opacity-60">*AI-powered evaluation features coming soon.*</p>
         </div>
       </section>
 
-      {/* Peer Code Review Round */}
+      {/* ─── Peer Review callout ─── */}
       <section className="py-24 border-b border-border">
-        <div className="container">
-          <div className="max-w-3xl mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight">
-              Peer Code Review
-            </h2>
-            <p className="mt-4 text-muted-foreground font-mono leading-relaxed">
-              When the coding round ends, a 1-hour review round begins. Every candidate receives a randomly
-              assigned peer's submission — along with the original spec. Their job: find real bugs and logical
-              errors. Not nitpicks. Not style issues. Actual bugs.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            <div className="p-6 border border-border">
-              <FileSearch className="h-5 w-5 mb-4 text-muted-foreground" />
-              <h3 className="font-mono font-bold mb-2">Real code, real bugs</h3>
-              <p className="text-sm text-muted-foreground font-mono">
-                You review actual peer submissions from the same round — not synthetic puzzles.
-                The bugs are real because the humans writing the code are real.
+        <div className="container max-w-5xl">
+          <div className="flex flex-col md:flex-row gap-16 items-start">
+            <div className="md:w-1/2">
+              <Trophy className="h-5 w-5 mb-6 text-muted-foreground" />
+              <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-4">
+                The round doesn't end when you push.
+              </h2>
+              <p className="text-muted-foreground font-mono leading-relaxed">
+                After coding, every participant reviews a peer's submission — finding
+                real bugs in real code. Your final score is coding + review.
+                Both halves matter.
               </p>
             </div>
-            <div className="p-6 border border-border">
-              <SearchCode className="h-5 w-5 mb-4 text-muted-foreground" />
-              <h3 className="font-mono font-bold mb-2">Spec-grounded review</h3>
-              <p className="text-sm text-muted-foreground font-mono">
-                You receive the original problem spec alongside the code. Ground truth is objective —
-                the spec defines what "correct" means, not opinion.
-              </p>
-            </div>
-            <div className="p-6 border border-border">
-              <Bug className="h-5 w-5 mb-4 text-muted-foreground" />
-              <h3 className="font-mono font-bold mb-2">Find all or be penalized</h3>
-              <p className="text-sm text-muted-foreground font-mono">
-                Miss a real bug and your score takes a hit. Find all bugs in your assigned repo and
-                earn full review points. Get a clean repo? You're lucky — just say so.
-              </p>
-            </div>
-            <div className="p-6 border border-border">
-              <Scale className="h-5 w-5 mb-4 text-muted-foreground" />
-              <h3 className="font-mono font-bold mb-2">Severity-weighted scoring</h3>
-              <p className="text-sm text-muted-foreground font-mono">
-                A crash-causing null pointer counts more than an off-by-one in a non-critical path.
-                Penalties and points are weighted by bug severity.
-              </p>
-            </div>
-          </div>
-
-          <div className="border border-border p-6 max-w-2xl">
-            <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-4">How it flows</p>
-            <div className="space-y-0">
+            <div className="md:w-1/2 border border-border p-6 space-y-0">
               {[
-                { num: "01", text: "Coding round ends. Submissions are locked." },
-                { num: "02", text: "Each candidate is randomly assigned a peer's repository + the original spec." },
-                { num: "03", text: "1-hour review window begins. Candidates submit a bug report with explanations — not just line numbers." },
-                { num: "04", text: "If bugs exist and you miss them: penalized. If you find all of them: full review points. Clean repo: declare it and move on." },
-                { num: "05", text: "Your final score = coding score + review score. Both matter." },
-              ].map((item) => (
-                <div key={item.num} className="flex border-t border-border py-4 last:border-b">
-                  <span className="text-muted-foreground font-mono text-sm w-12 shrink-0">{item.num}</span>
-                  <p className="text-sm font-mono text-muted-foreground">{item.text}</p>
+                "Coding round ends. Submissions locked.",
+                "You receive a peer's repo and the original spec.",
+                "1-hour review window. Find the bugs — not the nitpicks.",
+                "Final score = coding score + review score.",
+              ].map((text, i) => (
+                <div key={i} className="flex gap-4 border-t border-border py-4 first:border-t-0">
+                  <span className="font-mono text-xs text-muted-foreground/50 shrink-0 pt-0.5">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <p className="text-sm font-mono text-muted-foreground">{text}</p>
                 </div>
               ))}
             </div>
@@ -266,36 +150,24 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Who It's For */}
-      <section className="py-24">
-        <div className="container">
-          <div className="max-w-3xl">
-            <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider mb-4">
-              Who It's For
-            </p>
-            <h2 className="text-3xl md:text-4xl font-bold font-mono tracking-tight mb-8">
-              For competitive engineers and contest organizers
-            </h2>
-            <div className="space-y-6 text-muted-foreground font-mono leading-relaxed">
-              <p>
-                <span className="text-foreground font-bold">Engineers who compete</span> — If you do Codeforces for algorithms,
-                do WIRRE for systems. Compete in speed debugging rounds, refactoring contests, and latency optimization sprints.
-                Climb leaderboards based on real engineering skills: Git, Docker, CI/CD, debugging, performance tuning.
-              </p>
-              <p>
-                <span className="text-foreground font-bold">Contest organizers and university clubs</span> — Host the first
-                "Engineering Olympics" for your community. Run 2-hour tournaments where participants race to fix bugs or optimize code.
-                The infrastructure handles repo provisioning, leaderboards, and evaluation at scale.
-              </p>
-              <p>
-                <span className="text-foreground font-bold">Students preparing for open source</span> — Build skills that matter
-                for programs like GSoC through competitive practice. Your portfolio shows real engineering work, not LeetCode scores.
-              </p>
-              <p className="text-sm italic">
-                <span className="text-foreground font-bold">Companies</span> can use this infrastructure to develop open source talent
-                or evaluate candidates on real work instead of whiteboard puzzles.
+      {/* ─── Bottom CTA ─── */}
+      <section className="py-32">
+        <div className="container max-w-5xl">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-bold font-mono tracking-tighter">
+                Ready to compete?
+              </h2>
+              <p className="mt-3 text-muted-foreground font-mono text-sm">
+                Join the first arena for competitive software engineering.
               </p>
             </div>
+            <Button asChild size="lg" className="font-mono uppercase tracking-widest px-10 h-12 shrink-0">
+              <Link to={user ? dashboardLink : "/login"}>
+                {user ? "Go to Dashboard" : "Get Started"}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>

@@ -115,6 +115,41 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
             </div>
           </div>
 
+          {/* Empty state — new company with no assessments */}
+          {assessments.length === 0 ? (
+            <div className="border border-border p-12 md:p-20 text-center max-w-lg mx-auto mt-8">
+              <div className="h-12 w-12 rounded-full bg-muted/30 flex items-center justify-center mb-6 mx-auto opacity-60">
+                <Briefcase className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <h2 className="font-mono font-bold text-xl mb-2">No assessments yet</h2>
+              <p className="text-sm text-muted-foreground font-mono leading-relaxed mb-8">
+                Create your first assessment round to start evaluating candidates on real engineering work.
+              </p>
+              <div title={!hasWebsite ? "Add your website in Profile to create assessments" : ""}>
+                <Button
+                  asChild={hasWebsite}
+                  disabled={!hasWebsite}
+                  className="font-mono uppercase text-xs tracking-widest px-8"
+                  onClick={(e) => { if (!hasWebsite) e.preventDefault(); }}
+                >
+                  {hasWebsite ? (
+                    <Link to="/company/assessments/choose">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create First Assessment
+                    </Link>
+                  ) : (
+                    <span><Plus className="h-4 w-4 mr-2" />Create First Assessment</span>
+                  )}
+                </Button>
+              </div>
+              {!hasWebsite && (
+                <p className="mt-4 text-xs text-muted-foreground font-mono">
+                  Add your website in <Link to="/company/profile" className="underline hover:text-foreground">Profile</Link> first.
+                </p>
+              )}
+            </div>
+          ) : (
+            <>
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
             <div className="border border-border p-6">
@@ -165,11 +200,6 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
                 <span>Candidates</span>
                 <span className="hidden md:block">Created</span>
               </div>
-              {assessments.length === 0 && (
-                <div className="p-8 text-center text-muted-foreground font-mono text-sm">
-                  No assessments found.
-                </div>
-              )}
               {assessments.map((role) => (
                 <Link
                   key={role.id}
@@ -190,6 +220,9 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
               ))}
             </div>
           </section>
+            </>
+          )}
+
         </div>
       </div>
     </Layout>

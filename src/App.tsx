@@ -9,7 +9,6 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Waitlist from "./pages/Waitlist";
 // Login and Signup pages are kept in the repo but not exposed via routes.
-import GetInvolved from "./pages/GetInvolved";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import SetPassword from "./pages/SetPassword";
@@ -22,7 +21,6 @@ import AssessmentTypeSelection from "./pages/company/AssessmentTypeSelection";
 import SubmissionsList from "./pages/company/SubmissionsList";
 import SubmissionDetail from "./pages/company/SubmissionDetail";
 import SelectionReview from "./pages/company/SelectionReview";
-import CandidateDashboard from "./pages/candidate/Dashboard";
 import CandidateRounds from "./pages/candidate/Rounds";
 import CandidateOpportunities from "./pages/candidate/Opportunities";
 import CandidateProfile from "./pages/candidate/Profile";
@@ -39,6 +37,7 @@ import NotFound from "./pages/NotFound";
 import Maintenance from "./pages/Maintenance";
 import Leaderboard from "./pages/Leaderboard";
 import Feedback from "./pages/Feedback";
+import AboutUs from "./pages/AboutUs";
 
 
 
@@ -54,8 +53,8 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/about" element={<AboutUs />} />
             <Route path="/waitlist" element={<Waitlist />} />
-            <Route path="/get-involved" element={<GetInvolved />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Waitlist />} />
             <Route path="/maintenance" element={<Maintenance />} />
@@ -145,14 +144,6 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="company">
                   <CompanyProfile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/candidate/dashboard"
-              element={
-                <ProtectedRoute requiredRole="candidate">
-                  <CandidateDashboard />
                 </ProtectedRoute>
               }
             />

@@ -17,10 +17,6 @@ import { prefetchCandidateRounds } from "@/hooks/queries/useCandidateRounds";
 import { prefetchOpportunities } from "@/hooks/queries/useOpportunities";
 import { prefetchLeaderboard } from "@/hooks/queries/useLeaderboard";
 
-const publicNavLinks = [
-  { href: "/get-involved", label: "Get Involved" },
-];
-
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -33,7 +29,7 @@ export function Header() {
       ? '/admin/dashboard'
       : profile?.role === 'company'
         ? '/company/dashboard'
-        : '/candidate/dashboard';
+        : '/candidate/rounds';
 
   const handleSignOut = async () => {
     setOpen(false);
@@ -41,11 +37,9 @@ export function Header() {
     navigate('/');
   };
 
-  /** Called on mouseenter of a nav link — starts the data fetch before the click */
   const handlePrefetch = (path: string) => {
     if (!profile?.id) return;
     if (path === '/company/dashboard') prefetchCompanyDashboard(profile.id);
-    else if (path === '/candidate/dashboard') prefetchCandidateProfile(profile.id);
     else if (path === '/candidate/rounds') prefetchCandidateRounds(profile.id);
     else if (path === '/candidate/opportunities') prefetchOpportunities(profile.id);
     else if (path === '/leaderboard') prefetchLeaderboard();
@@ -74,21 +68,25 @@ export function Header() {
 
   const NavItems = () => (
     <>
-      {!user && publicNavLinks.map((link) => (
-        <span key={link.href} className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
-          <NavLink to={link.href} label={link.label} />
+      {/* Public nav — show About only when logged out */}
+      {!user && (
+        <span className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+          <NavLink to="/about" label="About" />
         </span>
-      ))}
+      )}
 
       {!user && <Separator />}
 
       {user ? (
         <>
-          <NavLink to={dashboardLink} label="Dashboard" />
-          <Separator />
+          {profile?.role !== 'candidate' && (
+            <>
+              <NavLink to={dashboardLink} label="Dashboard" />
+              <Separator />
+            </>
+          )}
           <NavLink to="/leaderboard" label="Leaderboard" />
 
-          {/* Admin Profile link (shown to admins) */}
           {profile?.role === 'admin' && (
             <>
               <Separator />
@@ -102,6 +100,8 @@ export function Header() {
               <NavLink to="/candidate/rounds" label="My Rounds" />
               <Separator />
               <NavLink to="/candidate/opportunities" label="Opportunities" />
+              <Separator />
+              <NavLink to="/candidate/profile" label="Profile" />
             </>
           )}
 
@@ -136,34 +136,24 @@ export function Header() {
         <div className="flex items-center gap-1.5 lg:gap-4">
           {location.pathname !== '/' && (
             <Button variant="ghost" size="sm" onClick={() => {
-              // Hierarchical navigation
               if (location.pathname.includes('/company/assessments/') && location.pathname.includes('/edit')) {
-                // From edit page -> assessment detail
                 const assessmentId = location.pathname.split('/')[3];
                 navigate(`/company/assessments/${assessmentId}`);
               } else if (location.pathname.includes('/company/assessments/')) {
-                // From assessment detail -> company dashboard
                 navigate('/company/dashboard');
               } else if (location.pathname === '/company/dashboard') {
-                // From company dashboard -> home
                 navigate('/');
-              } else if (location.pathname === '/candidate/dashboard') {
-                // From candidate dashboard -> home
+              } else if (location.pathname === '/candidate/rounds') {
                 navigate('/');
               } else if (location.pathname === '/admin/dashboard') {
-                // From admin dashboard -> home
                 navigate('/');
               } else if (location.pathname.includes('/admin/')) {
-                // From any admin page -> admin dashboard
                 navigate('/admin/dashboard');
               } else if (location.pathname.includes('/candidate/')) {
-                // From any candidate page -> candidate dashboard
-                navigate('/candidate/dashboard');
+                navigate('/candidate/rounds');
               } else if (location.pathname.includes('/company/')) {
-                // From any company page -> company dashboard
                 navigate('/company/dashboard');
               } else {
-                // Default -> home
                 navigate('/');
               }
             }}>

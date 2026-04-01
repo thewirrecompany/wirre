@@ -132,7 +132,7 @@ export default function Login() {
       } else if (profile.role === 'company') {
         navigate('/company/dashboard');
       } else {
-        navigate('/candidate/dashboard');
+        navigate('/candidate/rounds');
       }
     } catch (error: any) {
       toast({

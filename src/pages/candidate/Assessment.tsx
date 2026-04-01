@@ -1292,7 +1292,7 @@ export default function Assessment() {
             <SubmissionSuccessModal
                 isOpen={showSuccessModal}
                 onClose={() => setShowSuccessModal(false)}
-                onGoToDashboard={() => window.location.href = '/candidate/dashboard'}
+                onGoToDashboard={() => window.location.href = '/candidate/rounds'}
                 isSampleRound={assessment?.is_sample}
                 isPeerReviewSkip={skippedPeerReview}
                 isPeerReviewSubmit={submittedPeerReview}
