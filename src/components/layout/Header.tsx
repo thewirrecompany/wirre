@@ -11,6 +11,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useState } from "react";
+import { prefetchCompanyDashboard } from "@/hooks/queries/useCompanyDashboard";
+import { prefetchCandidateProfile } from "@/hooks/queries/useCandidateProfile";
+import { prefetchCandidateRounds } from "@/hooks/queries/useCandidateRounds";
+import { prefetchOpportunities } from "@/hooks/queries/useOpportunities";
+import { prefetchLeaderboard } from "@/hooks/queries/useLeaderboard";
 
 const publicNavLinks = [
   { href: "/get-involved", label: "Get Involved" },
@@ -36,9 +41,20 @@ export function Header() {
     navigate('/');
   };
 
+  /** Called on mouseenter of a nav link — starts the data fetch before the click */
+  const handlePrefetch = (path: string) => {
+    if (!profile?.id) return;
+    if (path === '/company/dashboard') prefetchCompanyDashboard(profile.id);
+    else if (path === '/candidate/dashboard') prefetchCandidateProfile(profile.id);
+    else if (path === '/candidate/rounds') prefetchCandidateRounds(profile.id);
+    else if (path === '/candidate/opportunities') prefetchOpportunities(profile.id);
+    else if (path === '/leaderboard') prefetchLeaderboard();
+  };
+
   const NavLink = ({ to, label, onClick }: { to: string, label: string, onClick?: () => void }) => (
     <Link
       to={to}
+      onMouseEnter={() => handlePrefetch(to)}
       onClick={() => {
         setOpen(false);
         if (onClick) onClick();

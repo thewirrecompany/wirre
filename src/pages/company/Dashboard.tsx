@@ -2,139 +2,79 @@ import { Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, Briefcase, Users, User, Save, Building, Clock, Zap, CheckCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Plus, Briefcase, Users, Clock, Zap, CheckCircle } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
-import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
+import { useCompanyDashboard } from "@/hooks/queries/useCompanyDashboard";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface CompanyDashboardProps {
   companyUserId?: string | null;
+}
+
+function DashboardSkeleton() {
+  return (
+    <Layout>
+      <div className="py-12">
+        <div className="container animate-pulse">
+          {/* Header skeleton */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-12">
+            <div>
+              <div className="h-8 w-40 bg-muted rounded mb-2" />
+              <div className="h-4 w-64 bg-muted/60 rounded" />
+            </div>
+            <div className="h-10 w-32 bg-muted rounded" />
+          </div>
+          {/* Stats skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="border border-border p-6">
+                <div className="h-4 w-24 bg-muted rounded mb-3" />
+                <div className="h-8 w-12 bg-muted rounded mb-1" />
+                <div className="h-3 w-20 bg-muted/60 rounded" />
+              </div>
+            ))}
+          </div>
+          {/* Table skeleton */}
+          <div className="border border-border">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="grid grid-cols-5 gap-4 p-4 border-b border-border last:border-b-0">
+                <div className="h-4 bg-muted rounded col-span-2" />
+                <div className="h-4 bg-muted/60 rounded" />
+                <div className="h-4 bg-muted/60 rounded" />
+                <div className="h-4 bg-muted/60 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
 }
 
 export default function CompanyDashboard({ companyUserId }: CompanyDashboardProps) {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const queryClient = useQueryClient();
   const ownerId = companyUserId || profile?.id;
-  const [upcomingCount, setUpcomingCount] = useState<number>(0);
-  const [activeAssessmentsCount, setActiveAssessmentsCount] = useState<number>(0);
-  const [pastAssessmentsCount, setPastAssessmentsCount] = useState<number>(0);
-  const [assessments, setAssessments] = useState<any[]>([]);
-  const [activeRolesCount, setActiveRolesCount] = useState<number>(0);
-  const [totalCandidates, setTotalCandidates] = useState<number>(0);
-  const [submissionsCount, setSubmissionsCount] = useState<number>(0);
-  const [hasWebsite, setHasWebsite] = useState<boolean>(true); // default true to avoid flicker
-  const [loadingProfile, setLoadingProfile] = useState<boolean>(true);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      if (!ownerId) return;
-      try {
-        // fetch assessments for this company
-        const { data: aData, error: aErr } = await supabase
-          .from('assessments')
-          .select('id,title,positions,created_at,status,start_at,payment_confirmed,is_paid')
-          .eq('company_user_id', ownerId)
-          .order('created_at', { ascending: false });
+  const { data, isLoading } = useCompanyDashboard(ownerId);
 
-        // fetch company profile to check website
-        const { data: cData } = await supabase
-          .from('companies')
-          .select('domain')
-          .eq('user_id', ownerId)
-          .single();
+  if (isLoading) return <DashboardSkeleton />;
 
-        if (mounted) {
-          setHasWebsite(!!cData?.domain);
-          setLoadingProfile(false);
-        }
-
-        if (aErr) throw aErr;
-        const aList = aData || [];
-
-        const assessmentIds = aList.map((a: any) => a.id).filter(Boolean);
-
-        // compute statuses
-        const upcoming = aList.filter((a: any) =>
-          a.status !== 'completed' &&
-          a.start_at &&
-          new Date(a.start_at) > new Date()
-        ).length;
-
-        const activeAss = aList.filter((a: any) => a.status === 'published').length;
-        const pastAss = aList.filter((a: any) => a.status === 'completed').length;
-
-        if (mounted) {
-          setUpcomingCount(upcoming);
-          setActiveAssessmentsCount(activeAss);
-          setPastAssessmentsCount(pastAss);
-        }
-
-        // fetch registrations for these assessments
-        let regs: any[] = [];
-        if (assessmentIds.length > 0) {
-          const { data: rData } = await supabase
-            .from('assessment_registrations')
-            .select('assessment_id,user_id')
-            .in('assessment_id', assessmentIds as any[]);
-          regs = rData || [];
-        }
-
-        // compute registrations count per assessment and unique candidate set
-        const regsByAssessment: Record<string, number> = {};
-        const uniqueCandidates = new Set<string>();
-        regs.forEach(r => {
-          regsByAssessment[r.assessment_id] = (regsByAssessment[r.assessment_id] || 0) + 1;
-          if (r.user_id) uniqueCandidates.add(r.user_id);
-        });
-
-        // fetch submission audits
-        let audits: any[] = [];
-        if (assessmentIds.length > 0) {
-          const { data: aAudits } = await supabase
-            .from('assessment_audits')
-            .select('assessment_id')
-            .in('assessment_id', assessmentIds as any[])
-            .eq('action', 'submission');
-          audits = aAudits || [];
-        }
-        const submissionsByAssessment: Record<string, number> = {};
-        audits.forEach(x => { submissionsByAssessment[x.assessment_id] = (submissionsByAssessment[x.assessment_id] || 0) + 1; });
-
-        // enrich assessments
-        const enriched = aList.map((a: any) => ({
-          ...a,
-          registrationsCount: regsByAssessment[a.id] || 0,
-          submissionsCount: submissionsByAssessment[a.id] || 0,
-        }));
-
-        // compute aggregate metrics
-        const activeRoles = aList
-          .filter((a: any) => a.status !== 'completed' && a.is_paid)
-          .reduce((sum: number, a: any) => sum + (a.positions || 0), 0);
-
-        const totalRegs = uniqueCandidates.size;
-        const totalSubmissions = audits.length;
-
-        if (mounted) {
-          setAssessments(enriched);
-          setActiveRolesCount(activeRoles);
-          setTotalCandidates(totalRegs);
-          setSubmissionsCount(totalSubmissions);
-        }
-      } catch (err) {
-        console.error('Error fetching dashboard data', err);
-      }
-    })();
-    return () => { mounted = false; };
-  }, [ownerId]);
+  const {
+    assessments = [],
+    upcomingCount = 0,
+    activeAssessmentsCount = 0,
+    pastAssessmentsCount = 0,
+    activeRolesCount = 0,
+    totalCandidates = 0,
+    submissionsCount = 0,
+    hasWebsite = true,
+  } = data ?? {};
 
   return (
     <Layout>
@@ -154,7 +94,7 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
               <div title={!hasWebsite ? "Add your website in Profile to create assessments" : ""}>
                 <Button
                   asChild={hasWebsite}
-                  disabled={!hasWebsite || loadingProfile}
+                  disabled={!hasWebsite}
                   variant={!hasWebsite ? "outline" : "default"}
                   className="font-mono uppercase text-xs tracking-widest px-8"
                   onClick={(e) => { if (!hasWebsite) e.preventDefault(); }}

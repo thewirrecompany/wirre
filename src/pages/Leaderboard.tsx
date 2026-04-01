@@ -1,122 +1,61 @@
-import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
 import { Layout } from '@/components/layout/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Star, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLeaderboard } from '@/hooks/queries/useLeaderboard';
 
-type LeaderboardEntry = {
-    rank: number;
-    username: string;
-    fullName?: string;
-    githubUsername?: string;
-    linkedinUrl?: string;
-    totalScore: number;
-};
+function LeaderboardSkeleton() {
+    return (
+        <Layout>
+            <div className="py-12 md:py-20">
+                <div className="container max-w-4xl px-4">
+                    <div className="text-center mb-12 animate-pulse">
+                        <div className="h-5 w-32 bg-muted rounded mx-auto mb-4" />
+                        <div className="h-12 w-64 bg-muted rounded mx-auto mb-4" />
+                        <div className="h-4 w-96 bg-muted/60 rounded mx-auto" />
+                    </div>
+                    <Card className="overflow-hidden">
+                        <CardHeader className="border-b">
+                            <div className="grid grid-cols-12 gap-4">
+                                <div className="col-span-1 h-3 bg-muted rounded" />
+                                <div className="col-span-8 h-3 bg-muted rounded" />
+                                <div className="col-span-3 h-3 bg-muted rounded" />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0 animate-pulse">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className="grid grid-cols-12 gap-4 items-center px-6 py-4 border-b last:border-b-0">
+                                    <div className="col-span-1 h-5 w-5 bg-muted rounded" />
+                                    <div className="col-span-8 flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-full bg-muted hidden md:block" />
+                                        <div>
+                                            <div className="h-4 w-32 bg-muted rounded mb-1" />
+                                            <div className="h-3 w-20 bg-muted/60 rounded" />
+                                        </div>
+                                    </div>
+                                    <div className="col-span-3 flex justify-end">
+                                        <div className="h-7 w-16 bg-muted rounded" />
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </Layout>
+    );
+}
 
 export default function Leaderboard() {
-    const { id } = useParams<{ id: string }>(); // Optional assessment ID
-    const [loading, setLoading] = useState(true);
-    const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-    const [assessmentTitle, setAssessmentTitle] = useState<string | null>(null);
+    const { id } = useParams<{ id: string }>();
+    const { data, isLoading } = useLeaderboard(id);
 
-    useEffect(() => {
-        const fetchLeaderboard = async () => {
-            setLoading(true);
-            try {
-                let candidateScores: Record<string, { total: number, user_id: string }> = {};
+    const entries = data?.entries ?? [];
+    const assessmentTitle = data?.assessmentTitle ?? null;
 
-                if (id) {
-                    // Fetch assessment title
-                    const { data: asm } = await supabase.from('assessments').select('title').eq('id', id).single();
-                    if (asm) setAssessmentTitle(asm.title);
-
-                    // Fetch scores for this specific assessment
-                    const { data: regs, error: regErr } = await supabase
-                        .from('assessment_registrations')
-                        .select('user_id, score')
-                        .eq('assessment_id', id)
-                        .not('score', 'is', null);
-
-                    if (regErr) throw regErr;
-
-                    regs.forEach(reg => {
-                        if (reg.score !== null) {
-                            if (!candidateScores[reg.user_id]) {
-                                candidateScores[reg.user_id] = { total: 0, user_id: reg.user_id };
-                            }
-                            candidateScores[reg.user_id].total += reg.score;
-                        }
-                    });
-                } else {
-                    // Global leaderboard: aggregate all scores across all assessments
-                    const { data: regs, error: regErr } = await supabase
-                        .from('assessment_registrations')
-                        .select('user_id, score')
-                        .not('score', 'is', null);
-
-                    if (regErr) throw regErr;
-
-                    regs.forEach(reg => {
-                        if (reg.score !== null) {
-                            if (!candidateScores[reg.user_id]) {
-                                candidateScores[reg.user_id] = { total: 0, user_id: reg.user_id };
-                            }
-                            candidateScores[reg.user_id].total += reg.score;
-                        }
-                    });
-                }
-
-                // Fetch candidate details (respecting is_public)
-                const userIds = Object.keys(candidateScores);
-                if (userIds.length > 0) {
-                    const { data: cands, error: candErr } = await supabase
-                        .from('candidates')
-                        .select('user_id, username, full_name, github_username, linkedin_url, is_public')
-                        .in('user_id', userIds);
-
-                    if (candErr) throw candErr;
-
-                    const leaderboard: LeaderboardEntry[] = cands.map(cand => {
-                        const isPublic = cand.is_public === true; // Default to false if null
-
-                        return {
-                            rank: 0,
-                            username: cand.username || 'Anonymous',
-                            fullName: isPublic ? cand.full_name : undefined,
-                            githubUsername: isPublic ? cand.github_username : undefined,
-                            linkedinUrl: isPublic ? cand.linkedin_url : undefined,
-                            totalScore: candidateScores[cand.user_id].total
-                        };
-                    });
-
-                    // Sort by score descending
-                    leaderboard.sort((a, b) => b.totalScore - a.totalScore);
-
-                    // Assign ranks (handling ties)
-                    let currentRank = 1;
-                    for (let i = 0; i < leaderboard.length; i++) {
-                        if (i > 0 && leaderboard[i].totalScore < leaderboard[i - 1].totalScore) {
-                            currentRank = i + 1;
-                        }
-                        leaderboard[i].rank = currentRank;
-                    }
-
-                    setEntries(leaderboard);
-                } else {
-                    setEntries([]);
-                }
-            } catch (err) {
-                console.error("Failed to load leaderboard:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchLeaderboard();
-    }, [id]);
+    if (isLoading) return <LeaderboardSkeleton />;
 
     const getRankIcon = (rank: number) => {
         if (rank === 1) return <Trophy className="h-5 w-5 text-foreground" />;
@@ -128,23 +67,13 @@ export default function Leaderboard() {
     return (
         <Layout>
             <div className="py-12 md:py-20 animate-fade-in relative overflow-hidden">
-
-
                 <div className="container max-w-4xl relative z-10 px-4">
                     <div className="text-center mb-12">
                         <Badge variant="outline" className="uppercase tracking-widest text-[10px] mb-4 bg-background/50 backdrop-blur-sm border-border text-foreground">
                             {id ? 'Opportunity Standings' : 'Global Rankings'}
                         </Badge>
                         <h1 className="text-4xl md:text-5xl font-mono font-bold uppercase tracking-tighter text-foreground mb-4 drop-shadow-sm">
-                            {id ? (
-                                <span>
-                                    {assessmentTitle || 'Loading...'}
-                                </span>
-                            ) : (
-                                <span>
-                                    Hall of Fame
-                                </span>
-                            )}
+                            {id ? (assessmentTitle || 'Leaderboard') : 'Hall of Fame'}
                         </h1>
                         <p className="text-muted-foreground font-mono max-w-xl mx-auto text-sm">
                             {id
@@ -162,11 +91,7 @@ export default function Leaderboard() {
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
-                            {loading ? (
-                                <div className="py-20 flex justify-center">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
-                                </div>
-                            ) : entries.length === 0 ? (
+                            {entries.length === 0 ? (
                                 <div className="py-20 text-center flex flex-col items-center justify-center">
                                     <Star className="h-10 w-10 text-muted-foreground/30 mb-4" />
                                     <p className="font-mono text-muted-foreground">No scores recorded yet.</p>
@@ -196,12 +121,12 @@ export default function Leaderboard() {
                                                         </div>
                                                         {entry.githubUsername && (
                                                             <a href={`https://github.com/${entry.githubUsername}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" title="GitHub">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-github"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" /><path d="M9 18c-4.51 2-5-2-7-2" /></svg>
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" /><path d="M9 18c-4.51 2-5-2-7-2" /></svg>
                                                             </a>
                                                         )}
                                                         {entry.linkedinUrl && (
                                                             <a href={entry.linkedinUrl.startsWith('http') ? entry.linkedinUrl : `https://${entry.linkedinUrl}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" title="LinkedIn">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-linkedin"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" /><rect width="4" height="12" x="2" y="9" /><circle cx="4" cy="4" r="2" /></svg>
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" /><rect width="4" height="12" x="2" y="9" /><circle cx="4" cy="4" r="2" /></svg>
                                                             </a>
                                                         )}
                                                     </div>

@@ -3,151 +3,83 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, GitPullRequest, Building2, Calendar, Users, AlertCircle } from "lucide-react";
+import { Clock, Building2, Calendar, Users, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
+import { useOpportunities } from "@/hooks/queries/useOpportunities";
+import { useQueryClient } from "@tanstack/react-query";
+
+function OpportunitiesSkeleton() {
+    return (
+        <Layout>
+            <section className="min-h-[calc(100vh-14rem)] py-24">
+                <div className="container max-w-6xl animate-pulse">
+                    <div className="mb-12">
+                        <div className="h-10 w-64 bg-muted rounded mb-3" />
+                        <div className="h-4 w-96 bg-muted/60 rounded mb-6" />
+                        <div className="flex gap-2 mb-6">
+                            {[...Array(3)].map((_, i) => <div key={i} className="h-8 w-16 bg-muted rounded" />)}
+                        </div>
+                    </div>
+                    <div className="grid gap-6">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="border border-border p-6 rounded">
+                                <div className="h-5 w-48 bg-muted rounded mb-2" />
+                                <div className="h-3 w-32 bg-muted/60 rounded mb-4" />
+                                <div className="h-8 w-28 bg-muted/40 rounded" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        </Layout>
+    );
+}
 
 export default function CandidateOpportunities() {
     const { profile } = useAuth();
     const { toast } = useToast();
-    const [profileIncomplete, setProfileIncomplete] = useState(true);
-    const [loading, setLoading] = useState(true);
-    const [opportunities, setOpportunities] = useState<any[]>([]);
+    const queryClient = useQueryClient();
     const [filter, setFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
 
+    const { data, isLoading } = useOpportunities(profile?.id);
+    const opportunities = data?.opportunities ?? [];
+    const profileIncomplete = data?.profileIncomplete ?? true;
+
+    // Keep real-time updates
     useEffect(() => {
-        const checkProfileCompletion = async () => {
-            if (!profile?.id) {
-                setLoading(false);
-                return;
-            }
-
-            try {
-                const { data, error } = await supabase
-                    .from('candidates')
-                    .select('github_username, linkedin_url')
-                    .eq('user_id', profile.id)
-                    .single();
-
-                if (error) {
-                    console.error('Error checking profile:', error);
-                    setLoading(false);
-                    return;
-                }
-
-                // Profile is complete if both github_username and linkedin_url are filled
-                const isComplete = !!(data?.github_username && data?.linkedin_url);
-                setProfileIncomplete(!isComplete);
-            } catch (error) {
-                console.error('Error checking profile:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        checkProfileCompletion();
-        loadOpportunities();
-
         const channel = supabase
             .channel('opportunities-realtime')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'assessments' }, () => {
-                loadOpportunities();
+                queryClient.invalidateQueries({ queryKey: ['opportunities', profile?.id] });
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'assessment_registrations' }, () => {
-                loadOpportunities();
+                queryClient.invalidateQueries({ queryKey: ['opportunities', profile?.id] });
             })
             .subscribe();
-
         return () => { supabase.removeChannel(channel); };
-    }, [profile?.id]);
+    }, [profile?.id, queryClient]);
 
-    async function loadOpportunities() {
-        try {
-            // ensure any due assessments are marked started
-            try { await supabase.rpc('mark_due_assessments_started'); } catch (e) { /* ignore */ }
+    if (isLoading) return <OpportunitiesSkeleton />;
 
-            // only show assessments that are marked ready
-            const { data, error } = await supabase
-                .from('assessments')
-                .select('id,title,company_user_id,created_at,technologies,duration_minutes,start_at,positions,is_paid')
-                .eq('status', 'ready')
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('Error loading opportunities:', error);
-                return;
-            }
-
-            const assessments = data || [];
-
-            // fetch organizer names for the company_user_id values
-            const userIds = Array.from(new Set(assessments.map((a: any) => a.company_user_id).filter(Boolean)));
-            let companiesMap: Record<string, string> = {};
-            if (userIds.length > 0) {
-                const { data: companies } = await supabase
-                    .from('companies')
-                    .select('user_id,name,domain')
-                    .in('user_id', userIds as any[]);
-                if (companies) {
-                    companiesMap = Object.fromEntries((companies as any[]).map(c => [
-                        c.user_id,
-                        { name: c.name, domain: c.domain }
-                    ] as any));
-                }
-            }
-
-            // fetch registrations for current user to filter out already-registered assessments
-            const registeredIds: string[] = [];
-            if (profile?.id) {
-                const { data: regs } = await supabase
-                    .from('assessment_registrations')
-                    .select('assessment_id')
-                    .eq('user_id', profile.id);
-                if (regs) regs.forEach((r: any) => registeredIds.push(r.assessment_id));
-            }
-
-            const enriched = assessments
-                .filter((a: any) => !registeredIds.includes(a.id))
-                .map((a: any) => ({ ...a, company: companiesMap[a.company_user_id] || { name: 'Unknown', domain: '' } }));
-
-            setOpportunities(enriched);
-        } catch (err) {
-            console.error('Error loading opportunities:', err);
-        }
-    }
-
-    // opportunities loaded from DB where status = 'ready'
-
-    const formatDate = (dateStr: string) => {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('en-GB');
-    };
+    const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('en-GB');
 
     const handleRegister = async (oppId: string) => {
         if (profileIncomplete) {
             toast({ title: "Complete your profile", description: "Add your GitHub and LinkedIn URLs before registering", variant: "destructive" });
             return;
         }
-
         try {
-            // First, get the candidate's profile data
             const { data: candidateData, error: candidateError } = await supabase
                 .from('candidates')
                 .select('github_username, linkedin_url')
                 .eq('user_id', profile.id)
                 .single();
+            if (candidateError) throw new Error('Failed to fetch your profile data');
 
-            if (candidateError) {
-                console.error('Error fetching candidate profile:', candidateError);
-                throw new Error('Failed to fetch your profile data');
-            }
-
-            const githubUsername = candidateData?.github_username || '';
-
-            // Check if assessment has started (block registrations after start_at) — skip for sample rounds
             const { data: assessmentCheck } = await supabase
                 .from('assessments')
                 .select('start_at, is_sample')
@@ -155,44 +87,27 @@ export default function CandidateOpportunities() {
                 .single();
 
             if (!assessmentCheck?.is_sample && assessmentCheck?.start_at && new Date(assessmentCheck.start_at) <= new Date()) {
-                toast({
-                    title: "Registration closed",
-                    description: "This assessment has already started and is no longer accepting registrations",
-                    variant: "destructive"
-                });
+                toast({ title: "Registration closed", description: "This assessment has already started and is no longer accepting registrations", variant: "destructive" });
                 return;
             }
 
-            // Step 1: Check if already registered
             const { data: existingReg } = await supabase
                 .from('assessment_registrations')
                 .select('id')
                 .eq('assessment_id', oppId)
                 .eq('user_id', profile.id)
                 .single();
-
             if (existingReg) {
-                toast({
-                    title: "Already registered",
-                    description: "You've already registered for this assessment",
-                    variant: "default"
-                });
+                toast({ title: "Already registered", description: "You've already registered for this assessment" });
                 return;
             }
 
-            // Step 2: Register in assessment_registrations table
             const { error } = await supabase.from('assessment_registrations').insert({ assessment_id: oppId, user_id: profile.id });
             if (error) throw error;
 
-            toast({
-                title: "Registration successful",
-                description: "You've successfully registered for this assessment.",
-            });
-
-            // refresh lists
-            loadOpportunities();
+            toast({ title: "Registration successful", description: "You've successfully registered for this assessment." });
+            queryClient.invalidateQueries({ queryKey: ['opportunities', profile?.id] });
         } catch (err: any) {
-            console.error('Error registering:', err);
             toast({ title: 'Registration failed', description: err?.message || String(err), variant: 'destructive' });
         }
     };
@@ -202,38 +117,17 @@ export default function CandidateOpportunities() {
             <section className="min-h-[calc(100vh-14rem)] py-24">
                 <div className="container max-w-6xl">
                     <div className="mb-12">
-                        <h1 className="text-4xl font-bold font-mono tracking-tight mb-4">
-                            Upcoming Assessments
-                        </h1>
+                        <h1 className="text-4xl font-bold font-mono tracking-tight mb-4">Upcoming Assessments</h1>
                         <p className="text-muted-foreground font-mono text-sm mb-6">
                             Browse upcoming assessment rounds from organizers hiring on WIRRE
                         </p>
 
                         <div className="flex gap-2 mb-6">
-                            <Button
-                                variant={filter === 'all' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setFilter('all')}
-                                className="font-mono"
-                            >
-                                All
-                            </Button>
-                            <Button
-                                variant={filter === 'paid' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setFilter('paid')}
-                                className="font-mono"
-                            >
-                                Paid
-                            </Button>
-                            <Button
-                                variant={filter === 'unpaid' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setFilter('unpaid')}
-                                className="font-mono"
-                            >
-                                Unpaid
-                            </Button>
+                            {(['all', 'paid', 'unpaid'] as const).map(f => (
+                                <Button key={f} variant={filter === f ? 'default' : 'outline'} size="sm" onClick={() => setFilter(f)} className="font-mono capitalize">
+                                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                                </Button>
+                            ))}
                         </div>
 
                         {profileIncomplete && (
@@ -273,12 +167,7 @@ export default function CandidateOpportunities() {
                                                     </div>
                                                     <div className="font-mono text-xs text-muted-foreground">
                                                         {opp.company?.domain ? (
-                                                            <a
-                                                                href={opp.company.domain.startsWith('http') ? opp.company.domain : `https://${opp.company.domain}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="hover:underline hover:text-foreground transition-colors"
-                                                            >
+                                                            <a href={opp.company.domain.startsWith('http') ? opp.company.domain : `https://${opp.company.domain}`} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-foreground transition-colors">
                                                                 {opp.company?.name || 'Unknown Organizer'}
                                                             </a>
                                                         ) : (
@@ -291,7 +180,6 @@ export default function CandidateOpportunities() {
                                     </CardHeader>
                                     <CardContent>
                                         <div className="flex items-center gap-6 text-sm text-muted-foreground mb-4 pb-4 border-b">
-                                            {/* Repo and classroom links are intentionally hidden from candidates until they register and the round starts */}
                                             <div className="flex items-center gap-2">
                                                 <Clock className="h-4 w-4" />
                                                 <span className="font-mono text-xs">Ready</span>
@@ -301,9 +189,7 @@ export default function CandidateOpportunities() {
                                                 <span className="font-mono text-xs">Posted {formatDate(opp.created_at)}</span>
                                             </div>
                                         </div>
-
                                         <div className="flex items-center justify-between">
-                                            {/* Positions - Only show for Paid assessments */}
                                             {opp.is_paid && (
                                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                     <Users className="h-4 w-4" />
@@ -311,9 +197,7 @@ export default function CandidateOpportunities() {
                                                 </div>
                                             )}
                                             <div className="flex gap-3 ml-auto">
-                                                <Button size="sm" onClick={() => handleRegister(opp.id)} disabled={profileIncomplete}>
-                                                    Register
-                                                </Button>
+                                                <Button size="sm" onClick={() => handleRegister(opp.id)} disabled={profileIncomplete}>Register</Button>
                                                 <Button size="sm" variant="outline" asChild>
                                                     <Link to={`/candidate/assessment/${opp.id}`}>View</Link>
                                                 </Button>
@@ -328,12 +212,8 @@ export default function CandidateOpportunities() {
                         <Card>
                             <CardContent className="py-12 text-center">
                                 <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                <h3 className="font-mono text-lg font-semibold mb-2">
-                                    No opportunities available
-                                </h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Check back later for new assessment rounds
-                                </p>
+                                <h3 className="font-mono text-lg font-semibold mb-2">No opportunities available</h3>
+                                <p className="text-sm text-muted-foreground">Check back later for new assessment rounds</p>
                             </CardContent>
                         </Card>
                     )}
