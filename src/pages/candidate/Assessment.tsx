@@ -34,6 +34,12 @@ export default function Assessment() {
     const [username, setUsername] = useState<string | null>(null);
     const [isProvisioning, setIsProvisioning] = useState(false);
 
+    // Security State
+    const [isMobileView, setIsMobileView] = useState(false);
+    const [concurrencyError, setConcurrencyError] = useState(false);
+    const sessionTabId = useRef(Math.random().toString(36).substring(7));
+    const [logoutCountdown, setLogoutCountdown] = useState(5);
+
     // Peer Review State
     const [peerReviewRepoUrl, setPeerReviewRepoUrl] = useState<string | null>(null);
     const [assignedPeerRegistrationId, setAssignedPeerRegistrationId] = useState<string | null>(null);
@@ -83,11 +89,109 @@ export default function Assessment() {
     const [isSyncingFile, setIsSyncingFile] = useState(false);
     const fetchLock = useRef(false);
 
-    // Lock body scroll when initialization overlay is active
+    // Security: Mobile Access Detection
     useEffect(() => {
-        if (isPrefetching) {
+        const checkMobile = () => {
+            setIsMobileView(window.innerWidth < 1024);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // Security: Concurrency Detection (LocalStorage + Realtime Broadcast)
+    useEffect(() => {
+        if (!id || !profile?.id || isFinished) return;
+
+        // 1. LocalStorage Sync (Instant for same-browser tabs)
+        const storageKey = `wirre-assessment-active-${id}-${profile.id}`;
+        
+        const announcePresenceLocal = () => {
+            localStorage.setItem(storageKey, JSON.stringify({
+                tabId: sessionTabId.current,
+                timestamp: Date.now()
+            }));
+        };
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === storageKey && e.newValue) {
+                const data = JSON.parse(e.newValue);
+                if (data.tabId !== sessionTabId.current) {
+                    console.warn('Multiple tabs detected via StorageEvent');
+                    setConcurrencyError(true);
+                }
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        announcePresenceLocal();
+
+        // 2. Supabase Realtime Broadcast (For cross-device detection)
+        const channel = supabase.channel(`security-${id}-${profile.id}`, {
+            config: { broadcast: { self: false } }
+        });
+
+        console.log('Security Channel Joining:', `security-${id}-${profile.id}`);
+
+        channel
+            .on('broadcast', { event: 'ping' }, ({ payload }) => {
+                console.log('Received security ping from:', payload.tabId, 'My Tab ID:', sessionTabId.current);
+                if (payload.tabId !== sessionTabId.current) {
+                    console.warn('Multiple sessions detected via Realtime');
+                    setConcurrencyError(true);
+                }
+            })
+            .subscribe((status) => {
+                console.log('Security Channel Status:', status);
+                if (status === 'SUBSCRIBED') {
+                    channel.send({
+                        type: 'broadcast',
+                        event: 'ping',
+                        payload: { tabId: sessionTabId.current }
+                    });
+                }
+            });
+
+        const interval = setInterval(() => {
+            // Heartbeat both channels
+            announcePresenceLocal();
+            channel.send({
+                type: 'broadcast',
+                event: 'ping',
+                payload: { tabId: sessionTabId.current }
+            });
+        }, 5000);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            channel.unsubscribe();
+            clearInterval(interval);
+        };
+    }, [id, profile?.id, isFinished]);
+
+    // Security: Force Logout on Concurrency Error
+    const { signOut } = useAuth();
+    useEffect(() => {
+        if (concurrencyError) {
+            const timer = setInterval(() => {
+                setLogoutCountdown(prev => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        signOut().then(() => navigate('/login'));
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return () => clearInterval(timer);
+        }
+    }, [concurrencyError, signOut, navigate]);
+
+    // Lock body scroll when initialization overlay OR security overlays are active
+    useEffect(() => {
+        const isLocked = isPrefetching || isMobileView || concurrencyError;
+        if (isLocked) {
             document.body.style.overflow = 'hidden';
-            // Also lock html for some browsers
             document.documentElement.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -97,7 +201,7 @@ export default function Assessment() {
             document.body.style.overflow = 'unset';
             document.documentElement.style.overflow = 'unset';
         };
-    }, [isPrefetching]);
+    }, [isPrefetching, isMobileView, concurrencyError]);
 
     // Peer Review Logic
     const prState = usePeerReview(
@@ -1337,6 +1441,55 @@ export default function Assessment() {
                 isPeerReviewSkip={skippedPeerReview}
                 isPeerReviewSubmit={submittedPeerReview}
             />
+
+            {/* Security Overlay: Mobile Lockout */}
+            {isMobileView && !concurrencyError && (
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-500">
+                    <div className="flex flex-col items-center gap-8 max-w-sm text-center p-8">
+                        <div className="relative">
+                            <div className="h-24 w-24 border-2 border-red-500/20 rounded-full animate-ping absolute inset-0" />
+                            <div className="h-24 w-24 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center relative">
+                                <TimerOff className="h-10 w-10 text-red-500" />
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <h2 className="font-mono text-xl font-bold text-red-500 uppercase tracking-widest leading-tight">
+                                Desktop Access Required
+                            </h2>
+                            <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+                                This assessment environment is strictly limited to desktop browsers. Please switch to a laptop or computer to continue.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Security Overlay: Concurrency Lockout */}
+            {concurrencyError && (
+                <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-red-950/90 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-700">
+                    <div className="flex flex-col items-center gap-10 max-w-md text-center p-10 border border-red-500/30 bg-black/40 rounded-sm shadow-2xl">
+                        <div className="relative">
+                            <div className="h-28 w-28 border-2 border-red-500/20 rounded-full animate-ping absolute inset-0" />
+                            <div className="h-28 w-28 bg-red-500/10 border border-red-500/40 rounded-full flex items-center justify-center relative">
+                                <XCircle className="h-12 w-12 text-red-500" />
+                            </div>
+                        </div>
+                        <div className="space-y-6">
+                            <h2 className="font-mono text-2xl font-bold text-red-500 uppercase tracking-tighter">
+                                Multiple Sessions Detected
+                            </h2>
+                            <p className="text-sm text-red-200/60 font-mono leading-relaxed">
+                                Our security engine has detected another active session for this account. To maintain integrity, you are being automatically logged out of all devices.
+                            </p>
+                            <div className="pt-4">
+                                <div className="inline-flex items-center gap-3 px-6 py-3 bg-red-500 text-black font-bold uppercase tracking-widest text-xs animate-pulse">
+                                    Logging out in {logoutCountdown}s...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Time Expired Dialog */}
             <Dialog open={showTimeExpiredDialog} onOpenChange={() => { }}>
