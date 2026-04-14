@@ -815,7 +815,7 @@ export default function Assessment() {
                                                         isPrefetching={isPrefetching}
                                                     />
                                                     <p className="text-[10px] text-muted-foreground font-mono italic">
-                                                        This is a locked-down, browser-only environment. No external IDEs or AI assistance permitted.
+                                                        This is a locked-down, browser-only environment. Terminal execution and code running are currently in development — for now, please focus on identifying bugs and logic improvements through code analysis.
                                                     </p>
                                                 </div>
                                             );
