@@ -6,9 +6,9 @@ import { GitBranch, Terminal, Shield, Gauge, CheckCircle, SearchCode, FileSearch
 
 const steps = [
   { num: "01", title: "Choose or create a challenge", desc: "Students pick from a library of real-world challenges, or organizers create custom contests for their communities." },
-  { num: "02", title: "Clone your own repo", desc: "Each participant gets their own private repository — reproducible environments ensure everyone starts from the same baseline." },
-  { num: "03", title: "Code like you're contributing", desc: "Work in your IDE, debug locally, run tests, refactor — use the same tools you'd use for real open source contributions." },
-  { num: "04", title: "Push your code", desc: "Commit your changes and push to your private repository. Get feedback and scores automatically." },
+  { num: "02", title: "Launch your Sandbox", desc: "Each participant gets access to a secure, browser-based development environment. No setup required." },
+  { num: "03", title: "Code without Safety Nets", desc: "Work in our built-in IDE. No Copilot, no ChatGPT — just your engineering judgment and the challenge spec." },
+  { num: "04", title: "Real-time Verification", desc: "Run your code in the sandboxed terminal. Test your edge cases and submit your final solution." },
   { num: "05", title: "Get evaluated on what matters", desc: "Scored on functionality, performance, code quality, and engineering judgment — the skills that matter in real projects." },
   { num: "06", title: "Rise the ranks", desc: "Climb the global and per-session leaderboards. Earn massive bonus points for getting selected by organizers." },
 ];
@@ -44,7 +44,7 @@ export default function AboutUs() {
             Competitive Software Engineering
           </h1>
           <p className="text-xl text-muted-foreground font-mono leading-relaxed mb-8 max-w-3xl">
-            The first arena for real systems work. While platforms like LeetCode test algorithms, WIRRE tests Git workflows, debugging, refactoring, and latency optimization. This isn't practice — it's a sport.
+            The first arena for real systems work. We've removed the AI safety nets. Inside our sandboxed environment, it's just you and the problem. No Copilot. No ChatGPT. Time to find out who can actually build.
           </p>
           <div className="flex flex-wrap gap-4">
             <Button asChild size="lg" className="font-mono uppercase tracking-widest">
@@ -63,18 +63,18 @@ export default function AboutUs() {
           <div className="grid md:grid-cols-2 gap-16 max-w-6xl mx-auto">
             <div className="bg-background border border-border p-8 hover:border-primary/50 transition-colors">
               <p className="text-xs font-mono uppercase tracking-widest text-primary mb-4 shrink-0">The Problem</p>
-              <h2 className="text-2xl font-bold font-mono tracking-tight mb-6 mt-1">There's no arena for real engineering</h2>
+              <h2 className="text-2xl font-bold font-mono tracking-tight mb-6 mt-1">AI is killing the learning process</h2>
               <div className="space-y-4 text-muted-foreground font-mono text-sm leading-relaxed">
-                <p>Platforms like Codeforces have Competitive Programming (algorithms, trees, DP). Hackathons are about building new apps from scratch. But there's no platform for debugging, refactoring sprints, or latency optimization contests.</p>
-                <p>No one hosts "Fix the memory leak" tournaments. No leaderboards for "Reduce API latency by 50%" challenges. The infrastructure to run engineering contests at scale simply didn't exist.</p>
+                <p>GitHub Copilot and ChatGPT have made it too easy to copy-paste solutions without understanding them. For recruiters and communities, it's becoming impossible to know who actually has engineering depth.</p>
+                <p>The "coding test" is broken. If an AI can pass it, why are we testing it? We need a place where engineering skill is measured in an environment where AI cannot follow.</p>
               </div>
             </div>
             <div className="bg-background border border-border p-8 hover:border-primary/50 transition-colors">
               <p className="text-xs font-mono uppercase tracking-widest text-primary mb-4 shrink-0">The Solution</p>
-              <h2 className="text-2xl font-bold font-mono tracking-tight mb-6 mt-1">Engineering as a competitive sport</h2>
+              <h2 className="text-2xl font-bold font-mono tracking-tight mb-6 mt-1">A Zero-AI Sandboxed Arena</h2>
               <div className="space-y-4 text-muted-foreground font-mono text-sm leading-relaxed">
-                <p>WIRRE is the first platform where systems work is competitive. Clone a repo, fix the bug, push your code, and climb the leaderboard. You are scored on real-world factors: correctness, performance, and code quality.</p>
-                <p>You work locally using your preferred editor and debugger. You use Git like a real developer. You build the habits that actually matter in production environments.</p>
+                <p>WIRRE is a browser-only arena. No external IDEs, no local cloning, and definitely no AI assistance. We provide the codebase, the editor, and the terminal — all in a secure sandbox.</p>
+                <p>You are scored on correctness, performance, and code quality. Since we control the environment, we guarantee the work is 100% human-authored. Skills that show up in production, not just in a chat window.</p>
               </div>
             </div>
           </div>
@@ -122,7 +122,7 @@ export default function AboutUs() {
                     </div>
                   ))}
                 </div>
-                <p className="mt-6 text-xs text-muted-foreground font-mono italic opacity-60">* AI-powered evaluation features are constantly evolving. *</p>
+                <p className="mt-6 text-xs text-muted-foreground font-mono italic opacity-60">* Our proprietary sandbox environment ensures that AI-generated code is not permitted. *</p>
               </div>
             </div>
 

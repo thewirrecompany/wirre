@@ -185,6 +185,7 @@ serve(async (req) => {
              console.error('Failed to fetch collaborators:', await collaboratorsResponse.text());
         }
 
+        /* 
         // 2. Add (or re-verify) the correct candidate as collaborator
         const addCollaboratorResponse = await fetch(
           `https://api.github.com/repos/${repoOwner}/${repoName}/collaborators/${targetUsername}`,
@@ -207,6 +208,9 @@ serve(async (req) => {
           results.push({ userId: registration.user_id, success: false, error });
           continue;
         }
+        */
+
+        console.log(`Access ENFORCED for ${targetUsername} (Internal Only - No GitHub Invite Sent)`);
 
         // Update registration to mark access as granted
         const { error: updateError } = await supabase

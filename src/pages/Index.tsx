@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, GitBranch, Terminal, Gauge, Trophy } from "lucide-react";
+import { ArrowRight, GitBranch, Terminal, Gauge, Trophy, ShieldAlert } from "lucide-react";
 
 export default function Index() {
   const { user, profile } = useAuth();
@@ -21,17 +21,18 @@ export default function Index() {
       <section className="min-h-[92vh] flex flex-col justify-center border-b border-border">
         <div className="container py-32 max-w-5xl">
           <p className="text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground mb-6">
-            The arena for competitive software engineering
+            The arena for pure engineering. No AI. No Copilot. Just you and the code.
           </p>
           <h1 className="text-7xl md:text-[clamp(4rem,11vw,9rem)] font-bold tracking-tighter font-mono leading-none">
             WIRRE
           </h1>
           <p className="mt-5 text-2xl md:text-3xl font-mono text-muted-foreground tracking-tight">
-            Compete in Commits.
+            Code in the Sandbox.
           </p>
           <p className="mt-6 text-base md:text-lg text-muted-foreground font-mono max-w-xl leading-relaxed">
-            Clone a repo. Fix the bug. Push your code. Climb the leaderboard.<br />
-            Engineering — not just algorithms — as a sport.
+            Enter our secure, browser-based environment. No AI assistance allowed.
+            Fix the bug. Push your code. Climb the leaderboard.<br />
+            Engineering — in its purest form — as a sport.
           </p>
           <div className="mt-12 flex flex-wrap items-center gap-4">
             <Button asChild size="lg" className="font-mono uppercase tracking-widest px-8 h-12">
@@ -65,11 +66,11 @@ export default function Index() {
               </p>
             </div>
             <div className="bg-background p-8">
-              <GitBranch className="h-5 w-5 mb-6 text-muted-foreground" />
-              <h3 className="font-mono font-bold text-lg mb-3">Your IDE, your tools</h3>
+              <ShieldAlert className="h-5 w-5 mb-6 text-primary" />
+              <h3 className="font-mono font-bold text-lg mb-3">Zero AI Tolerance</h3>
               <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-                Work locally with your own editor and debugger. Use Git like you
-                would on a real project — commit, push, iterate.
+                Work in a sandboxed IDE where Copilot and ChatGPT can't help you.
+                Show the world you actually know how to code.
               </p>
             </div>
             <div className="bg-background p-8">
@@ -93,16 +94,16 @@ export default function Index() {
           <div className="grid md:grid-cols-3 gap-12">
             <div>
               <span className="font-mono text-5xl font-bold text-muted-foreground/20 block mb-4">01</span>
-              <h3 className="font-mono font-bold mb-2">Clone</h3>
+              <h3 className="font-mono font-bold mb-2">Enter</h3>
               <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-                You get a private repo pre-loaded with a real codebase and a challenge spec.
+                Join a round and launch our browser-based sandboxed environment.
               </p>
             </div>
             <div>
               <span className="font-mono text-5xl font-bold text-muted-foreground/20 block mb-4">02</span>
-              <h3 className="font-mono font-bold mb-2">Code</h3>
+              <h3 className="font-mono font-bold mb-2">Solve</h3>
               <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-                Work in your own environment. Debug, refactor, optimize — then push.
+                Debug, refactor, and optimize using our built-in editor and terminal. No AI allowed.
               </p>
             </div>
             <div>
