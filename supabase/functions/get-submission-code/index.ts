@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { assessmentId, anonymousId, path } = await req.json();
+    const { assessmentId, anonymousId, path, recursive } = await req.json();
 
     if (!assessmentId || !anonymousId) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -159,9 +159,18 @@ serve(async (req) => {
     const { token } = await getInstallationToken(WIRRE_INSTALLATION_ID, GITHUB_APP_ID, GITHUB_PRIVATE_KEY);
 
     // Fetch repository contents
-    const endpoint = path 
-      ? `https://api.github.com/repos/${WIRRE_ORG}/${repoName}/contents/${path}`
-      : `https://api.github.com/repos/${WIRRE_ORG}/${repoName}/contents`;
+    let endpoint: string;
+    let isTreeApi = false;
+
+    if (recursive) {
+      isTreeApi = true;
+      // Use recursive tree API (defaults to main branch)
+      endpoint = `https://api.github.com/repos/${WIRRE_ORG}/${repoName}/git/trees/main?recursive=1`;
+    } else {
+      endpoint = path 
+        ? `https://api.github.com/repos/${WIRRE_ORG}/${repoName}/contents/${path}`
+        : `https://api.github.com/repos/${WIRRE_ORG}/${repoName}/contents`;
+    }
 
     const response = await fetch(endpoint, {
       headers: {
@@ -181,6 +190,13 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+
+    // If it's a recursive tree request, return the tree directly
+    if (isTreeApi) {
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // If it's a file, decode base64 content
     if (data.type === 'file' && data.content) {

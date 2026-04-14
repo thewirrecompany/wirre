@@ -14,8 +14,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { PeerReviewPanel } from '@/components/assessment/PeerReviewPanel';
+import { PeerReviewPanel, usePeerReview, PeerReviewHeader, PeerReviewIdeWorkspace, PeerReviewReporter } from '@/components/assessment/PeerReviewPanel';
 import { SubmissionSuccessModal } from '@/components/assessment/SubmissionSuccessModal';
+import { IdeSandbox } from '@/components/assessment/IdeSandbox';
 
 export default function Assessment() {
     const { id } = useParams();
@@ -37,6 +38,7 @@ export default function Assessment() {
     const [peerReviewRepoUrl, setPeerReviewRepoUrl] = useState<string | null>(null);
     const [assignedPeerRegistrationId, setAssignedPeerRegistrationId] = useState<string | null>(null);
     const [registrationId, setRegistrationId] = useState<string | null>(null);
+    const [anonymousIdState, setAnonymousIdState] = useState<string | null>(null);
     const [registrationCreatedAt, setRegistrationCreatedAt] = useState<string | null>(null);
     const [codingStartedAt, setCodingStartedAt] = useState<string | null>(null);
     const [peerReviewAssignedAt, setPeerReviewAssignedAt] = useState<string | null>(null);
@@ -72,13 +74,202 @@ export default function Assessment() {
     const isPeerReviewPhase = _codingEndMs !== null && new Date().getTime() > _codingEndMs;
     const isPeerReviewExpiredCalc = _peerReviewEndMs !== null && new Date().getTime() > _peerReviewEndMs;
 
-    // File viewer state
-    const [anonymousId, setAnonymousId] = useState<string | null>(null);
-    const [fileViewerPath, setFileViewerPath] = useState('');
-    const [fileViewerContents, setFileViewerContents] = useState<any[]>([]);
-    const [currentFileContent, setCurrentFileContent] = useState<any>(null);
-    const [loadingFiles, setLoadingFiles] = useState(false);
-    const [downloadingZip, setDownloadingZip] = useState(false);
+    // Sandbox IDE state
+    const [explorerFiles, setExplorerFiles] = useState<any[]>([]);
+    const [activeFileNode, setActiveFileNode] = useState<any | null>(null);
+    const [isLoadingExplorer, setIsLoadingExplorer] = useState(false);
+    const [isFetchingContent, setIsFetchingContent] = useState(false);
+    const [isPrefetching, setIsPrefetching] = useState(false);
+    const [isSyncingFile, setIsSyncingFile] = useState(false);
+    const fetchLock = useRef(false);
+
+    // Lock body scroll when initialization overlay is active
+    useEffect(() => {
+        if (isPrefetching) {
+            document.body.style.overflow = 'hidden';
+            // Also lock html for some browsers
+            document.documentElement.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+            document.documentElement.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+            document.documentElement.style.overflow = 'unset';
+        };
+    }, [isPrefetching]);
+
+    // Peer Review Logic
+    const prState = usePeerReview(
+        String(id || ''),
+        String(registrationId || ''),
+        assignedPeerRegistrationId || undefined
+    );
+
+    // Fetch initial file tree - ATOMIC LOCK
+    useEffect(() => {
+        if (!id || !profile?.id || fetchLock.current || isLoadingExplorer) return;
+
+        const canLaunch = isRegistered && privateRepoUrl && accessGranted &&
+            (assessment?.is_sample || (assessment?.start_at && new Date() >= new Date(assessment.start_at)));
+
+        if (canLaunch) {
+            fetchLock.current = true; // Block any further attempts immediately
+            fetchFileTree("", true).then(tree => {
+                if (tree) prefetchBackgroundFiles(tree);
+            });
+        }
+    }, [id, isRegistered, privateRepoUrl, accessGranted, assessment?.start_at, profile?.id]);
+
+    const fetchFileTree = async (path = "", isInitial = false, isBackground = false) => {
+        if (!id || !profile?.id) return;
+        if (!isBackground) setIsLoadingExplorer(true);
+        try {
+            // Greedy fetch: if isInitial, we get the WHOLE structure recursively
+            const { data, error } = await supabase.functions.invoke('get-submission-code', {
+                body: {
+                    assessmentId: id,
+                    anonymousId: anonymousIdState || profile.id,
+                    path,
+                    recursive: isInitial
+                }
+            });
+            if (error) throw error;
+
+            if (isInitial && data.tree) {
+                // transform flat tree to nested structure
+                const nested = transformFlatTree(data.tree);
+                setExplorerFiles(nested);
+                return nested;
+            } else if (data.type === 'file') {
+                const updatedFile = { ...data, decoded_content: data.decoded_content || data.content };
+                // ONLY set active file if This was NOT a background pre-fetch
+                if (!isBackground) setActiveFileNode(updatedFile);
+                setExplorerFiles(prev => updateFileInTree(prev, path, updatedFile));
+            } else if (!path) {
+                setExplorerFiles(Array.isArray(data) ? data : [data]);
+            }
+            return data;
+        } catch (err: any) {
+            console.error('Failed to fetch files:', err);
+        } finally {
+            if (!isBackground) setIsLoadingExplorer(false);
+        }
+    };
+
+    const transformFlatTree = (tree: any[]): FileNode[] => {
+        const result: FileNode[] = [];
+        const level: any = { result };
+
+        tree.forEach(item => {
+            if (item.path.startsWith('.')) return; // skip hidden files like .git
+
+            item.path.split('/').reduce((acc: any, name: string, i: number, arr: any[]) => {
+                if (!acc[name]) {
+                    acc[name] = { result: [] };
+                    const node: FileNode = {
+                        name,
+                        path: item.path,
+                        type: item.type === 'tree' ? 'dir' : 'file',
+                        sha: item.sha,
+                    };
+                    if (i === arr.length - 1 && item.type === 'blob') {
+                        // it's a file
+                    } else {
+                        node.children = acc[name].result;
+                    }
+                    acc.result.push(node);
+                }
+                return acc[name];
+            }, level);
+        });
+
+        // Sort: directories first
+        const sortNodes = (nodes: FileNode[]) => {
+            nodes.sort((a, b) => {
+                if (a.type === b.type) return a.name.localeCompare(b.name);
+                return a.type === 'dir' ? -1 : 1;
+            });
+            nodes.forEach(n => { if (n.children) sortNodes(n.children); });
+        };
+        sortNodes(result);
+        return result;
+    };
+
+    const prefetchBackgroundFiles = async (tree: FileNode[]) => {
+        const paths: string[] = [];
+        const walk = (nodes: FileNode[]) => {
+            nodes.forEach(n => {
+                if (n.type === 'file' && !n.decoded_content) paths.push(n.path);
+                if (n.children) walk(n.children);
+            });
+        };
+        walk(tree);
+
+        if (paths.length > 0) setIsPrefetching(true);
+
+        // Fetch each file with a small delay to avoid rate limits
+        try {
+            for (const path of paths) {
+                // Small pause between requests
+                await new Promise(resolve => setTimeout(resolve, 300));
+                // Only fetch if it hasn't been loaded in the meantime
+                await fetchFileTree(path, false, true);
+            }
+        } finally {
+            setIsPrefetching(false);
+        }
+    };
+
+    const updateFileInTree = (nodes: FileNode[], path: string, updates: Partial<FileNode>): FileNode[] => {
+        return nodes.map(node => {
+            if (node.path === path) return { ...node, ...updates };
+            if (node.children) return { ...node, children: updateFileInTree(node.children, path, updates) };
+            return node;
+        });
+    };
+
+    const handleFileSelect = async (file: any) => {
+        if (file.type === 'dir') return;
+        if (!file.decoded_content) {
+            setIsFetchingContent(true);
+            try {
+                const { data, error } = await supabase.functions.invoke('get-submission-code', {
+                    body: { assessmentId: id, anonymousId: profile?.id, path: file.path }
+                });
+                if (error) throw error;
+                const updatedFile = { ...file, decoded_content: data.decoded_content, sha: data.sha };
+                setActiveFileNode(updatedFile);
+                setExplorerFiles(prev => updateFileInTree(prev, file.path, updatedFile));
+            } catch (err) {
+                toast({ title: 'Error', description: 'Failed to load file content.', variant: 'destructive' });
+            } finally {
+                setIsFetchingContent(false);
+            }
+        } else {
+            setActiveFileNode(file);
+        }
+    };
+
+    const handleSaveFile = async (file: any, newContent: string) => {
+        if (!id) return;
+        setIsSyncingFile(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('sync-sandbox-file', {
+                body: { assessmentId: id, path: file.path, content: newContent, sha: file.sha }
+            });
+            if (error) throw error;
+            toast({ title: 'Saved', description: `${file.name} synchronized to GitHub.` });
+            const updatedFile = { ...file, decoded_content: newContent, sha: data.sha };
+            setActiveFileNode(updatedFile);
+            setExplorerFiles(prev => updateFileInTree(prev, file.path, updatedFile));
+        } catch (err) {
+            toast({ title: 'Sync Error', description: 'Changes could not be pushed.', variant: 'destructive' });
+        } finally {
+            setIsSyncingFile(false);
+        }
+    };
+
 
     const { toast } = useToast();
 
@@ -146,7 +337,7 @@ export default function Assessment() {
                     } catch (e) {
                         console.error('Failed to revoke access on time expiry:', e);
                     }
-                    toast({ title: 'Time\'s up!', description: 'Coding phase ended. Your repository access has been revoked.' });
+                    toast({ title: 'Time\'s up!', description: 'Coding phase ended. Your sandbox environment has been locked.' });
                 }
                 // Formally mark coding done in DB (idempotent — safe to call even if already finished)
                 try {
@@ -174,9 +365,9 @@ export default function Assessment() {
         checkPhaseTransitions();
         const interval = setInterval(checkPhaseTransitions, 15000);
         return () => clearInterval(interval);
-    // NOTE: accessGranted intentionally excluded from dep array — we use accessGrantedRef.current
-    // so that admin re-granting access doesn't cause this effect to re-instantiate and
-    // immediately re-revoke (which would create an infinite revocation loop).
+        // NOTE: accessGranted intentionally excluded from dep array — we use accessGrantedRef.current
+        // so that admin re-granting access doesn't cause this effect to re-instantiate and
+        // immediately re-revoke (which would create an infinite revocation loop).
     }, [id, isRegistered, privateRepoUrl, _codingEndMs, _peerReviewEndMs, isFinished, profile?.id]);
 
     // Peer Review Assignment Hook
@@ -233,11 +424,11 @@ export default function Assessment() {
                 if (!error && data && mounted) {
                     setIsRegistered(true);
                     setRegistrationId(data.id);
+                    setAnonymousIdState(data.anonymous_id);
                     setRegistrationCreatedAt(data.created_at);
                     setCodingStartedAt(data.coding_started_at);
                     setPrivateRepoUrl(data.private_repo_url || '');
                     setAccessGranted(data.access_granted || false);
-                    setAnonymousId(data.anonymous_id);
                     setPeerReviewRepoUrl(data.peer_review_repo_url);
                     setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
                     setPeerReviewAssignedAt(data.peer_review_assigned_at);
@@ -347,7 +538,7 @@ export default function Assessment() {
             mounted = false;
             clearInterval(interval);
         };
-    // NOTE: accessGranted intentionally excluded — syncing FROM db, not re-triggering on local state changes
+        // NOTE: accessGranted intentionally excluded — syncing FROM db, not re-triggering on local state changes
     }, [id, isRegistered, privateRepoUrl, isFinished, profile?.id]);
 
     // Countdown timer — updates every second
@@ -395,87 +586,6 @@ export default function Assessment() {
         return true;
     })();
 
-    // --- File Viewer Logic ---
-
-    useEffect(() => {
-        if (isRegistered && accessGranted && anonymousId && !loading) {
-            // Load initial files if we are in the "preview" window
-            const hasStarted = assessment?.start_at && new Date() >= new Date(assessment.start_at);
-            const isWithinOneHour = assessment?.start_at ? new Date() >= new Date(new Date(assessment.start_at).getTime() - 60 * 60 * 1000) : false;
-
-            if (!hasStarted && isWithinOneHour) {
-                loadFileContents(fileViewerPath);
-            }
-        }
-    }, [fileViewerPath, isRegistered, accessGranted, anonymousId, assessment, loading]);
-
-    const loadFileContents = async (path: string = '') => {
-        if (!id || !anonymousId) return;
-        setLoadingFiles(true);
-        try {
-            const { data, error } = await supabase.functions.invoke('get-submission-code', {
-                body: {
-                    assessmentId: id,
-                    anonymousId: anonymousId,
-                    path: path
-                }
-            });
-
-            if (error) throw error;
-
-            if (data.type === 'file') {
-                setCurrentFileContent(data);
-                setFileViewerContents([]);
-            } else {
-                setFileViewerContents(Array.isArray(data) ? data : []);
-                setCurrentFileContent(null);
-            }
-        } catch (error: any) {
-            console.error('Error loading code:', error);
-            // Don't toast on initial load to avoid spam if folder empty or error
-        } finally {
-            setLoadingFiles(false);
-        }
-    };
-
-    const handleNavigatePath = (path: string, type: string) => {
-        setFileViewerPath(path);
-    };
-
-    const handleGoBackDir = () => {
-        if (!fileViewerPath) return;
-        const parts = fileViewerPath.split('/');
-        parts.pop();
-        setFileViewerPath(parts.join('/'));
-    };
-
-    const handleDownloadZip = async () => {
-        if (!id || !anonymousId) return;
-        setDownloadingZip(true);
-        try {
-            const { data, error } = await supabase.functions.invoke('download-submission-zip', {
-                body: { assessmentId: id, anonymousId }
-            });
-
-            if (error) throw error;
-
-            const blob = new Blob([Uint8Array.from(atob(data.zipData), c => c.charCodeAt(0))], { type: 'application/zip' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${assessment.title.replace(/\s+/g, '-').toLowerCase()}-source.zip`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-
-            toast({ title: 'Downloaded', description: 'Source code downloaded successfully' });
-        } catch (error: any) {
-            toast({ title: 'Error', description: error.message || 'Download failed', variant: 'destructive' });
-        } finally {
-            setDownloadingZip(false);
-        }
-    };
 
     const handleStartNow = async () => {
         if (!id || !profile?.id || !githubUsername) return;
@@ -508,8 +618,8 @@ export default function Assessment() {
             } else {
                 const result = await provisionResponse.json();
                 toast({
-                    title: "All set!",
-                    description: `Repository created. You now have access.`,
+                    title: "Status: Locked In",
+                    description: `Sandbox initialized. Your environment is ready.`,
                 });
                 if (result.repoUrl) setPrivateRepoUrl(result.repoUrl);
 
@@ -541,12 +651,7 @@ export default function Assessment() {
                     if (regData.coding_started_at) setCodingStartedAt(regData.coding_started_at);
                     setPrivateRepoUrl(regData.private_repo_url || result.repoUrl || '');
                     setAccessGranted(regData.access_granted || true); // Default to true if provision was successful
-                    setAnonymousId(regData.anonymous_id);
 
-                    // 3. Immediately load file contents for the preview
-                    if (regData.anonymous_id || result.anonymousId) {
-                        loadFileContents('');
-                    }
                 }
             }
         } catch (err: any) {
@@ -580,41 +685,46 @@ export default function Assessment() {
         );
     }
 
-    const classroomUrl = assessment.github_classroom_url || '';
-    const repoUrl = ''; // intentionally never expose original organizer repo to candidates
     const description = assessment.description || '';
 
     return (
         <Layout>
             <div className="py-8 md:py-12">
-                <div className="container px-4 md:px-6">
-                    <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8 md:gap-12">
+                <div className="max-w-[1600px] mx-auto px-4 md:px-6">
+                    <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 md:gap-12">
                         {/* Main Content */}
-                        <div className="lg:col-span-2">
-                            <div className="mb-8 md:mb-12 text-center md:text-left">
-                                <p className="text-[10px] md:text-xs text-muted-foreground font-mono uppercase tracking-[0.2em] mb-3">Assessment Round</p>
-                                <h1 className="text-3xl md:text-4xl font-bold font-mono tracking-tight uppercase">{assessment.title}</h1>
-                                {companyData && (
-                                    companyData.domain ? (
-                                        <a
-                                            href={companyData.domain.startsWith('http') ? companyData.domain : `https://${companyData.domain}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-primary font-mono mt-2 text-sm md:text-base tracking-widest hover:underline"
-                                        >
-                                            {companyData.name}
-                                        </a>
-                                    ) : (
-                                        <p className="text-primary font-mono mt-2 text-sm md:text-base tracking-widest">{companyData.name}</p>
-                                    )
+                        <div className="lg:col-span-9">
+                            <div className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-start justify-between gap-6">
+                                <div className="text-center md:text-left">
+                                    <p className="text-[10px] md:text-xs text-muted-foreground font-mono uppercase tracking-[0.2em] mb-3">Assessment Round</p>
+                                    <h1 className="text-3xl md:text-4xl font-bold font-mono tracking-tight uppercase">{assessment.title}</h1>
+                                    {companyData && (
+                                        companyData.domain ? (
+                                            <a
+                                                href={companyData.domain.startsWith('http') ? companyData.domain : `https://${companyData.domain}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-primary font-mono mt-2 text-sm md:text-base tracking-widest hover:underline"
+                                            >
+                                                {companyData.name}
+                                            </a>
+                                        ) : (
+                                            <p className="text-primary font-mono mt-2 text-sm md:text-base tracking-widest">{companyData.name}</p>
+                                        )
+                                    )}
+                                </div>
+                                {isPeerReviewPhase && (
+                                    <div className="animate-in fade-in zoom-in-95 duration-700 bg-indigo-500/5 border border-indigo-500/20 p-4 rounded-sm max-w-md shrink-0 self-start">
+                                        <PeerReviewHeader />
+                                    </div>
                                 )}
                             </div>
 
                             {/* Repository URL (moved above description) */}
                             <div className="border border-border p-4 md:p-8 mb-8 md:mb-12 bg-card/30 rounded-sm">
                                 <div className="flex items-center gap-3 mb-6">
-                                    <GitBranch className="h-5 w-5 text-primary" />
-                                    <h2 className="font-mono font-bold uppercase text-sm tracking-wider">Your Working Repository</h2>
+                                    <Terminal className="h-5 w-5 text-primary" />
+                                    <h2 className="font-mono font-bold uppercase text-sm tracking-wider">Development Sandbox</h2>
                                 </div>
                                 <div className="flex flex-col gap-4">
                                     {(() => {
@@ -634,16 +744,9 @@ export default function Assessment() {
                                             }
 
                                             if (peerReviewRepoUrl && registrationId && id) {
-                                                return <PeerReviewPanel
-                                                    assessmentId={String(id)}
-                                                    registrationId={String(registrationId)}
+                                                return <PeerReviewIdeWorkspace
+                                                    {...prState}
                                                     peerRepoUrl={peerReviewRepoUrl}
-                                                    assignedPeerRegistrationId={assignedPeerRegistrationId || undefined}
-                                                    onComplete={() => {
-                                                        setIsFinished(true);
-                                                        setSkippedPeerReview(true);
-                                                        setShowSuccessModal(true);
-                                                    }}
                                                 />;
                                             }
                                             return (
@@ -674,16 +777,9 @@ export default function Assessment() {
                                                 );
                                             } else if (peerReviewRepoUrl && registrationId && id) {
                                                 // Peer has been assigned — show the review panel even if coding timer hasn't expired yet
-                                                return <PeerReviewPanel
-                                                    assessmentId={String(id)}
-                                                    registrationId={String(registrationId)}
+                                                return <PeerReviewIdeWorkspace
+                                                    {...prState}
                                                     peerRepoUrl={peerReviewRepoUrl}
-                                                    assignedPeerRegistrationId={assignedPeerRegistrationId || undefined}
-                                                    onComplete={() => {
-                                                        setIsFinished(true);
-                                                        setSubmittedPeerReview(true);
-                                                        setShowSuccessModal(true);
-                                                    }}
                                                 />;
                                             } else {
                                                 return (
@@ -707,26 +803,19 @@ export default function Assessment() {
                                         if (canViewRepoLink) {
                                             return (
                                                 <div className="space-y-4">
-                                                    <div className="flex flex-col sm:flex-row gap-2">
-                                                        <code className="flex-1 p-3 bg-background border border-border font-mono text-xs md:text-sm break-all rounded-sm">
-                                                            {privateRepoUrl}
-                                                        </code>
-                                                        <div className="flex gap-2">
-                                                            <Button variant="outline" size="sm" className="font-mono text-xs flex-1 sm:flex-none h-11 sm:h-auto" onClick={() => {
-                                                                navigator.clipboard.writeText(privateRepoUrl);
-                                                                toast({ title: 'Copied!', description: 'Repository URL copied' });
-                                                            }}>Copy</Button>
-                                                            <Button
-                                                                size="sm"
-                                                                className="font-mono text-xs flex-1 sm:flex-none h-11 sm:h-auto"
-                                                                onClick={() => window.open(privateRepoUrl, '_blank')}
-                                                            >
-                                                                Open
-                                                            </Button>
-                                                        </div>
-                                                    </div>
+                                                    <IdeSandbox
+                                                        assessmentTitle={assessment.title}
+                                                        files={explorerFiles}
+                                                        activeFile={activeFileNode}
+                                                        onFileSelect={handleFileSelect}
+                                                        onSave={handleSaveFile}
+                                                        isLoading={isLoadingExplorer}
+                                                        isSaving={isSyncingFile}
+                                                        isFetchingContent={isFetchingContent}
+                                                        isPrefetching={isPrefetching}
+                                                    />
                                                     <p className="text-[10px] text-muted-foreground font-mono italic">
-                                                        Access is granted through your GitHub username. Ensure it matches your profile.
+                                                        This is a locked-down, browser-only environment. No external IDEs or AI assistance permitted.
                                                     </p>
                                                 </div>
                                             );
@@ -741,75 +830,20 @@ export default function Assessment() {
                                                             <div>
                                                                 <h3 className="text-primary font-mono font-bold text-sm uppercase tracking-wide mb-1">Preview Access Granted</h3>
                                                                 <p className="text-xs text-muted-foreground font-mono leading-relaxed">
-                                                                    You have early access to view the codebase. The submission repository link will be available at start time ({new Date(assessment.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).
+                                                                    You have early access to view the codebase. The interactive sandbox will be available at start time ({new Date(assessment.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).
                                                                 </p>
                                                             </div>
                                                         </div>
                                                     </div>
-
-                                                    <Card className="p-0 overflow-hidden bg-card/40 border-white/10">
-                                                        <div className="p-3 border-b border-white/10 flex items-center justify-between bg-black/20">
-                                                            <div className="flex items-center gap-2 overflow-hidden">
-                                                                {fileViewerPath && (
-                                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={handleGoBackDir}>
-                                                                        <ArrowLeft className="h-3 w-3" />
-                                                                    </Button>
-                                                                )}
-                                                                <span className="font-mono text-xs text-muted-foreground truncate direction-rtl">
-                                                                    root/{fileViewerPath}
-                                                                </span>
-                                                            </div>
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="h-7 text-[10px] font-mono uppercase tracking-widest gap-2"
-                                                                onClick={handleDownloadZip}
-                                                                disabled={downloadingZip}
-                                                            >
-                                                                <Download className="h-3 w-3" />
-                                                                {downloadingZip ? '...' : 'Download Zip'}
-                                                            </Button>
-                                                        </div>
-
-                                                        <div className="min-h-[200px] max-h-[400px] overflow-y-auto custom-scrollbar p-2">
-                                                            {loadingFiles ? (
-                                                                <div className="flex items-center justify-center h-40">
-                                                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                                                                </div>
-                                                            ) : currentFileContent ? (
-                                                                <div className="p-2">
-                                                                    <div className="mb-2 flex items-center gap-2 text-primary/70">
-                                                                        <File className="h-3 w-3" />
-                                                                        <span className="font-mono text-xs">{currentFileContent.name}</span>
-                                                                    </div>
-                                                                    <pre className="bg-black/30 p-4 rounded-sm overflow-x-auto text-[10px] sm:text-xs font-mono border border-white/5">
-                                                                        <code>{currentFileContent.decoded_content || currentFileContent.content || 'Unable to load content'}</code>
-                                                                    </pre>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="space-y-1">
-                                                                    {fileViewerContents.length === 0 ? (
-                                                                        <p className="text-center text-muted-foreground text-xs py-8 font-mono">Empty directory</p>
-                                                                    ) : (
-                                                                        fileViewerContents.map((item) => (
-                                                                            <button
-                                                                                key={item.path}
-                                                                                onClick={() => handleNavigatePath(item.path, item.type)}
-                                                                                className="w-full flex items-center gap-3 p-2 hover:bg-white/5 rounded-sm transition-colors text-left group"
-                                                                            >
-                                                                                {item.type === 'dir' ? (
-                                                                                    <Folder className="h-4 w-4 text-blue-400 group-hover:text-blue-300" />
-                                                                                ) : (
-                                                                                    <File className="h-4 w-4 text-muted-foreground group-hover:text-white" />
-                                                                                )}
-                                                                                <span className="font-mono text-xs text-muted-foreground group-hover:text-white transition-colors">{item.name}</span>
-                                                                            </button>
-                                                                        ))
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </Card>
+                                                    <div className="opacity-50 pointer-events-none grayscale">
+                                                        <IdeSandbox
+                                                            assessmentTitle={assessment.title}
+                                                            files={[]}
+                                                            activeFile={null}
+                                                            onFileSelect={() => { }}
+                                                            onSave={async () => { }}
+                                                        />
+                                                    </div>
                                                 </div>
                                             );
                                         } else if (isRegistered && privateRepoUrl) {
@@ -817,13 +851,13 @@ export default function Assessment() {
                                             if (isWithinOneHour && !accessGranted) {
                                                 return (
                                                     <div className="p-4 bg-muted/20 border border-primary/20 font-mono text-xs md:text-sm text-primary/80 leading-relaxed animate-pulse rounded-sm">
-                                                        Preparing your working environment... Access will be granted momentarily.
+                                                        Preparing your sandboxed environment... Access will be granted momentarily.
                                                     </div>
                                                 );
                                             }
                                             return (
                                                 <div className="p-4 bg-yellow-500/5 border border-yellow-500/20 font-mono text-xs md:text-sm text-yellow-500/80 leading-relaxed rounded-sm">
-                                                    Access will be granted 1 hour before the assessment starts. Please wait for the scheduled time.
+                                                    Sandbox will be granted 1 hour before the assessment starts. Please wait for the scheduled time.
                                                 </div>
                                             );
                                         } else if (isRegistered) {
@@ -832,18 +866,18 @@ export default function Assessment() {
                                                 if (isProvisioning) {
                                                     return (
                                                         <div className="p-4 bg-muted/30 border border-border border-dashed font-mono text-xs md:text-sm text-muted-foreground animate-pulse rounded-sm">
-                                                            Initializing your private repository... this usually takes a few minutes.
+                                                            Initializing your secure sandbox... this usually takes a few seconds.
                                                         </div>
                                                     );
                                                 }
                                                 return (
                                                     <div className="p-4 bg-primary/5 border border-primary/20 font-mono text-xs md:text-sm text-primary/80 leading-relaxed rounded-sm flex flex-col gap-4 items-center text-center">
-                                                        <span>Setup your environment by clicking <span className="text-primary font-bold">Start Now</span> below.</span>
+                                                        <span>Initialize your environment by clicking <span className="text-primary font-bold">Launch Sandbox</span> below.</span>
                                                         <Button
-                                                            className="w-full sm:w-auto"
+                                                            className="w-full sm:w-auto uppercase tracking-widest font-mono font-bold"
                                                             onClick={handleStartNow}
                                                         >
-                                                            Start Now
+                                                            Launch Sandbox
                                                         </Button>
                                                     </div>
                                                 );
@@ -856,7 +890,7 @@ export default function Assessment() {
                                             if (isProvisioning) {
                                                 return (
                                                     <div className="p-4 bg-muted/30 border border-border border-dashed font-mono text-xs md:text-sm text-muted-foreground animate-pulse rounded-sm">
-                                                        Initializing your private repository... this usually takes a few minutes.
+                                                        Initializing your sandbox... this usually takes a few seconds.
                                                     </div>
                                                 );
                                             }
@@ -864,12 +898,12 @@ export default function Assessment() {
                                             if (isWithinOneHour) {
                                                 return (
                                                     <div className="p-4 bg-primary/5 border border-primary/20 font-mono text-xs md:text-sm text-primary/80 leading-relaxed rounded-sm flex flex-col gap-4 items-center text-center">
-                                                        <span>Setup your environment by clicking <span className="text-primary font-bold">Start Now</span> below.</span>
+                                                        <span>Setup your environment by clicking <span className="text-primary font-bold">Launch Sandbox</span> below.</span>
                                                         <Button
-                                                            className="w-full sm:w-auto"
+                                                            className="w-full sm:w-auto uppercase tracking-widest font-mono font-bold"
                                                             onClick={handleStartNow}
                                                         >
-                                                            Start Now
+                                                            Launch Sandbox
                                                         </Button>
                                                     </div>
                                                 );
@@ -877,14 +911,14 @@ export default function Assessment() {
 
                                             return (
                                                 <div className="p-4 bg-muted/30 border border-border border-dashed font-mono text-xs md:text-sm text-muted-foreground rounded-sm">
-                                                    Repository will be available 1 hour before start.
+                                                    Sandbox will be available 1 hour before start.
                                                 </div>
                                             );
                                         } else {
                                             // Not registered
                                             return (
                                                 <div className="p-4 bg-muted/30 border border-border border-dashed font-mono text-xs md:text-sm text-muted-foreground rounded-sm">
-                                                    Register to get your unique private repository and instructions.
+                                                    Register to get access to your secure sandbox and instructions.
                                                 </div>
                                             );
                                         }
@@ -920,7 +954,7 @@ export default function Assessment() {
                         </div>
 
                         {/* Sidebar */}
-                        <div className="lg:col-span-1 space-y-6 md:space-y-8">
+                        <div className="lg:col-span-3 space-y-6 md:space-y-8">
                             {/* Status Panel */}
                             <div className="border border-border p-6 bg-card/30 rounded-sm">
                                 <div className="flex items-center gap-3 mb-6">
@@ -968,11 +1002,10 @@ export default function Assessment() {
                                     {isRegistered && !isPeerReviewPhase && !isFinished && _codingEndMs !== null && (
                                         <div className="border-t pt-4 mt-2 border-border">
                                             <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">Time Remaining</p>
-                                            <p className={`font-mono text-xl font-bold tabular-nums ${
-                                                timeRemainingMs !== null && timeRemainingMs < 5 * 60 * 1000
+                                            <p className={`font-mono text-xl font-bold tabular-nums ${timeRemainingMs !== null && timeRemainingMs < 5 * 60 * 1000
                                                     ? 'text-red-400 animate-pulse'
                                                     : 'text-primary'
-                                            }`}>
+                                                }`}>
                                                 {timeRemainingMs !== null ? formatTimeRemaining(timeRemainingMs) : '—'}
                                             </p>
                                         </div>
@@ -991,6 +1024,13 @@ export default function Assessment() {
                                     </div>
                                 </div>
                             ) : null}
+
+                            {/* Peer Review Reporter (Moved to Sidebar) */}
+                            {isPeerReviewPhase && peerReviewRepoUrl && (
+                                <div className="mt-6 animate-in fade-in slide-in-from-right-4 duration-700 delay-150">
+                                    <PeerReviewReporter {...prState} />
+                                </div>
+                            )}
 
                             {/* Actions */}
                             <div className="space-y-4 pt-4">
@@ -1029,7 +1069,7 @@ export default function Assessment() {
                                                 // Shared handler: finish only the coding phase (sets finished_at, revokes GitHub access)
                                                 const handleFinishCodingRound = async () => {
                                                     if (!id) return;
-                                                    const ok = window.confirm('Finish coding round? Your GitHub repository access will be revoked and you will enter the peer review phase.');
+                                                    const ok = window.confirm('Finish coding round? Your sandbox access will be locked and you will enter the peer review phase.');
                                                     if (!ok) return;
                                                     try {
                                                         const { error: finishError } = await supabase.rpc('candidate_finish_assessment', { p_assessment_id: id });
@@ -1179,7 +1219,7 @@ export default function Assessment() {
                                                                     Finish Coding Round
                                                                 </Button>
                                                                 <p className="text-[10px] text-muted-foreground text-center font-mono leading-relaxed">
-                                                                    Revokes write access and waits for peer review phase.
+                                                                    Locks the sandbox and waits for peer review phase.
                                                                 </p>
                                                             </>
                                                         )}
@@ -1236,7 +1276,7 @@ export default function Assessment() {
                                                             onClick={handleStartNow}
                                                             disabled={isProvisioning}
                                                         >
-                                                            {isProvisioning ? "Initializing..." : "Start Now"}
+                                                            {isProvisioning ? "Initializing Sandbox..." : "Launch Sandbox"}
                                                         </Button>
                                                     );
                                                 } else if (!isBeforeEnd) {
