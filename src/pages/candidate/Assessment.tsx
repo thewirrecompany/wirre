@@ -48,6 +48,7 @@ export default function Assessment() {
     const [registrationCreatedAt, setRegistrationCreatedAt] = useState<string | null>(null);
     const [codingStartedAt, setCodingStartedAt] = useState<string | null>(null);
     const [peerReviewAssignedAt, setPeerReviewAssignedAt] = useState<string | null>(null);
+    const [codingFinishedAt, setCodingFinishedAt] = useState<string | null>(null);
 
     const [isFinished, setIsFinished] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -59,6 +60,11 @@ export default function Assessment() {
     const [timeRemainingMs, setTimeRemainingMs] = useState<number | null>(null);
     const [serverTimeOffset, setServerTimeOffset] = useState(0);
     const codingEndMsRef = useRef<number | null>(null);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        return () => { isMounted.current = false; };
+    }, []);
 
     // For scheduled rounds: use assessment.start_at.
     // For sample/per-candidate rounds (start_at is null): use the candidate's own coding_started_at.
@@ -536,6 +542,7 @@ export default function Assessment() {
                     setPeerReviewRepoUrl(data.peer_review_repo_url);
                     setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
                     setPeerReviewAssignedAt(data.peer_review_assigned_at);
+                    setCodingFinishedAt(data.coding_finished_at);
                     setIsFinished(!!data.coding_finished_at || !!data.peer_review_skipped);
                     if (data.peer_review_skipped) setSkippedPeerReview(true);
                 }
@@ -593,6 +600,7 @@ export default function Assessment() {
             if (regCheck) {
                 if (regCheck.coding_started_at) setCodingStartedAt(regCheck.coding_started_at);
                 if (regCheck.peer_review_assigned_at) setPeerReviewAssignedAt(regCheck.peer_review_assigned_at);
+                if (regCheck.coding_finished_at) setCodingFinishedAt(regCheck.coding_finished_at);
                 // If DB marks as finished, update local state and stop polling
                 if (regCheck.coding_finished_at || regCheck.peer_review_skipped) {
                     setIsFinished(true);
@@ -853,12 +861,41 @@ export default function Assessment() {
                                                     peerRepoUrl={peerReviewRepoUrl}
                                                 />;
                                             }
+                                            const now = Date.now() + serverTimeOffset;
+                                            const finishedTime = codingFinishedAt ? new Date(codingFinishedAt).getTime() : 0;
+                                            const waitingElapsedMs = finishedTime ? now - finishedTime : 0;
+                                            const threeHoursMs = 3 * 60 * 60 * 1000;
+                                            const remainingWaitingMs = Math.max(0, threeHoursMs - waitingElapsedMs);
+
+                                            // Auto-finalize if 3 hours pass
+                                            if (finishedTime && waitingElapsedMs > threeHoursMs && !skippedPeerReview && !submittedPeerReview) {
+                                              console.log('3-hour waiting timeout reached (scheduled phase), auto-finalizing...');
+                                              supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id }).then(({ error }) => {
+                                                if (!error) {
+                                                  if (mounted) {
+                                                    setIsFinished(true);
+                                                    setSkippedPeerReview(true);
+                                                  }
+                                                }
+                                              });
+                                            }
+
                                             return (
                                                 <div className="text-center p-8 bg-black/20 rounded-md border border-dashed border-indigo-500/30">
                                                     <div className="flex flex-col items-center gap-4">
                                                         <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
                                                         <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Peer Review Phase</h3>
                                                         <p className="font-mono text-xs text-muted-foreground">Waiting for a competitor to finish... peer-review round will be available soon</p>
+                                                        {finishedTime && (
+                                                          <div className="mt-2 p-2 bg-yellow-500/5 border border-yellow-500/10 rounded-sm">
+                                                            <p className="text-[10px] font-mono text-yellow-500/60 uppercase tracking-widest">
+                                                              Auto-finalizing Round in {formatTimeRemaining(remainingWaitingMs)}
+                                                            </p>
+                                                            <p className="text-[9px] font-mono text-muted-foreground mt-1">
+                                                              (If no competitor is found within 3 hours, round ends with 0 peer score)
+                                                            </p>
+                                                          </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );
@@ -886,15 +923,42 @@ export default function Assessment() {
                                                     peerRepoUrl={peerReviewRepoUrl}
                                                 />;
                                             } else {
-                                                return (
-                                                    <div className="text-center p-8 bg-black/20 rounded-md border border-dashed border-indigo-500/30">
-                                                        <div className="flex flex-col items-center gap-4">
-                                                            <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
-                                                            <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Coding Submitted</h3>
-                                                            <p className="font-mono text-xs text-muted-foreground">Waiting for a competitor to finish... peer review will be assigned shortly.</p>
-                                                        </div>
-                                                    </div>
-                                                );
+                                              const now = Date.now() + serverTimeOffset;
+                                              const finishedTime = codingFinishedAt ? new Date(codingFinishedAt).getTime() : 0;
+                                              const waitingElapsedMs = finishedTime ? now - finishedTime : 0;
+                                              const threeHoursMs = 3 * 60 * 60 * 1000;
+                                              const remainingWaitingMs = Math.max(0, threeHoursMs - waitingElapsedMs);
+
+                                              // Auto-finalize if 3 hours pass
+                                              if (finishedTime && waitingElapsedMs > threeHoursMs && !skippedPeerReview && !submittedPeerReview) {
+                                                console.log('3-hour waiting timeout reached, auto-finalizing...');
+                                                supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id }).then(({ error }) => {
+                                                  if (!error && isMounted.current) {
+                                                    setIsFinished(true);
+                                                    setSkippedPeerReview(true);
+                                                  }
+                                                });
+                                              }
+
+                                              return (
+                                                  <div className="text-center p-8 bg-black/20 rounded-md border border-dashed border-indigo-500/30">
+                                                      <div className="flex flex-col items-center gap-4">
+                                                          <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
+                                                          <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Coding Submitted</h3>
+                                                          <p className="font-mono text-xs text-muted-foreground">Waiting for a competitor to finish... peer review will be assigned shortly.</p>
+                                                          {finishedTime && (
+                                                            <div className="mt-2 p-2 bg-yellow-500/5 border border-yellow-500/10 rounded-sm">
+                                                              <p className="text-[10px] font-mono text-yellow-500/60 uppercase tracking-widest">
+                                                                Auto-finalizing Round in {formatTimeRemaining(remainingWaitingMs)}
+                                                              </p>
+                                                              <p className="text-[9px] font-mono text-muted-foreground mt-1">
+                                                                (If no competitor is found within 3 hours, round ends with 0 peer score)
+                                                              </p>
+                                                            </div>
+                                                          )}
+                                                      </div>
+                                                  </div>
+                                              );
                                             }
                                         }
 
