@@ -73,7 +73,9 @@ export function IdeSandbox({
   const [terminalInput, setTerminalInput] = useState('');
   const [terminalOutput, setTerminalOutput] = useState([
     { type: 'info', text: 'WIRRE Sandbox Environment v1.0.4' },
-    { type: 'info', text: 'Initializing secure container...' }
+    { type: 'error', text: 'Terminal execution is currently unavailable.' },
+    { type: 'info', text: 'We are actively working on supporting full remote execution environments.' },
+    { type: 'info', text: 'For now, please focus on identifying bugs and logic improvements through code analysis.' }
   ]);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const terminalEndRef = React.useRef<HTMLDivElement>(null);
