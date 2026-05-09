@@ -28,7 +28,7 @@ export default function AssessmentStatus() {
             const [assessmentRes, regRes, serverTimeRes] = await Promise.all([
                 supabase.from('assessments').select('*').eq('id', id).single(),
                 supabase.from('assessment_registrations')
-                    .select('id, score, notes, selection_status, created_at, coding_started_at, anonymous_id, peer_review_repo_url, peer_review_assigned_at, access_granted, coding_finished_at')
+                    .select('id, score, notes, selection_status, created_at, coding_started_at, anonymous_id, peer_review_repo_url, peer_review_assigned_at, access_granted, coding_finished_at, ai_score, ai_peer_review_score, ai_report, ai_peer_review_report')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single(),
@@ -108,16 +108,6 @@ export default function AssessmentStatus() {
             );
         }
 
-        // Default under review if not revealed
-        if (!assessment?.identities_revealed) {
-            return (
-                <Badge variant="secondary">
-                    <Clock className="h-4 w-4 mr-1" />
-                    Under Review
-                </Badge>
-            );
-        }
-
         switch (registration.selection_status) {
             case 'selected':
                 return (
@@ -134,6 +124,14 @@ export default function AssessmentStatus() {
                     </Badge>
                 );
             default:
+                if (registration.score !== null) {
+                    return (
+                        <Badge className="bg-purple-500 hover:bg-purple-600">
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Evaluated
+                        </Badge>
+                    );
+                }
                 return (
                     <Badge variant="secondary">
                         <Clock className="h-4 w-4 mr-1" />
@@ -149,17 +147,15 @@ export default function AssessmentStatus() {
             return 'Congratulations! You have advanced to the next round. The new assessment will appear in your dashboard shortly.';
         }
 
-        // Default under review
-        if (!assessment?.identities_revealed) {
-            return 'Your submission is being reviewed. Check back later for updates.';
-        }
-
         switch (registration.selection_status) {
             case 'selected':
                 return 'Congratulations! You have been selected for this position. The company will contact you soon.';
             case 'rejected':
                 return 'Thank you for participating. Unfortunately, you were not selected for this position.';
             default:
+                if (registration.score !== null) {
+                    return 'Your submission has been evaluated. Review your detailed score breakdown below.';
+                }
                 return 'Your submission is being reviewed. Check back later for updates.';
         }
     };
@@ -277,18 +273,33 @@ export default function AssessmentStatus() {
                                 </CardContent>
                             </Card>
 
-                            {/* Score Card - only show if identities revealed or unpaid practice round */}
-                            {(assessment?.identities_revealed || !assessment?.is_paid) && registration.score !== null && registration.score !== undefined ? (
+                            {/* Score Card */}
+                            {(registration.score !== null || registration.ai_score !== null) ? (
                                 <Card className="border-primary/30 bg-primary/5 rounded-sm flex flex-col justify-center">
                                     <CardHeader className="p-4 md:p-6 pb-2 md:pb-4 border-b border-border/50">
-                                        <CardTitle className="font-mono text-xs md:text-sm uppercase tracking-widest text-muted-foreground">Final Score</CardTitle>
+                                        <CardTitle className="font-mono text-xs md:text-sm uppercase tracking-widest text-muted-foreground flex justify-between items-center">
+                                            Final Score
+                                            <span className="text-xl font-bold text-primary tabular-nums tracking-tighter">
+                                                {((registration.score ?? 0) + (((registration.ai_score ?? 0) + (registration.ai_peer_review_score ?? 0)) / 2)).toFixed(1)}/20
+                                            </span>
+                                        </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="p-6 md:p-10 flex flex-col items-center justify-center text-center">
-                                        <span className="text-4xl md:text-6xl font-bold font-mono text-primary tabular-nums tracking-tighter">{registration.score}</span>
-                                        <span className="text-[10px] md:text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground mt-4 mb-6">Out of 10</span>
-                                        <Button variant="outline" size="sm" className="font-mono text-xs uppercase" onClick={() => window.location.href = `/leaderboard/assessment/${id}`}>
-                                            View Leaderboard
-                                        </Button>
+                                    <CardContent className="p-4 md:p-6 space-y-4">
+                                        {/* Score Breakdown */}
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center text-xs md:text-sm border-b border-border/30 pb-2">
+                                                <span className="text-muted-foreground font-mono uppercase tracking-tighter">AI Code Score</span>
+                                                <span className="font-mono text-foreground">{registration.ai_score ?? 'Pending'}{registration.ai_score !== null ? '/10' : ''}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-xs md:text-sm border-b border-border/30 pb-2">
+                                                <span className="text-muted-foreground font-mono uppercase tracking-tighter">AI Peer Score</span>
+                                                <span className="font-mono text-foreground">{registration.ai_peer_review_score ?? 'Pending'}{registration.ai_peer_review_score !== null ? '/10' : ''}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-xs md:text-sm pb-2">
+                                                <span className="text-muted-foreground font-mono uppercase tracking-tighter">Manual Score</span>
+                                                <span className="font-mono text-foreground">{registration.score ?? 'Pending'}{registration.score !== null ? '/10' : ''}</span>
+                                            </div>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             ) : (
@@ -301,6 +312,44 @@ export default function AssessmentStatus() {
                                 </Card>
                             )}
                         </div>
+
+                        {/* Reports Section */}
+                        {(registration.ai_report || registration.ai_peer_review_report || registration.notes) && (
+                            <div className="mt-8 space-y-6">
+                                {registration.notes && (
+                                    <Card className="border-border/50 bg-card/10 rounded-sm">
+                                        <CardHeader className="p-4 md:p-6 pb-2 md:pb-4 border-b border-border/50">
+                                            <CardTitle className="font-mono text-xs md:text-sm uppercase tracking-widest text-muted-foreground">Manual Evaluation Notes</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="p-4 md:p-6">
+                                            <p className="text-sm font-mono whitespace-pre-wrap leading-relaxed">{registration.notes}</p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                                
+                                {registration.ai_report && (
+                                    <Card className="border-border/50 bg-card/10 rounded-sm">
+                                        <CardHeader className="p-4 md:p-6 pb-2 md:pb-4 border-b border-border/50">
+                                            <CardTitle className="font-mono text-xs md:text-sm uppercase tracking-widest text-muted-foreground">AI Code Analysis Report</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="p-4 md:p-6">
+                                            <p className="text-sm font-mono whitespace-pre-wrap leading-relaxed text-muted-foreground">{registration.ai_report}</p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {registration.ai_peer_review_report && (
+                                    <Card className="border-border/50 bg-card/10 rounded-sm">
+                                        <CardHeader className="p-4 md:p-6 pb-2 md:pb-4 border-b border-border/50">
+                                            <CardTitle className="font-mono text-xs md:text-sm uppercase tracking-widest text-muted-foreground">AI Peer Review Analysis Report</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="p-4 md:p-6">
+                                            <p className="text-sm font-mono whitespace-pre-wrap leading-relaxed text-muted-foreground">{registration.ai_peer_review_report}</p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
