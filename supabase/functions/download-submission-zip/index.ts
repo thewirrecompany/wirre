@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { unzipSync, zipSync, strToU8 } from 'https://esm.sh/fflate@0.8.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -142,7 +143,7 @@ serve(async (req) => {
     // Verify registration exists and repo is provisioned
     const { data: registration, error: regError } = await supabaseClient
       .from('assessment_registrations')
-      .select('id, anonymous_id, repo_provisioned, private_repo_url, assessment_id, user_id')
+      .select('id, anonymous_id, repo_provisioned, private_repo_url, assessment_id, user_id, ai_score, ai_report, ai_peer_review_score, ai_peer_review_report, score')
       .eq('assessment_id', assessmentId)
       .eq('anonymous_id', anonymousId)
       .single();
@@ -226,12 +227,36 @@ serve(async (req) => {
     // Get the zip data as array buffer
     const zipArrayBuffer = await zipResponse.arrayBuffer();
     
-    // Convert ArrayBuffer to base64 more efficiently (avoid stack overflow on large files)
+    // Convert ArrayBuffer to Uint8Array
     const uint8Array = new Uint8Array(zipArrayBuffer);
+
+    // Unzip the downloaded zipball
+    const unzipped = unzipSync(uint8Array);
+
+    // Determine the root directory name of the github zipball
+    const rootDir = Object.keys(unzipped).length > 0 ? Object.keys(unzipped)[0].split('/')[0] + '/' : '';
+
+    // Create the text files
+    const aiCodeReport = registration.ai_report || 'No AI Code Report available.';
+    const aiPeerReport = registration.ai_peer_review_report || 'No AI Peer Report available.';
+    const scoreText = `AI Code Score: ${registration.ai_score ?? 'N/A'}/10
+AI Peer Score: ${registration.ai_peer_review_score ?? 'N/A'}/10
+Manual Score: ${registration.score ?? 'N/A'}/10
+Total Score (AI + Peer): ${(registration.ai_score ?? 0) + (registration.ai_peer_review_score ?? 0)}/20`;
+
+    // Add them to the unzipped structure
+    unzipped[`${rootDir}ai code report.txt`] = strToU8(aiCodeReport);
+    unzipped[`${rootDir}ai peer report.txt`] = strToU8(aiPeerReport);
+    unzipped[`${rootDir}score.txt`] = strToU8(scoreText);
+
+    // Rezip the modified files
+    const newZip = zipSync(unzipped);
+
+    // Convert newZip (Uint8Array) to base64 efficiently
     let binaryString = '';
     const chunkSize = 8192; // Process in chunks to avoid stack overflow
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+    for (let i = 0; i < newZip.length; i += chunkSize) {
+      const chunk = newZip.subarray(i, Math.min(i + chunkSize, newZip.length));
       binaryString += String.fromCharCode(...chunk);
     }
     const zipBase64 = btoa(binaryString);
