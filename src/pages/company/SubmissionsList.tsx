@@ -359,7 +359,7 @@ export default function SubmissionsList() {
 
                           {submission.score !== null && submission.score !== undefined && (
                             <div className="flex flex-col items-end mr-2">
-                              <span className="text-[10px] font-mono text-muted-foreground uppercase">Score</span>
+                              <span className="text-[10px] font-mono text-muted-foreground uppercase">Manual Score</span>
                               <span className="text-lg font-mono font-bold leading-none">{submission.score}/10</span>
                             </div>
                           )}
