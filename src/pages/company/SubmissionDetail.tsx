@@ -18,6 +18,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { IdeSandbox } from '@/components/assessment/IdeSandbox';
+
+interface FileNode {
+  name: string;
+  type: 'file' | 'dir';
+  path: string;
+  decoded_content?: string;
+  sha?: string;
+  children?: FileNode[];
+}
 
 export default function SubmissionDetail() {
   const { id, anonymousId } = useParams(); // assessment ID and anonymous candidate ID
@@ -25,8 +35,10 @@ export default function SubmissionDetail() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [currentPath, setCurrentPath] = useState('');
-  const [contents, setContents] = useState<any[]>([]);
-  const [currentFile, setCurrentFile] = useState<any>(null);
+  const [explorerFiles, setExplorerFiles] = useState<FileNode[]>([]);
+  const [activeFileNode, setActiveFileNode] = useState<FileNode | null>(null);
+  const [isFetchingContent, setIsFetchingContent] = useState(false);
+  const [isPrefetching, setIsPrefetching] = useState(false);
   const [score, setScore] = useState<number>(0);
   const [notes, setNotes] = useState<string>('');
   const [downloading, setDownloading] = useState(false);
@@ -37,12 +49,37 @@ export default function SubmissionDetail() {
   const [profileInfo, setProfileInfo] = useState<any>(null);
   const [revealing, setRevealing] = useState(false);
   const [hasSelectedCandidates, setHasSelectedCandidates] = useState(false);
-  const [aiResult, setAiResult] = useState<{ status: string, score: number | null, report: string | null }>({ status: 'pending', score: null, report: null });
+  const [aiResult, setAiResult] = useState<{ status: string, score: number | null, report: string | null, peerScore: number | null, peerReport: string | null }>({ status: 'pending', score: null, report: null, peerScore: null, peerReport: null });
   const [peerReviewData, setPeerReviewData] = useState<{ peerAnonymousId: string | null, skipped: boolean, bugs: any[] }>({ peerAnonymousId: null, skipped: false, bugs: [] });
 
   useEffect(() => {
-    loadContents(currentPath);
-  }, [currentPath]);
+    if (!id || !anonymousId) return;
+    
+    const cached = sessionStorage.getItem(`wirre-submission-files-${anonymousId}`);
+    if (cached) {
+      try {
+        const parsedTree = JSON.parse(cached);
+        setExplorerFiles(parsedTree);
+        setLoading(false);
+        prefetchBackgroundFiles(parsedTree);
+      } catch (e) {
+        console.error("Failed to parse cached files", e);
+        fetchFileTree("", true).then(tree => {
+          if (tree) prefetchBackgroundFiles(tree);
+        });
+      }
+    } else {
+      fetchFileTree("", true).then(tree => {
+        if (tree) prefetchBackgroundFiles(tree);
+      });
+    }
+  }, [id, anonymousId]);
+
+  useEffect(() => {
+    if (explorerFiles.length > 0 && anonymousId) {
+      sessionStorage.setItem(`wirre-submission-files-${anonymousId}`, JSON.stringify(explorerFiles));
+    }
+  }, [explorerFiles, anonymousId]);
 
   useEffect(() => {
     loadSubmissionData();
@@ -58,7 +95,7 @@ export default function SubmissionDetail() {
     try {
       const { data, error } = await supabase
         .from('assessment_registrations')
-        .select('score, notes, anonymous_id, assessment_id, selection_status, user_id, ai_score, ai_report, ai_grading_status, assigned_peer_registration_id, peer_review_skipped')
+        .select('score, notes, anonymous_id, assessment_id, selection_status, user_id, ai_score, ai_report, ai_peer_review_score, ai_peer_review_report, ai_grading_status, assigned_peer_registration_id, peer_review_skipped')
         .eq('assessment_id', id)
         .eq('anonymous_id', anonymousId)
         .single();
@@ -71,7 +108,9 @@ export default function SubmissionDetail() {
         setAiResult({
           status: data.ai_grading_status || 'pending',
           score: data.ai_score,
-          report: data.ai_report
+          report: data.ai_report,
+          peerScore: data.ai_peer_review_score,
+          peerReport: data.ai_peer_review_report
         });
 
         // Only load real identity data if identities have been revealed
@@ -167,63 +206,136 @@ export default function SubmissionDetail() {
     ? new Date(assessment.start_at).getTime() + (assessment.duration_minutes * 60 * 1000) < Date.now()
     : false;
 
-  const loadContents = async (path: string = '') => {
-    setLoading(true);
+  const fetchFileTree = async (path = "", isInitial = false, isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('get-submission-code', {
         body: {
           assessmentId: id,
           anonymousId: anonymousId,
-          path: path
+          path,
+          recursive: isInitial
         }
       });
 
       if (error) throw error;
 
-      // If it's a file
-      if (data.type === 'file') {
-        setCurrentFile(data);
-        setContents([]);
-      } else {
-        // It's a directory
-        setContents(Array.isArray(data) ? data : []);
-        setCurrentFile(null);
+      if (isInitial && data.tree) {
+        const nested = transformFlatTree(data.tree);
+        setExplorerFiles(nested);
+        return nested;
+      } else if (data.type === 'file') {
+        const updatedFile = { ...data, decoded_content: data.decoded_content || data.content };
+        if (!isBackground) setActiveFileNode(updatedFile);
+        setExplorerFiles(prev => updateFileInTree(prev, path, updatedFile));
       }
+      return data;
     } catch (error: any) {
       console.error('Error loading code:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to load code',
-        variant: 'destructive'
-      });
+      if (!isBackground) {
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to load code',
+          variant: 'destructive'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
-  const navigateToPath = (path: string, type: string) => {
-    if (type === 'dir') {
-      setCurrentPath(path);
+  const transformFlatTree = (tree: any[]): FileNode[] => {
+    const result: FileNode[] = [];
+    const level: any = { result };
+
+    tree.forEach(item => {
+      if (item.path.startsWith('.')) return;
+
+      item.path.split('/').reduce((acc: any, name: string, i: number, arr: any[]) => {
+        if (!acc[name]) {
+          acc[name] = { result: [] };
+          const node: FileNode = {
+            name,
+            path: item.path,
+            type: item.type === 'tree' ? 'dir' : 'file',
+            sha: item.sha,
+          };
+          if (i === arr.length - 1 && item.type === 'blob') {
+            // it's a file
+          } else {
+            node.children = acc[name].result;
+          }
+          acc.result.push(node);
+        }
+        return acc[name];
+      }, level);
+    });
+
+    const sortNodes = (nodes: FileNode[]) => {
+      nodes.sort((a, b) => {
+        if (a.type === b.type) return a.name.localeCompare(b.name);
+        return a.type === 'dir' ? -1 : 1;
+      });
+      nodes.forEach(n => { if (n.children) sortNodes(n.children); });
+    };
+    sortNodes(result);
+    return result;
+  };
+
+  const prefetchBackgroundFiles = async (tree: FileNode[]) => {
+    const paths: string[] = [];
+    const walk = (nodes: FileNode[]) => {
+      nodes.forEach(n => {
+        if (n.type === 'file' && !n.decoded_content) paths.push(n.path);
+        if (n.children) walk(n.children);
+      });
+    };
+    walk(tree);
+
+    if (paths.length > 0) setIsPrefetching(true);
+
+    try {
+      for (const path of paths) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        await fetchFileTree(path, false, true);
+      }
+    } finally {
+      setIsPrefetching(false);
+    }
+  };
+
+  const updateFileInTree = (nodes: FileNode[], path: string, updates: Partial<FileNode>): FileNode[] => {
+    return nodes.map(node => {
+      if (node.path === path) return { ...node, ...updates };
+      if (node.children) return { ...node, children: updateFileInTree(node.children, path, updates) };
+      return node;
+    });
+  };
+
+  const handleFileSelect = async (file: FileNode) => {
+    if (file.type === 'dir') return;
+    if (!file.decoded_content) {
+      setIsFetchingContent(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('get-submission-code', {
+          body: { assessmentId: id, anonymousId, path: file.path }
+        });
+        if (error) throw error;
+        const updatedFile = { ...file, decoded_content: data.decoded_content || data.content, sha: data.sha };
+        setActiveFileNode(updatedFile);
+        setExplorerFiles(prev => updateFileInTree(prev, file.path, updatedFile));
+      } catch (err) {
+        toast({ title: 'Error', description: 'Failed to load file content.', variant: 'destructive' });
+      } finally {
+        setIsFetchingContent(false);
+      }
     } else {
-      setCurrentPath(path);
+      setActiveFileNode(file);
     }
   };
 
   const goBack = () => {
-    if (currentFile) {
-      // Go back to directory view
-      const pathParts = currentPath.split('/');
-      pathParts.pop();
-      setCurrentPath(pathParts.join('/'));
-    } else if (currentPath) {
-      // Go up one directory
-      const pathParts = currentPath.split('/');
-      pathParts.pop();
-      setCurrentPath(pathParts.join('/'));
-    } else {
-      // Go back to submissions list
-      navigate(`/company/assessments/${id}/submissions`);
-    }
+    navigate(`/company/assessments/${id}/submissions`);
   };
 
   const handleSaveScore = async () => {
@@ -454,50 +566,51 @@ export default function SubmissionDetail() {
             {/* Code Viewer */}
             <div className="lg:col-span-3">
               <Card className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-mono font-bold text-sm">Coding Round</h3>
+                  {aiResult.score !== null && (
+                    <div className="flex flex-col items-end">
+                      <div className="flex items-center gap-1 text-purple-500">
+                        <Bot className="h-3 w-3" />
+                        <span className="text-[10px] font-mono uppercase font-bold">Code Score</span>
+                      </div>
+                      <span className="text-lg font-mono font-bold leading-none text-purple-500">{aiResult.score}/10</span>
+                    </div>
+                  )}
+                </div>
                 {loading ? (
                   <div className="py-12 text-center text-muted-foreground">Loading...</div>
-                ) : currentFile ? (
-                  // File view
-                  <div>
-                    <div className="mb-4 flex items-center gap-2">
-                      <File className="h-4 w-4" />
-                      <span className="font-mono text-sm font-semibold">{currentFile.name}</span>
-                    </div>
-                    <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs font-mono">
-                      <code>{currentFile.decoded_content || currentFile.content || 'Unable to load content'}</code>
-                    </pre>
-                  </div>
                 ) : (
-                  // Directory view
-                  <div className="space-y-2">
-                    {contents.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">Empty directory</p>
-                    ) : (
-                      contents.map((item) => (
-                        <button
-                          key={item.path}
-                          onClick={() => navigateToPath(item.path, item.type)}
-                          className="w-full flex items-center gap-3 p-3 hover:bg-muted rounded-lg transition-colors text-left"
-                        >
-                          {item.type === 'dir' ? (
-                            <Folder className="h-5 w-5 text-blue-500" />
-                          ) : (
-                            <File className="h-5 w-5 text-muted-foreground" />
-                          )}
-                          <span className="font-mono text-sm">{item.name}</span>
-                        </button>
-                      ))
-                    )}
-                  </div>
+                  <IdeSandbox
+                    assessmentTitle={assessment?.title || 'Assessment'}
+                    files={explorerFiles}
+                    activeFile={activeFileNode}
+                    onFileSelect={handleFileSelect}
+                    onSave={async () => {}} // readOnly prevents this from being called
+                    isFetchingContent={isFetchingContent}
+                    isPrefetching={isPrefetching}
+                    readOnly={true}
+                  />
                 )}
               </Card>
 
               {/* Peer Review Section */}
               <Card className="p-6">
-                <h3 className="font-mono font-bold mb-4 flex items-center gap-2 text-sm">
-                  <Bug className="h-4 w-4 text-orange-400" />
-                  Peer Review Submitted
-                </h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-mono font-bold flex items-center gap-2 text-sm">
+                    <Bug className="h-4 w-4 text-orange-400" />
+                    Peer Review Submitted
+                  </h3>
+                  {aiResult.peerScore !== null && (
+                    <div className="flex flex-col items-end">
+                      <div className="flex items-center gap-1 text-purple-500">
+                        <Bot className="h-3 w-3" />
+                        <span className="text-[10px] font-mono uppercase font-bold">Peer AI Score</span>
+                      </div>
+                      <span className="text-lg font-mono font-bold leading-none text-purple-500">{aiResult.peerScore}/10</span>
+                    </div>
+                  )}
+                </div>
                 {peerReviewData.skipped && peerReviewData.bugs.length === 0 ? (
                   <p className="text-xs text-muted-foreground font-mono">Candidate skipped the peer review phase.</p>
                 ) : !peerReviewData.peerAnonymousId ? (
@@ -535,13 +648,23 @@ export default function SubmissionDetail() {
             {/* Scoring Panel */}
             <div className="space-y-4">
               <Card className="p-6">
-                <h3 className="font-mono font-bold mb-4 flex items-center gap-2">
-                  <Star className="h-4 w-4" />
-                  Evaluation
-                </h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-mono font-bold flex items-center gap-2">
+                    <Star className="h-4 w-4" />
+                    Evaluation
+                  </h3>
+                  {(aiResult.score !== null || aiResult.peerScore !== null) && (
+                    <div className="flex flex-col items-end">
+                      <span className="text-[10px] font-mono uppercase font-bold text-muted-foreground">Total Score</span>
+                      <span className="text-lg font-mono font-bold leading-none text-primary">
+                        {(score || 0) + ((aiResult.score !== null && aiResult.peerScore !== null) ? ((aiResult.score + aiResult.peerScore) / 2) : (aiResult.score ?? aiResult.peerScore ?? 0))}/20
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="score" className="font-mono text-xs">Score (0-10)</Label>
+                    <Label htmlFor="score" className="font-mono text-xs">Manual Score (0-10)</Label>
                     <Input
                       id="score"
                       type="number"
@@ -613,32 +736,61 @@ export default function SubmissionDetail() {
                             <Bot className="h-4 w-4 text-primary" />
                             <span className="font-mono font-bold text-primary">AI Score</span>
                           </div>
-                          <span className="font-mono font-bold text-xl text-primary">{aiResult.score}/10</span>
+                          <span className="font-mono font-bold text-xl text-primary">{(aiResult.score ?? 0) + (aiResult.peerScore ?? 0)}/20</span>
                         </div>
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button size="sm" variant="outline" className="w-full justify-start font-mono group">
                               <File className="h-4 w-4 mr-2 group-hover:text-primary transition-colors" />
-                              View AI Report
+                              View AI Code Report
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
                             <DialogHeader>
-                              <DialogTitle className="font-mono flex items-center gap-2">
-                                <Bot className="h-5 w-5 text-primary" />
-                                AI Comprehensive Report
-                              </DialogTitle>
-                              <DialogDescription>
-                                Automated analysis of code quality, security, and requirements.
+                              <DialogTitle className="font-mono">AI Code Grading Report</DialogTitle>
+                              <DialogDescription className="font-mono text-xs">
+                                Detailed analysis of the candidate's implementation.
                               </DialogDescription>
                             </DialogHeader>
-                            <ScrollArea className="flex-1 mt-4 p-4 border rounded-md bg-muted/30">
-                              <div className="whitespace-pre-wrap font-mono text-xs md:text-sm leading-relaxed">
-                                {aiResult.report || 'No report content available.'}
+                            <ScrollArea className="flex-1 mt-4 rounded-md border p-4 bg-muted/30">
+                              <div className="prose prose-sm dark:prose-invert max-w-none">
+                                {aiResult.report ? (
+                                  <div dangerouslySetInnerHTML={{ __html: aiResult.report.replace(/\n/g, '<br/>') }} />
+                                ) : (
+                                  <p className="text-muted-foreground italic text-sm">No report available.</p>
+                                )}
                               </div>
                             </ScrollArea>
                           </DialogContent>
                         </Dialog>
+
+                        {aiResult.peerScore !== null && (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="outline" className="w-full justify-start font-mono group">
+                                <Bug className="h-4 w-4 mr-2 group-hover:text-orange-400 transition-colors" />
+                                View AI Peer Report
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+                              <DialogHeader>
+                                <DialogTitle className="font-mono">AI Peer Review Report</DialogTitle>
+                                <DialogDescription className="font-mono text-xs">
+                                  Detailed analysis of the candidate's peer review performance.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <ScrollArea className="flex-1 mt-4 rounded-md border p-4 bg-muted/30">
+                                <div className="prose prose-sm dark:prose-invert max-w-none">
+                                  {aiResult.peerReport ? (
+                                    <div dangerouslySetInnerHTML={{ __html: aiResult.peerReport.replace(/\n/g, '<br/>') }} />
+                                  ) : (
+                                    <p className="text-muted-foreground italic text-sm">No peer review report available.</p>
+                                  )}
+                                </div>
+                              </ScrollArea>
+                            </DialogContent>
+                          </Dialog>
+                        )}
                       </div>
                     ) : aiResult.status === 'processing' || aiResult.status === 'in_progress' || aiResult.status === 'queued' ? (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded border border-border/50">

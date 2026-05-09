@@ -52,7 +52,7 @@ export default function SubmissionsList() {
       // Load all submissions (registrations with repos)
       const { data: registrations, error: regError } = await supabase
         .from('assessment_registrations')
-        .select('id, anonymous_id, user_id, repo_provisioned, access_granted, created_at, score, selection_status, ai_score, ai_grading_status')
+        .select('id, anonymous_id, user_id, repo_provisioned, access_granted, created_at, score, selection_status, ai_score, ai_peer_review_score, ai_grading_status')
         .eq('assessment_id', id)
         .eq('repo_provisioned', true);
 
@@ -112,50 +112,6 @@ export default function SubmissionsList() {
   };
 
   const [downloading, setDownloading] = useState(false);
-  const [queuingAll, setQueuingAll] = useState(false);
-
-  const handleQueueAllAi = async () => {
-    if (!id || !assessmentEnded || queuingAll) return;
-
-    const pendingSubmissions = submissions.filter(s => 
-      !s.ai_grading_status || s.ai_grading_status === 'pending' || s.ai_grading_status === 'error'
-    );
-
-    if (pendingSubmissions.length === 0) {
-      toast({
-        title: 'Nothing to Queue',
-        description: 'All submissions are already queued, in progress, or graded.',
-      });
-      return;
-    }
-
-    setQueuingAll(true);
-    try {
-      const ids = pendingSubmissions.map(s => s.id);
-      const { error } = await supabase
-        .from('assessment_registrations')
-        .update({ ai_grading_status: 'queued' })
-        .in('id', ids);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Queued for AI Grading',
-        description: `${pendingSubmissions.length} submission(s) queued. Start the grader on your laptop to process them.`,
-      });
-
-      loadData();
-    } catch (error: any) {
-      console.error('Queue all error:', error);
-      toast({
-        title: 'Failed to Queue',
-        description: error.message,
-        variant: 'destructive'
-      });
-    } finally {
-      setQueuingAll(false);
-    }
-  };
 
   const handleDownloadAll = async () => {
     if (submissions.length === 0) {
@@ -364,16 +320,6 @@ export default function SubmissionsList() {
             >
               {downloading ? 'Downloading...' : `Download All (${submissions.length})`}
             </Button>
-
-            <Button
-              onClick={handleQueueAllAi}
-              disabled={queuingAll || submissions.length === 0 || !assessmentEnded}
-              className="w-full sm:w-auto font-mono text-sm h-12 px-8 uppercase tracking-widest bg-purple-600 hover:bg-purple-700 text-white"
-              title={!assessmentEnded ? 'Available after assessment ends' : 'Queue all submissions for AI grading'}
-            >
-              <Bot className="h-4 w-4 mr-2" />
-              {queuingAll ? 'Queuing...' : `Queue AI Grading (${submissions.filter(s => !s.ai_grading_status || s.ai_grading_status === 'pending' || s.ai_grading_status === 'error').length})`}
-            </Button>
           </div>
 
           <div className="space-y-6">
@@ -397,13 +343,17 @@ export default function SubmissionsList() {
                         </div>
 
                         <div className="flex items-center gap-3">
-                          {submission.ai_score !== null && (
+                          {(submission.ai_score !== null || submission.ai_peer_review_score !== null) && (
                             <div className="flex flex-col items-end mr-4">
                               <div className="flex items-center gap-1 text-purple-500">
                                 <Bot className="h-3 w-3" />
                                 <span className="text-[10px] font-mono uppercase font-bold">AI Score</span>
                               </div>
-                              <span className="text-lg font-mono font-bold leading-none text-purple-500">{submission.ai_score}/10</span>
+                              <span className="text-lg font-mono font-bold leading-none text-purple-500">
+                                {submission.ai_score !== null && submission.ai_peer_review_score !== null
+                                  ? ((submission.ai_score + submission.ai_peer_review_score) / 2)
+                                  : (submission.ai_score ?? submission.ai_peer_review_score)}/10
+                              </span>
                             </div>
                           )}
 

@@ -8,13 +8,15 @@ const BASE_RULES = `CRITICAL REPORT FORMATTING RULES:
 1. USE BULLET POINTS ONLY. NO YAPPING.
 2. NO EMOJIS EVER.
 3. FOR CORRECT IMPLEMENTATIONS: Just list what is correct as a short bullet point. DO NOT explain what they did (the user already knows what they did).
-4. FOR ERRORS/MISTAKES: ONLY explain what is wrong. You MUST mention exact file names and line ranges (e.g. "lines 45-50 in cache.go"). Directly explain where it is wrong and why it is wrong logically. Do not explain anything else.
+4. STRICT PENALIZATION MINDSET: Grading is about PENALIZATION, not awarding points. Actively hunt for logic bugs, unhandled edge cases, and missing requirements. Every mistake cuts points.
+5. EXPLICIT ERROR REPORTING: For EVERY error or deduction, you MUST explicitly mention the exact file name and line range (e.g., "lines 45-50 in cache.go") and explain EXACTLY why it is broken or missing. DO NOT omit any bugs you found from the report. Do not explain anything else.
 
 Scoring guide:
+- Start from 10 points. Deduct 1-2 points for every bug, logic error, or missing requirement.
 - 0: Completely invalid or no effort.
-- 1-3: Highly incomplete or poor quality.
-- 4-5: Partial implementation or missed major issues.
-- 6-7: Good attempt, but with noticeable misses.
+- 1-3: Highly incomplete or severely broken logic.
+- 4-5: Missed major issues or multiple critical logic bugs.
+- 6-7: Good attempt, but with noticeable misses or edge case failures.
 - 8-9: Very strong, only minor nitpicks.
 - 10: Flawless.`;
 
