@@ -225,11 +225,31 @@ export default function Assessment() {
 
         if (canLaunch) {
             fetchLock.current = true; // Block any further attempts immediately
-            fetchFileTree("", true).then(tree => {
-                if (tree) prefetchBackgroundFiles(tree);
-            });
+            
+            const cached = sessionStorage.getItem(`wirre-candidate-files-${id}-${profile.id}`);
+            if (cached) {
+                try {
+                    const parsedTree = JSON.parse(cached);
+                    setExplorerFiles(parsedTree);
+                    prefetchBackgroundFiles(parsedTree);
+                } catch (e) {
+                    fetchFileTree("", true).then(tree => {
+                        if (tree) prefetchBackgroundFiles(tree);
+                    });
+                }
+            } else {
+                fetchFileTree("", true).then(tree => {
+                    if (tree) prefetchBackgroundFiles(tree);
+                });
+            }
         }
     }, [id, isRegistered, privateRepoUrl, accessGranted, assessment?.start_at, profile?.id]);
+
+    useEffect(() => {
+        if (explorerFiles.length > 0 && profile?.id && id) {
+            sessionStorage.setItem(`wirre-candidate-files-${id}-${profile.id}`, JSON.stringify(explorerFiles));
+        }
+    }, [explorerFiles, profile?.id, id]);
 
     const fetchFileTree = async (path = "", isInitial = false, isBackground = false) => {
         if (!id || !profile?.id) return;

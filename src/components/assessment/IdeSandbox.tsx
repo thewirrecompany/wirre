@@ -58,7 +58,18 @@ export function IdeSandbox({
   readOnly = false
 }: IdeSandboxProps) {
   const [currentContent, setCurrentContent] = useState('');
-  const [modifiedFiles, setModifiedFiles] = useState<Record<string, string>>({});
+  const [modifiedFiles, setModifiedFiles] = useState<Record<string, string>>(() => {
+    try {
+      const cached = sessionStorage.getItem(`wirre-sandbox-modified-${assessmentTitle}`);
+      return cached ? JSON.parse(cached) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  React.useEffect(() => {
+    sessionStorage.setItem(`wirre-sandbox-modified-${assessmentTitle}`, JSON.stringify(modifiedFiles));
+  }, [modifiedFiles, assessmentTitle]);
   const [terminalInput, setTerminalInput] = useState('');
   const [terminalOutput, setTerminalOutput] = useState([
     { type: 'info', text: 'WIRRE Sandbox Environment v1.0.4' },
@@ -186,7 +197,7 @@ export function IdeSandbox({
       </div>
       
       {isPrefetching && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[#09090b]/90 backdrop-blur-sm border border-border rounded-md animate-in fade-in duration-500">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#09090b]/90 backdrop-blur-sm border border-border rounded-md animate-in fade-in duration-500">
           <div className="flex flex-col items-center gap-6 max-w-sm text-center">
             <div className="relative">
               <div className="h-16 w-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
