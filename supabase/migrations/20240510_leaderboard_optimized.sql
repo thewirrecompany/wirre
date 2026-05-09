@@ -47,3 +47,4 @@ BEGIN
     ORDER BY ua.final_score DESC;
 END;
 $$ LANGUAGE plpgsql;
+
