@@ -17,82 +17,38 @@ export type LeaderboardData = {
 };
 
 export async function fetchLeaderboard(id?: string): Promise<LeaderboardData> {
-  let candidateScores: Record<string, { total: number; user_id: string }> = {};
-  let assessmentTitle: string | null = null;
-
-  if (id) {
-    // Fetch title and scores in parallel
-    const [{ data: asm }, { data: regs, error: regErr }] = await Promise.all([
-      supabase.from('assessments').select('title').eq('id', id).single(),
-      supabase
-        .from('assessment_registrations')
-        .select('user_id, score')
-        .eq('assessment_id', id)
-        .not('score', 'is', null),
-    ]);
-
-    if (regErr) throw regErr;
-    if (asm) assessmentTitle = asm.title;
-
-    (regs || []).forEach(reg => {
-      if (reg.score !== null) {
-        if (!candidateScores[reg.user_id]) {
-          candidateScores[reg.user_id] = { total: 0, user_id: reg.user_id };
-        }
-        candidateScores[reg.user_id].total += reg.score;
-      }
-    });
-  } else {
-    const { data: regs, error: regErr } = await supabase
-      .from('assessment_registrations')
-      .select('user_id, score')
-      .not('score', 'is', null);
-
-    if (regErr) throw regErr;
-
-    (regs || []).forEach(reg => {
-      if (reg.score !== null) {
-        if (!candidateScores[reg.user_id]) {
-          candidateScores[reg.user_id] = { total: 0, user_id: reg.user_id };
-        }
-        candidateScores[reg.user_id].total += reg.score;
-      }
-    });
-  }
-
-  const userIds = Object.keys(candidateScores);
-  if (userIds.length === 0) return { entries: [], assessmentTitle };
-
-  const { data: cands, error: candErr } = await supabase
-    .from('candidates')
-    .select('user_id, username, full_name, github_username, linkedin_url, is_public')
-    .in('user_id', userIds);
-
-  if (candErr) throw candErr;
-
-  const leaderboard: LeaderboardEntry[] = (cands || []).map(cand => {
-    const isPublic = cand.is_public === true;
-    return {
-      rank: 0,
-      username: cand.username || 'Anonymous',
-      fullName: isPublic ? cand.full_name : undefined,
-      githubUsername: isPublic ? cand.github_username : undefined,
-      linkedinUrl: isPublic ? cand.linkedin_url : undefined,
-      totalScore: candidateScores[cand.user_id].total,
-    };
+  // Call the optimized RPC function
+  const { data: entries, error } = await supabase.rpc('get_leaderboard', {
+    p_assessment_id: id || null
   });
 
-  leaderboard.sort((a, b) => b.totalScore - a.totalScore);
-
-  let currentRank = 1;
-  for (let i = 0; i < leaderboard.length; i++) {
-    if (i > 0 && leaderboard[i].totalScore < leaderboard[i - 1].totalScore) {
-      currentRank = i + 1;
-    }
-    leaderboard[i].rank = currentRank;
+  if (error) {
+    console.error('Error fetching leaderboard:', error);
+    throw error;
   }
 
-  return { entries: leaderboard, assessmentTitle };
+  // Get assessment title if id is provided
+  let assessmentTitle: string | null = null;
+  if (id) {
+    const { data: asm } = await supabase
+      .from('assessments')
+      .select('title')
+      .eq('id', id)
+      .single();
+    if (asm) assessmentTitle = asm.title;
+  }
+
+  // Map RPC result to LeaderboardEntry type
+  const mappedEntries: LeaderboardEntry[] = (entries || []).map((entry: any) => ({
+    rank: Number(entry.rank),
+    username: entry.username || 'Anonymous',
+    fullName: entry.is_public ? entry.full_name : undefined,
+    githubUsername: entry.is_public ? entry.github_username : undefined,
+    linkedinUrl: entry.is_public ? entry.linkedin_url : undefined,
+    totalScore: Number(entry.total_score),
+  }));
+
+  return { entries: mappedEntries, assessmentTitle };
 }
 
 export function useLeaderboard(id?: string) {
