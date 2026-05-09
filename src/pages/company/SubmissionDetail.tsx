@@ -392,45 +392,28 @@ export default function SubmissionDetail() {
   const handleRunAi = async () => {
     if (!id || !anonymousId) return;
 
-    // Check if running only once
+    // Only allow queuing from pending or error states
     if (aiResult.status !== 'pending' && aiResult.status !== 'error') return;
 
-    setAiResult(prev => ({ ...prev, status: 'processing' }));
-    toast({
-      title: 'AI Analysis Started',
-      description: 'The AI is now analyzing the submission. This may take up to 60 seconds.',
-    });
-
     try {
-      const { data: regData } = await supabase
+      // Simply queue the submission — the local grader CLI will pick it up
+      const { error } = await supabase
         .from('assessment_registrations')
-        .select('private_repo_url, id')
+        .update({ ai_grading_status: 'queued' })
         .eq('assessment_id', id)
-        .eq('anonymous_id', anonymousId)
-        .single();
-
-      if (!regData?.private_repo_url) throw new Error('Repo not found');
-
-      const { data, error } = await supabase.functions.invoke('grade-submission', {
-        body: {
-          assessmentId: id,
-          registrationId: regData.id,
-          anonymousId: anonymousId,
-          privateRepoUrl: regData.private_repo_url
-        }
-      });
+        .eq('anonymous_id', anonymousId);
 
       if (error) throw error;
-      if (data && data.success === false) throw new Error(data.error || 'AI Grading returned failure.');
 
-      // Wait 5s and reload
-      setTimeout(() => loadSubmissionData(), 5000);
-
-    } catch (error: any) {
-      console.error('AI Grading Error:', error);
-      setAiResult(prev => ({ ...prev, status: 'error' }));
+      setAiResult(prev => ({ ...prev, status: 'queued' }));
       toast({
-        title: 'Grading Failed',
+        title: 'Queued for AI Analysis',
+        description: 'This submission has been queued. It will be graded when the grader is running.',
+      });
+    } catch (error: any) {
+      console.error('Queue Error:', error);
+      toast({
+        title: 'Failed to Queue',
         description: error.message,
         variant: 'destructive'
       });
@@ -621,76 +604,82 @@ export default function SubmissionDetail() {
                     {downloading ? 'Downloading...' : 'Download as ZIP'}
                   </Button>
 
-                  {/* AI Grading Section (Paid Only) - DISABLED
-                  {assessment?.is_paid && (
-                    <div className="pt-2">
-                      {aiResult.status === 'graded' ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between bg-primary/5 p-2 rounded border border-primary/20">
-                            <div className="flex items-center gap-2">
-                              <Bot className="h-4 w-4 text-primary" />
-                              <span className="font-mono font-bold text-primary">AI Score</span>
-                            </div>
-                            <span className="font-mono font-bold text-xl text-primary">{aiResult.score}/10</span>
+                  {/* AI Grading Section */}
+                  <div className="pt-2">
+                    {aiResult.status === 'graded' ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between bg-primary/5 p-2 rounded border border-primary/20">
+                          <div className="flex items-center gap-2">
+                            <Bot className="h-4 w-4 text-primary" />
+                            <span className="font-mono font-bold text-primary">AI Score</span>
                           </div>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="w-full justify-start font-mono group">
-                                <File className="h-4 w-4 mr-2 group-hover:text-primary transition-colors" />
-                                View AI Report
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
-                              <DialogHeader>
-                                <DialogTitle className="font-mono flex items-center gap-2">
-                                  <Bot className="h-5 w-5 text-primary" />
-                                  AI Comprehensive Report
-                                </DialogTitle>
-                                <DialogDescription>
-                                  Automated analysis of code quality, security, and requirements.
-                                </DialogDescription>
-                              </DialogHeader>
-                              <ScrollArea className="flex-1 mt-4 p-4 border rounded-md bg-muted/30">
-                                <div className="whitespace-pre-wrap font-mono text-xs md:text-sm leading-relaxed">
-                                  {aiResult.report || 'No report content available.'}
-                                </div>
-                              </ScrollArea>
-                            </DialogContent>
-                          </Dialog>
+                          <span className="font-mono font-bold text-xl text-primary">{aiResult.score}/10</span>
                         </div>
-                      ) : aiResult.status === 'processing' || aiResult.status === 'in_progress' || aiResult.status === 'queued' ? (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded border border-border/50">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          <span className="font-mono">AI Grading in progress...</span>
-                        </div>
-                      ) : aiResult.status === 'error' ? (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" variant="outline" className="w-full justify-start font-mono group">
+                              <File className="h-4 w-4 mr-2 group-hover:text-primary transition-colors" />
+                              View AI Report
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+                            <DialogHeader>
+                              <DialogTitle className="font-mono flex items-center gap-2">
+                                <Bot className="h-5 w-5 text-primary" />
+                                AI Comprehensive Report
+                              </DialogTitle>
+                              <DialogDescription>
+                                Automated analysis of code quality, security, and requirements.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <ScrollArea className="flex-1 mt-4 p-4 border rounded-md bg-muted/30">
+                              <div className="whitespace-pre-wrap font-mono text-xs md:text-sm leading-relaxed">
+                                {aiResult.report || 'No report content available.'}
+                              </div>
+                            </ScrollArea>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    ) : aiResult.status === 'processing' || aiResult.status === 'in_progress' || aiResult.status === 'queued' ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded border border-border/50">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span className="font-mono">{aiResult.status === 'queued' ? 'Queued for AI grading...' : 'AI Grading in progress...'}</span>
+                      </div>
+                    ) : aiResult.status === 'error' ? (
+                      <div className="space-y-2">
                         <div className="text-xs text-destructive font-mono bg-destructive/10 p-2 rounded border border-destructive/20">
                           AI Grading Failed
                         </div>
-                      ) : assessment?.status === 'completed' || aiResult.status === 'pending' ? (
-                        <div className="flex flex-col gap-2">
-                          {(aiResult.status === 'pending' || aiResult.status === 'error') && (
-                            <Button
-                              size="sm"
-                              className="w-full justify-start font-mono bg-purple-600 hover:bg-purple-700 text-white group disabled:opacity-50"
-                              onClick={handleRunAi}
-                              disabled={!assessmentEnded}
-                              title={!assessmentEnded ? 'Available after assessment ends' : 'Run Analysis'}
-                            >
-                              <Play className="h-4 w-4 mr-2 group-hover:animate-pulse" />
-                              {assessmentEnded ? 'Run AI Analysis' : 'Round Active (Wait)'}
-                            </Button>
-                          )}
-                          {aiResult.status === 'pending' && (
-                            <p className="text-[10px] text-muted-foreground font-mono italic px-1">
-                              Manual trigger: Run rigorous code analysis (1-Click Only).
-                            </p>
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
-                  )}
-                  */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full justify-start font-mono"
+                          onClick={handleRunAi}
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          Retry AI Analysis
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          size="sm"
+                          className="w-full justify-start font-mono bg-purple-600 hover:bg-purple-700 text-white group disabled:opacity-50"
+                          onClick={handleRunAi}
+                          disabled={!assessmentEnded}
+                          title={!assessmentEnded ? 'Available after assessment ends' : 'Queue for AI Analysis'}
+                        >
+                          <Play className="h-4 w-4 mr-2 group-hover:animate-pulse" />
+                          {assessmentEnded ? 'Queue AI Analysis' : 'Round Active (Wait)'}
+                        </Button>
+                        {aiResult.status === 'pending' && (
+                          <p className="text-[10px] text-muted-foreground font-mono italic px-1">
+                            Queues this submission for AI grading on the local grader.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {!identitiesRevealed && (
                     <Button
                       variant="outline"

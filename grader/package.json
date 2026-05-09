@@ -1,0 +1,20 @@
+{
+  "name": "wirre-grader",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts start",
+    "stop": "tsx src/index.ts stop"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.87.3",
+    "dotenv": "^16.4.7",
+    "groq-sdk": "^0.9.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "@types/node": "^22.16.5",
+    "typescript": "^5.8.3"
+  }
+}

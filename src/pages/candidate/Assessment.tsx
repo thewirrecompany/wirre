@@ -361,20 +361,31 @@ export default function Assessment() {
         }
     };
 
-    const handleSaveFile = async (file: any, newContent: string) => {
-        if (!id) return;
+    const handleSaveAllFiles = async (changes: {file: any, newContent: string}[]) => {
+        if (!id || changes.length === 0) return;
         setIsSyncingFile(true);
         try {
-            const { data, error } = await supabase.functions.invoke('sync-sandbox-file', {
-                body: { assessmentId: id, path: file.path, content: newContent, sha: file.sha }
-            });
-            if (error) throw error;
-            toast({ title: 'Saved', description: `${file.name} synchronized to GitHub.` });
-            const updatedFile = { ...file, decoded_content: newContent, sha: data.sha };
-            setActiveFileNode(updatedFile);
-            setExplorerFiles(prev => updateFileInTree(prev, file.path, updatedFile));
-        } catch (err) {
-            toast({ title: 'Sync Error', description: 'Changes could not be pushed.', variant: 'destructive' });
+            let newTree = [...explorerFiles];
+            let active = activeFileNode;
+
+            // Save files sequentially to avoid rate limits or race conditions in the Edge Function's git tree update
+            for (const { file, newContent } of changes) {
+                const { data, error } = await supabase.functions.invoke('sync-sandbox-file', {
+                    body: { assessmentId: id, path: file.path, content: newContent, sha: file.sha }
+                });
+                if (error) throw error;
+                
+                const updatedFile = { ...file, decoded_content: newContent, sha: data.sha };
+                newTree = updateFileInTree(newTree, file.path, updatedFile);
+                if (active?.path === file.path) {
+                    active = updatedFile;
+                }
+            }
+            toast({ title: 'Saved', description: `Synchronized ${changes.length} file(s) to GitHub.` });
+            setExplorerFiles(newTree);
+            setActiveFileNode(active);
+        } catch (err: any) {
+            toast({ title: 'Sync Error', description: err.message || 'Changes could not be pushed.', variant: 'destructive' });
         } finally {
             setIsSyncingFile(false);
         }
@@ -976,7 +987,7 @@ export default function Assessment() {
                                                         files={explorerFiles}
                                                         activeFile={activeFileNode}
                                                         onFileSelect={handleFileSelect}
-                                                        onSave={handleSaveFile}
+                                                        onSave={handleSaveAllFiles}
                                                         isLoading={isLoadingExplorer}
                                                         isSaving={isSyncingFile}
                                                         isFetchingContent={isFetchingContent}

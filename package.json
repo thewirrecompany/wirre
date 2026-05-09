@@ -12,7 +12,9 @@
     "preview": "vite preview",
     "export-audits": "node scripts/export-audits.js",
     "set-access": "node scripts/set-access.js",
-    "confirm-payment": "node scripts/confirm-payment.js"
+    "confirm-payment": "node scripts/confirm-payment.js",
+    "grade:start": "cd grader && npx tsx src/index.ts start",
+    "grade:stop": "cd grader && npx tsx src/index.ts stop"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",

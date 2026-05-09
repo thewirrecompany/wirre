@@ -38,7 +38,7 @@ interface IdeSandboxProps {
   files: FileNode[];
   activeFile: FileNode | null;
   onFileSelect: (file: FileNode) => void;
-  onSave: (file: FileNode, newContent: string) => Promise<void>;
+  onSave: (changes: { file: FileNode, newContent: string }[]) => Promise<void>;
   isSaving?: boolean;
   isFetchingContent?: boolean;
   isPrefetching?: boolean;
@@ -58,6 +58,7 @@ export function IdeSandbox({
   readOnly = false
 }: IdeSandboxProps) {
   const [currentContent, setCurrentContent] = useState('');
+  const [modifiedFiles, setModifiedFiles] = useState<Record<string, string>>({});
   const [terminalInput, setTerminalInput] = useState('');
   const [terminalOutput, setTerminalOutput] = useState([
     { type: 'info', text: 'WIRRE Sandbox Environment v1.0.4' },
@@ -75,16 +76,53 @@ export function IdeSandbox({
 
   // Sync internal content when active file changes
   React.useEffect(() => {
-    if (activeFile?.decoded_content) {
-      setCurrentContent(activeFile.decoded_content);
+    if (activeFile) {
+      if (modifiedFiles[activeFile.path] !== undefined) {
+        setCurrentContent(modifiedFiles[activeFile.path]);
+      } else if (activeFile.decoded_content !== undefined) {
+        setCurrentContent(activeFile.decoded_content);
+      } else {
+        setCurrentContent('Select a file or initialization in progress...');
+      }
     } else {
       setCurrentContent('Select a file or initialization in progress...');
     }
-  }, [activeFile]);
+  }, [activeFile, modifiedFiles]);
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setCurrentContent(val);
+    if (activeFile) {
+       setModifiedFiles(prev => ({ ...prev, [activeFile.path]: val }));
+    }
+  };
+
+  function findFileNode(nodes: FileNode[], path: string): FileNode | null {
+    for (const node of nodes) {
+       if (node.path === path) return node;
+       if (node.children) {
+          const found = findFileNode(node.children, path);
+          if (found) return found;
+       }
+    }
+    return null;
+  }
 
   const handleSave = async () => {
-    if (!activeFile) return;
-    await onSave(activeFile, currentContent);
+    // Collect all changes
+    const changes = Object.entries(modifiedFiles).map(([path, content]) => {
+      const file = findFileNode(files, path);
+      return { file, newContent: content };
+    }).filter(c => c.file !== null) as { file: FileNode, newContent: string }[];
+    
+    if (changes.length === 0 && activeFile) {
+       await onSave([{ file: activeFile, newContent: currentContent }]);
+       return;
+    }
+
+    await onSave(changes);
+    // Clear modified files after successful save
+    setModifiedFiles({});
   };
 
   const toggleFullscreen = () => {
@@ -196,22 +234,23 @@ export function IdeSandbox({
             {/* Editor Area */}
             <ResizablePanel defaultSize={70}>
               <div className="h-full bg-[#09090b] relative">
-                <div className="absolute top-4 left-4 right-4 bottom-4 font-mono text-sm">
-                  <div className="flex gap-4 h-full">
+                <div className="absolute top-4 left-4 right-4 bottom-4 font-mono text-sm overflow-auto">
+                  <div className="flex gap-4 min-h-full">
                     {/* Line Numbers */}
-                    <div className="text-right text-muted-foreground/30 select-none pr-4 border-r border-border/50">
-                      {Array.from({ length: 20 }).map((_, i) => (
-                        <div key={i}>{i + 1}</div>
+                    <div className="text-right text-muted-foreground/30 select-none pr-4 border-r border-border/50 pt-[2px]">
+                      {Array.from({ length: Math.max(20, currentContent.split('\n').length) }).map((_, i) => (
+                        <div key={i} className="leading-snug h-[20px]">{i + 1}</div>
                       ))}
                     </div>
                     {/* Code Editor Mock */}
                     <textarea 
                       className={cn(
-                        "flex-1 bg-transparent text-gray-300 outline-none resize-none spellcheck-false",
+                        "flex-1 bg-transparent text-gray-300 outline-none resize-none spellcheck-false whitespace-pre leading-snug overflow-hidden",
                         isFetchingContent && "opacity-30"
                       )}
+                      style={{ height: `${Math.max(20, currentContent.split('\n').length) * 20}px` }}
                       value={currentContent}
-                      onChange={(e) => setCurrentContent(e.target.value)}
+                      onChange={handleContentChange}
                       spellCheck={false}
                       disabled={!activeFile || readOnly || isFetchingContent}
                       readOnly={readOnly}
