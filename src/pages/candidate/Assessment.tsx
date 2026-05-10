@@ -137,13 +137,9 @@ export default function Assessment() {
             config: { broadcast: { self: false } }
         });
 
-        console.log('Security Channel Joining:', `security-${id}-${profile.id}`);
-
         channel
             .on('broadcast', { event: 'ping' }, ({ payload }) => {
-                console.log('Received security ping from:', payload.tabId, 'My Tab ID:', sessionTabId.current);
                 if (payload.tabId !== sessionTabId.current) {
-                    console.warn('Multiple sessions detected via Realtime');
                     setConcurrencyError(true);
                 }
             })
@@ -597,7 +593,6 @@ export default function Assessment() {
                         // Offset = ServerTime - ClientTime (middle of roundtrip ideally but simple is fine)
                         const offset = serverTime - clientSendTime;
                         setServerTimeOffset(offset);
-                        console.log(`Server time offset calculated: ${offset}ms`);
                     }
                 } catch (e) {
                     console.debug('Failed to get server time offset', e);
@@ -1012,10 +1007,8 @@ export default function Assessment() {
                                                         isSaving={isSyncingFile}
                                                         isFetchingContent={isFetchingContent}
                                                         isPrefetching={isPrefetching}
+                                                        technologies={assessment.technologies}
                                                     />
-                                                    <p className="text-[10px] text-muted-foreground font-mono italic">
-                                                        This is a locked-down, browser-only environment. Terminal execution and code running are currently in development — for now, please focus on identifying bugs and logic improvements through code analysis.
-                                                    </p>
                                                 </div>
                                             );
                                         } else if (canViewFiles) {
@@ -1041,6 +1034,7 @@ export default function Assessment() {
                                                             activeFile={null}
                                                             onFileSelect={() => { }}
                                                             onSave={async () => { }}
+                                                            technologies={assessment.technologies}
                                                         />
                                                     </div>
                                                 </div>

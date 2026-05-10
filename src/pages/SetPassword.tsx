@@ -15,6 +15,8 @@ export default function SetPassword() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [resending, setResending] = useState(false);
+    const [cooldown, setCooldown] = useState(0);
     const { toast } = useToast();
     const navigate = useNavigate();
     const location = useLocation();
@@ -33,6 +35,45 @@ export default function SetPassword() {
             navigate("/login");
         }
     }, [email, navigate, toast]);
+
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (cooldown > 0) {
+            timer = setInterval(() => {
+                setCooldown((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [cooldown]);
+
+    const handleResend = async () => {
+        if (!email || cooldown > 0) return;
+        setResending(true);
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email: email,
+                options: {
+                    shouldCreateUser: false,
+                },
+            });
+
+            if (error) throw error;
+
+            toast({
+                title: "OTP Sent",
+                description: "A new code has been sent to your email.",
+            });
+            setCooldown(60); // 60 seconds cooldown
+        } catch (error: any) {
+            toast({
+                title: "Failed to resend OTP",
+                description: error.message,
+                variant: "destructive",
+            });
+        } finally {
+            setResending(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -111,7 +152,17 @@ export default function SetPassword() {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <Label className="font-mono text-xs uppercase text-muted-foreground">OTP Code</Label>
+                            <div className="flex justify-between items-center">
+                                <Label className="font-mono text-xs uppercase text-muted-foreground">OTP Code</Label>
+                                <button
+                                    type="button"
+                                    onClick={handleResend}
+                                    disabled={resending || cooldown > 0}
+                                    className="font-mono text-[10px] uppercase text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
+                                >
+                                    {resending ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Resend Email"}
+                                </button>
+                            </div>
                             <Input
                                 required
                                 value={otp}

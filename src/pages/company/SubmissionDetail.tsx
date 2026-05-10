@@ -590,6 +590,7 @@ export default function SubmissionDetail() {
                     isFetchingContent={isFetchingContent}
                     isPrefetching={isPrefetching}
                     readOnly={true}
+                    technologies={assessment?.technologies || []}
                   />
                 )}
               </Card>
