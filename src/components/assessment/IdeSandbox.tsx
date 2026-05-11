@@ -39,8 +39,14 @@ const WEB_CONTAINER_SUPPORTED_TECH = [
   'webpack', 'rollup', 'storybook', 'playwright', 'graphql', 'solidjs', 'rxjs'
 ];
 
+const PYODIDE_SUPPORTED_TECH = [
+  'python', 'py', 'django', 'flask', 'fastapi', 'numpy', 'pandas', 'scipy'
+];
+
 let webContainerInstance: WebContainer | null = null;
+let pyodideInstance: any = null;
 let isBooting = false;
+let isPyodideBooting = false;
 
 interface FileNode {
   name: string;
@@ -80,7 +86,9 @@ export function IdeSandbox({
 }: IdeSandboxProps) {
   const [currentContent, setCurrentContent] = useState('');
   const [webContainer, setWebContainer] = useState<WebContainer | null>(null);
+  const [pyodide, setPyodide] = useState<any>(null);
   const [isWebContainerReady, setIsWebContainerReady] = useState(false);
+  const [isPyodideReady, setIsPyodideReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'editor' | 'preview'>('editor');
@@ -88,13 +96,26 @@ export function IdeSandbox({
   const xtermContainerRef = React.useRef<HTMLDivElement>(null);
   const fitAddonRef = React.useRef<FitAddon | null>(null);
 
-  // Check if current stack is a subset of supported tech
-  const isWebContainerSupported = React.useMemo(() => {
-    if (!technologies || technologies.length === 0) return false;
-    return technologies.every(tech => 
-      WEB_CONTAINER_SUPPORTED_TECH.includes(tech.toLowerCase())
-    );
+  // Determine which runtime to use
+  const runtimeType = React.useMemo(() => {
+    if (!technologies || technologies.length === 0) return 'none';
+    const techLower = technologies.map(t => t.toLowerCase());
+    
+    // If all tech is in WebContainer list, use WebContainer
+    if (techLower.every(tech => WEB_CONTAINER_SUPPORTED_TECH.includes(tech))) {
+      return 'webcontainer';
+    }
+    
+    // If any tech is Python-related, use Pyodide
+    if (techLower.some(tech => PYODIDE_SUPPORTED_TECH.includes(tech))) {
+      return 'pyodide';
+    }
+    
+    return 'none';
   }, [technologies]);
+
+  const isWebContainerSupported = runtimeType === 'webcontainer';
+  const isPyodideSupported = runtimeType === 'pyodide';
   const [modifiedFiles, setModifiedFiles] = useState<Record<string, string>>(() => {
     try {
       const cached = sessionStorage.getItem(`wirre-sandbox-modified-${assessmentTitle}`);
@@ -222,6 +243,174 @@ export function IdeSandbox({
     return tree;
   };
 
+  // Initialize Pyodide (Python WASM)
+  React.useEffect(() => {
+    if (!isPyodideSupported || isInitializing || pyodide || !xtermContainerRef.current) return;
+
+    const init = async () => {
+      if (isPyodideBooting) return;
+      setIsInitializing(true);
+      let term: Terminal | null = null;
+      try {
+        // 1. Initialize Terminal
+        term = new Terminal({
+          cursorBlink: true,
+          theme: { background: '#000000', foreground: '#ffffff' },
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: 12,
+        });
+        const fitAddon = new FitAddon();
+        term.loadAddon(fitAddon);
+        term.open(xtermContainerRef.current!);
+        fitAddon.fit();
+        terminalRef.current = term;
+        fitAddonRef.current = fitAddon;
+
+        term.writeln('\x1b[1;34mInitializing WIRRE Python Sandbox (WASM)...\x1b[0m');
+
+        // 2. Load Pyodide Script
+        if (!(window as any).loadPyodide) {
+          isPyodideBooting = true;
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js";
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+        }
+
+        // 3. Boot Pyodide
+        if (!pyodideInstance) {
+          pyodideInstance = await (window as any).loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/"
+          });
+        }
+        const py = pyodideInstance;
+        setPyodide(py);
+
+        // Redirect stdout/stderr to xterm
+        py.setStdout({
+          batched: (str: string) => term?.writeln(str)
+        });
+        py.setStderr({
+          batched: (str: string) => term?.writeln(`\x1b[31m${str}\x1b[0m`)
+        });
+
+        // 4. Load Micropip for package management
+        await py.loadPackage('micropip');
+        const micropip = py.pyimport('micropip');
+
+        // Pre-load common scientific packages if they are in technologies
+        const commonPkgs = ['numpy', 'pandas', 'matplotlib', 'scipy', 'scikit-learn'];
+        const pkgsToLoad = technologies
+          .map(t => t.toLowerCase())
+          .filter(t => commonPkgs.includes(t));
+        
+        if (pkgsToLoad.length > 0) {
+          term.writeln(`\x1b[1;34mPre-loading libraries: ${pkgsToLoad.join(', ')}...\x1b[0m`);
+          await py.loadPackage(pkgsToLoad);
+          term.writeln('\x1b[1;32mLibraries ready.\x1b[0m');
+        }
+
+        // 5. Setup Virtual Filesystem
+        const syncFiles = (nodes: FileNode[], parent = '.') => {
+          for (const node of nodes) {
+            const fullPath = `${parent}/${node.name}`;
+            if (node.type === 'dir') {
+              try { py.FS.mkdir(fullPath); } catch (e) {}
+              syncFiles(node.children || [], fullPath);
+            } else {
+              py.FS.writeFile(fullPath, node.decoded_content || '');
+            }
+          }
+        };
+        syncFiles(files);
+
+        // 6. Simple Pseudo-Shell for Pyodide
+        let currentInput = '';
+        term.writeln('\x1b[1;32mPython Sandbox Ready.\x1b[0m');
+        term.write('\r\n\x1b[1;36m$ \x1b[0m');
+
+        term.onData(async (data) => {
+          const code = data.charCodeAt(0);
+          if (code === 13) { // Enter
+            term.write('\r\n');
+            const cmd = currentInput.trim();
+            if (!cmd) {
+              term.write('\x1b[1;36m$ \x1b[0m');
+              currentInput = '';
+              return;
+            }
+
+            const cmdParts = cmd.split(/\s+/);
+            const baseCmd = cmdParts[0];
+
+            if (baseCmd === 'python') {
+              const fileName = cmdParts[1];
+              if (!fileName) {
+                 term.writeln('Usage: python <filename.py>');
+              } else {
+                try {
+                  // CRITICAL: Sync modified files to Pyodide FS before running
+                  Object.entries(modifiedFiles).forEach(([path, content]) => {
+                    try { py.FS.writeFile(path, content); } catch (e) {}
+                  });
+
+                  const content = py.FS.readFile(fileName, { encoding: 'utf8' });
+                  await py.runPythonAsync(content);
+                } catch (err: any) {
+                  term.writeln(`\x1b[31mError: ${err.message}\x1b[0m`);
+                }
+              }
+            } else if (cmd.startsWith('pip install ')) {
+              const pkgName = cmdParts[2];
+              if (!pkgName) {
+                term.writeln('Usage: pip install <package_name>');
+              } else {
+                term.writeln(`Installing ${pkgName} via micropip...`);
+                try {
+                  await micropip.install(pkgName);
+                  term.writeln(`\x1b[32mSuccessfully installed ${pkgName}\x1b[0m`);
+                } catch (err: any) {
+                  term.writeln(`\x1b[31mInstallation failed: ${err.message}\x1b[0m`);
+                }
+              }
+            } else if (baseCmd === 'ls') {
+              const files = py.FS.readdir('.');
+              term.writeln(files.filter((f: string) => f !== '.' && f !== '..').join('  '));
+            } else if (baseCmd === 'clear') {
+              term.clear();
+            } else if (cmd) {
+              term.writeln(`sh: command not found: ${baseCmd}`);
+              term.writeln('Supported commands: python <file>, pip install <pkg>, ls, clear');
+            }
+            currentInput = '';
+            term.write('\x1b[1;36m$ \x1b[0m');
+          } else if (code === 127) { // Backspace
+            if (currentInput.length > 0) {
+              currentInput = currentInput.slice(0, -1);
+              term.write('\b \b');
+            }
+          } else {
+            currentInput += data;
+            term.write(data);
+          }
+        });
+
+        setIsPyodideReady(true);
+      } catch (err) {
+        console.error('Pyodide init failed:', err);
+        term?.writeln('\x1b[31mInitialization failed. Please refresh.\x1b[0m');
+      } finally {
+        setIsInitializing(false);
+        isPyodideBooting = false;
+      }
+    };
+
+    init();
+  }, [isPyodideSupported, files, xtermContainerRef.current]);
+
   // Initialize WebContainer
   React.useEffect(() => {
     if (!isWebContainerSupported || isInitializing || webContainer || !xtermContainerRef.current) return;
@@ -298,10 +487,6 @@ export function IdeSandbox({
     };
 
     init();
-
-    return () => {
-      // Cleanup? WebContainers usually persist until page refresh
-    };
   }, [isWebContainerSupported, files, xtermContainerRef.current]);
 
   // Handle resizing
@@ -329,7 +514,7 @@ export function IdeSandbox({
           <span className="text-xs text-muted-foreground truncate max-w-[300px] font-mono">{assessmentTitle} / {activeFile?.path || '...'}</span>
           
           {/* Editor/Preview Toggles */}
-          {previewUrl && (
+          {(previewUrl || isWebContainerSupported) && (
              <div className="flex bg-black/40 rounded-sm p-0.5 border border-border/50">
                <Button 
                 variant="ghost" 
@@ -351,6 +536,7 @@ export function IdeSandbox({
                   viewMode === 'preview' ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-white"
                 )}
                 onClick={() => setViewMode('preview')}
+                disabled={!isWebContainerReady}
                >
                  <Globe className="h-3 w-3 mr-1.5" />
                  Preview
@@ -498,18 +684,20 @@ export function IdeSandbox({
                 <div className="h-8 border-b border-border/50 bg-[#18181b] flex items-center px-4 justify-between shrink-0">
                   <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                     <TerminalIcon className="h-3 w-3" />
-                    Terminal {isWebContainerSupported && isWebContainerReady && <span className="text-green-500 lowercase opacity-60 ml-2">(cloud-ready)</span>}
+                    Terminal 
+                    {isWebContainerSupported && isWebContainerReady && <span className="text-green-500 lowercase opacity-60 ml-2">(cloud-ready)</span>}
+                    {isPyodideSupported && isPyodideReady && <span className="text-blue-500 lowercase opacity-60 ml-2">(wasm-ready)</span>}
                   </div>
-                  {isWebContainerSupported && !isWebContainerReady && (
+                  {(isWebContainerSupported && !isWebContainerReady) || (isPyodideSupported && !isPyodideReady) ? (
                     <div className="flex items-center gap-2 text-[8px] text-primary/70 animate-pulse uppercase tracking-widest">
                       <Loader2 className="h-2.5 w-2.5 animate-spin" />
                       Provisioning...
                     </div>
-                  )}
+                  ) : null}
                 </div>
                 
                 <div className="flex-1 relative overflow-hidden">
-                  {isWebContainerSupported ? (
+                  {isWebContainerSupported || isPyodideSupported ? (
                     <div ref={xtermContainerRef} className="absolute inset-0 p-2" />
                   ) : (
                     <ScrollArea className="h-full p-4">

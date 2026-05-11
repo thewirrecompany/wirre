@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { cn } from "@/lib/utils";
@@ -58,7 +59,6 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const ownerId = companyUserId || profile?.id;
 
   const { data, isLoading } = useCompanyDashboard(ownerId);

@@ -59,6 +59,7 @@ export default function Assessment() {
     const [showTimeExpiredDialog, setShowTimeExpiredDialog] = useState(false);
     const [timeRemainingMs, setTimeRemainingMs] = useState<number | null>(null);
     const [serverTimeOffset, setServerTimeOffset] = useState(0);
+    const [waitingTicker, setWaitingTicker] = useState(0);
     const codingEndMsRef = useRef<number | null>(null);
     const isMounted = useRef(true);
 
@@ -699,6 +700,15 @@ export default function Assessment() {
         return () => clearInterval(iv);
     }, [_codingEndMs, isRegistered, isPeerReviewPhase, isFinished, assessment?.is_sample]);
 
+    // Waiting Ticker effect (forces re-render every second when in waiting phase)
+    useEffect(() => {
+        if (!isFinished || peerReviewRepoUrl || skippedPeerReview) return;
+        const iv = setInterval(() => {
+            setWaitingTicker(prev => prev + 1);
+        }, 1000);
+        return () => clearInterval(iv);
+    }, [isFinished, peerReviewRepoUrl, skippedPeerReview]);
+
     // Age check helper
     const isUnderage = (() => {
         if (!userDob) return true; // Treat missing DOB as underage/incomplete
@@ -797,6 +807,57 @@ export default function Assessment() {
             toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
         } finally {
             setIsProvisioning(false);
+        }
+    };
+
+    // --- Submissions & Transitions ---
+    const handleFinishCodingRound = async () => {
+        if (!id) return;
+        const ok = window.confirm('Finish coding round? Your sandbox access will be locked and you will enter the peer review phase.');
+        if (!ok) return;
+        try {
+            const { error: finishError } = await supabase.rpc('candidate_finish_assessment', { p_assessment_id: id });
+            if (finishError) throw finishError;
+            const { error: revokeError } = await supabase.functions.invoke('revoke-assessment-access', { body: { assessmentId: id, candidateUserId: profile?.id } });
+            if (revokeError) console.error('GitHub revoke failed:', revokeError);
+            setAccessGranted(false);
+            setIsFinished(true);
+            setShowSuccessModal(true);
+            toast({ title: 'Coding Round Finished', description: 'Waiting for peer review to be assigned.' });
+        } catch (err: any) {
+            toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+        }
+    };
+
+    const handleSubmitPeerReview = async () => {
+        if (!id) return;
+        const ok = window.confirm('Finalize and submit your peer review?\n\nOnce submitted, you cannot add more findings.');
+        if (!ok) return;
+        try {
+            const { error } = await supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id });
+            if (error) throw error;
+            setIsFinished(true);
+            setSubmittedPeerReview(true);
+            setShowSuccessModal(true);
+            toast({ title: 'Peer Review Submitted', description: 'Your findings have been submitted.' });
+        } catch (err: any) {
+            toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
+        }
+    };
+
+    const handleFinalizeAndSkipPeerReview = async () => {
+        if (!id) return;
+        const ok = window.confirm('Finalize and skip peer review?\n\nYou will receive 0 points for the peer review component. This cannot be undone.');
+        if (!ok) return;
+        try {
+            const { error } = await supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id });
+            if (error) throw error;
+            setIsFinished(true);
+            setSkippedPeerReview(true);
+            setShowSuccessModal(true);
+            toast({ title: 'Peer Review Skipped', description: 'Your submission has been fully finalized.' });
+        } catch (err: any) {
+            toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
         }
     };
 
@@ -914,12 +975,12 @@ export default function Assessment() {
                                                         <p className="font-mono text-xs text-muted-foreground">Waiting for a competitor to finish... peer-review round will be available soon</p>
                                                         {finishedTime && (
                                                           <div className="mt-2 p-2 bg-yellow-500/5 border border-yellow-500/10 rounded-sm">
-                                                            <p className="text-[10px] font-mono text-yellow-500/60 uppercase tracking-widest">
-                                                              Auto-finalizing Round in {formatTimeRemaining(remainingWaitingMs)}
-                                                            </p>
-                                                            <p className="text-[9px] font-mono text-muted-foreground mt-1">
-                                                              (If no competitor is found within 3 hours, round ends with 0 peer score)
-                                                            </p>
+                                                              <p className="text-[10px] font-mono text-yellow-500/60 uppercase tracking-widest">
+                                                                Auto-finalizing Round in {formatTimeRemaining(remainingWaitingMs)}
+                                                              </p>
+                                                              <p className="text-[9px] font-mono text-muted-foreground mt-1 max-w-[280px] leading-relaxed mx-auto">
+                                                                (If no competitor is found within 3 hours, round ends. This "0" peer score is marked as <strong>Not Assigned</strong>, distinct from a performance-based 0.)
+                                                              </p>
                                                           </div>
                                                         )}
                                                     </div>
@@ -978,7 +1039,7 @@ export default function Assessment() {
                                                                 Auto-finalizing Round in {formatTimeRemaining(remainingWaitingMs)}
                                                               </p>
                                                               <p className="text-[9px] font-mono text-muted-foreground mt-1">
-                                                                (If no competitor is found within 3 hours, round ends with 0 peer score)
+                                                                (If no competitor is found within 3 hours, round ends. This "0" peer score is marked as <strong>Not Assigned</strong>, distinct from a performance-based 0.)
                                                               </p>
                                                             </div>
                                                           )}
@@ -1259,56 +1320,6 @@ export default function Assessment() {
                                             // Has repo -> show Finish Assignment button (only if started)
                                             (() => {
                                                 const hasStarted = assessment.is_sample || (assessment.start_at && new Date() >= new Date(assessment.start_at));
-                                                // Shared handler: finish only the coding phase (sets finished_at, revokes GitHub access)
-                                                const handleFinishCodingRound = async () => {
-                                                    if (!id) return;
-                                                    const ok = window.confirm('Finish coding round? Your sandbox access will be locked and you will enter the peer review phase.');
-                                                    if (!ok) return;
-                                                    try {
-                                                        const { error: finishError } = await supabase.rpc('candidate_finish_assessment', { p_assessment_id: id });
-                                                        if (finishError) throw finishError;
-                                                        const { error: revokeError } = await supabase.functions.invoke('revoke-assessment-access', { body: { assessmentId: id, candidateUserId: profile?.id } });
-                                                        if (revokeError) console.error('GitHub revoke failed:', revokeError);
-                                                        setAccessGranted(false);
-                                                        setIsFinished(true);
-                                                        setShowSuccessModal(true);
-                                                        toast({ title: 'Coding Round Finished', description: 'Waiting for peer review to be assigned.' });
-                                                    } catch (err: any) {
-                                                        toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
-                                                    }
-                                                };
-                                                // Handler: submit peer review findings and finalize
-                                                const handleSubmitPeerReview = async () => {
-                                                    if (!id) return;
-                                                    const ok = window.confirm('Finalize and submit your peer review?\n\nOnce submitted, you cannot add more findings.');
-                                                    if (!ok) return;
-                                                    try {
-                                                        const { error } = await supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id });
-                                                        if (error) throw error;
-                                                        setIsFinished(true);
-                                                        setSubmittedPeerReview(true);
-                                                        setShowSuccessModal(true);
-                                                        toast({ title: 'Peer Review Submitted', description: 'Your findings have been submitted.' });
-                                                    } catch (err: any) {
-                                                        toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
-                                                    }
-                                                };
-                                                // Handler: skip peer review entirely (no opponent assigned)
-                                                const handleFinalizAndSkipPeerReview = async () => {
-                                                    if (!id) return;
-                                                    const ok = window.confirm('Finalize and skip peer review?\n\nYou will receive 0 points for the peer review component. This cannot be undone.');
-                                                    if (!ok) return;
-                                                    try {
-                                                        const { error } = await supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id });
-                                                        if (error) throw error;
-                                                        setIsFinished(true);
-                                                        setSkippedPeerReview(true);
-                                                        setShowSuccessModal(true);
-                                                        toast({ title: 'Peer Review Skipped', description: 'Your submission has been fully finalized.' });
-                                                    } catch (err: any) {
-                                                        toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
-                                                    }
-                                                };
 
                                                 if (isFinished) {
                                                     const hasPeer = !!peerReviewRepoUrl;
@@ -1354,8 +1365,8 @@ export default function Assessment() {
                                                                 <>
                                                                     <Button
                                                                         variant="outline"
-                                                                        className="w-full font-mono text-xs h-10 uppercase tracking-widest text-red-400 border-red-400/30 hover:bg-red-400/5"
-                                                                        onClick={handleFinalizAndSkipPeerReview}
+                                                                        className="w-full font-mono text-xs h-10 uppercase tracking-widest text-red-400 border-red-400/30 hover:bg-red-400/5 transition-all duration-200"
+                                                                        onClick={handleFinalizeAndSkipPeerReview}
                                                                     >
                                                                         Finalize & Submit (Skip Peer Review)
                                                                     </Button>
@@ -1393,7 +1404,7 @@ export default function Assessment() {
                                                                 <Button
                                                                     variant="outline"
                                                                     className="w-full font-mono text-xs h-10 uppercase tracking-widest text-red-400 border-red-400/30 hover:bg-red-400/5"
-                                                                    onClick={handleFinalizAndSkipPeerReview}
+                                                                    onClick={handleFinalizeAndSkipPeerReview}
                                                                 >
                                                                     Finalize & Submit (Skip Peer Review)
                                                                 </Button>
