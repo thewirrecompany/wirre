@@ -140,23 +140,31 @@ export function Header() {
         <div className="flex items-center gap-1.5 lg:gap-4">
           {location.pathname !== '/' && (
             <Button variant="ghost" size="sm" onClick={() => {
+              const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin';
+              
               if (location.pathname.includes('/company/assessments/') && location.pathname.includes('/edit')) {
                 const assessmentId = location.pathname.split('/')[3];
                 navigate(`/company/assessments/${assessmentId}`);
+              } else if (location.pathname.includes('/admin/view-as/company/')) {
+                 // Top level of proxy -> go back to admin
+                 navigate('/admin/dashboard');
               } else if (location.pathname.includes('/company/assessments/')) {
-                navigate('/company/dashboard');
-              } else if (location.pathname === '/company/dashboard') {
-                navigate('/');
-              } else if (location.pathname === '/candidate/rounds') {
-                navigate('/');
-              } else if (location.pathname === '/admin/dashboard') {
+                // If admin is proxying, go back to the proxy dashboard URL in history or admin dashboard
+                if (isAdmin) {
+                  // We could try to find the proxy userId, but going back to admin is safer than the empty dash
+                  navigate(-1);
+                } else {
+                  navigate('/company/dashboard');
+                }
+              } else if (location.pathname === '/company/dashboard' || location.pathname === '/candidate/rounds' || location.pathname === '/admin/dashboard') {
                 navigate('/');
               } else if (location.pathname.includes('/admin/')) {
                 navigate('/admin/dashboard');
               } else if (location.pathname.includes('/candidate/')) {
                 navigate('/candidate/rounds');
               } else if (location.pathname.includes('/company/')) {
-                navigate('/company/dashboard');
+                if (isAdmin) navigate(-1);
+                else navigate('/company/dashboard');
               } else {
                 navigate('/');
               }
