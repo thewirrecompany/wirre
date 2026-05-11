@@ -57,7 +57,7 @@ export function useOpportunities(userId: string | undefined) {
     queryKey: ['opportunities', userId],
     queryFn: () => fetchOpportunities(userId!),
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: 5_000,
   });
 }
 
@@ -65,6 +65,6 @@ export function prefetchOpportunities(userId: string) {
   return queryClient.prefetchQuery({
     queryKey: ['opportunities', userId],
     queryFn: () => fetchOpportunities(userId),
-    staleTime: 30_000,
+    staleTime: 5_000,
   });
 }

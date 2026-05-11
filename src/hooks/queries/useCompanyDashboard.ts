@@ -97,9 +97,9 @@ export async function fetchCompanyDashboard(ownerId: string): Promise<CompanyDas
 
 export function useCompanyDashboard(ownerId: string | undefined) {
   return useQuery({
-    queryKey: ['company-dashboard', ownerId],
     queryFn: () => fetchCompanyDashboard(ownerId!),
     enabled: !!ownerId,
+    staleTime: 5_000,
   });
 }
 
@@ -108,5 +108,6 @@ export function prefetchCompanyDashboard(ownerId: string) {
   return queryClient.prefetchQuery({
     queryKey: ['company-dashboard', ownerId],
     queryFn: () => fetchCompanyDashboard(ownerId),
+    staleTime: 5_000,
   });
 }

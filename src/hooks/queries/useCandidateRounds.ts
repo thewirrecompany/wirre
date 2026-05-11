@@ -107,7 +107,7 @@ export function useCandidateRounds(userId: string | undefined) {
     queryFn: () => fetchCandidateRounds(userId!),
     enabled: !!userId,
     // Rounds are time-sensitive, don't cache too long
-    staleTime: 30_000,
+    staleTime: 5_000,
   });
 }
 
@@ -115,6 +115,6 @@ export function prefetchCandidateRounds(userId: string) {
   return queryClient.prefetchQuery({
     queryKey: ['candidate-rounds', userId],
     queryFn: () => fetchCandidateRounds(userId),
-    staleTime: 30_000,
+    staleTime: 5_000,
   });
 }

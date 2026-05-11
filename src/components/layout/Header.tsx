@@ -20,7 +20,7 @@ import { prefetchLeaderboard } from "@/hooks/queries/useLeaderboard";
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, loading } = useAuth();
   const [open, setOpen] = useState(false);
 
   const dashboardLink = (profile?.role as string) === 'superadmin'
@@ -66,69 +66,73 @@ export function Header() {
     <span className="text-border/50 hidden lg:inline font-light">|</span>
   );
 
-  const NavItems = () => (
-    <>
-      {/* Public nav — show About only when logged out */}
-      {!user && (
-        <span className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
-          <NavLink to="/about" label="About" />
-        </span>
-      )}
+  const NavItems = () => {
+    if (loading) return null; // Don't render items while loading profile
 
-      {!user && <Separator />}
+    return (
+      <>
+        {/* Public nav — show About only when logged out */}
+        {!user && (
+          <span className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+            <NavLink to="/about" label="About" />
+          </span>
+        )}
 
-      {user ? (
-        <>
-          {profile?.role !== 'candidate' && (
-            <>
-              <NavLink to={dashboardLink} label="Dashboard" />
-              <Separator />
-            </>
-          )}
-          <NavLink to="/leaderboard" label="Leaderboard" />
+        {!user && <Separator />}
 
-          {profile?.role === 'admin' && (
-            <>
-              <Separator />
-              <NavLink to="/admin/profile" label="Profile" />
-            </>
-          )}
+        {user ? (
+          <>
+            {profile?.role !== 'candidate' && (
+              <>
+                <NavLink to={dashboardLink} label="Dashboard" />
+                <Separator />
+              </>
+            )}
+            <NavLink to="/leaderboard" label="Leaderboard" />
 
-          {profile?.role === 'candidate' && (
-            <>
-              <Separator />
-              <NavLink to="/candidate/rounds" label="My Rounds" />
-              <Separator />
-              <NavLink to="/candidate/opportunities" label="Opportunities" />
-              <Separator />
-              <NavLink to="/candidate/profile" label="Profile" />
-            </>
-          )}
+            {profile?.role === 'admin' && (
+              <>
+                <Separator />
+                <NavLink to="/admin/profile" label="Profile" />
+              </>
+            )}
 
-          {profile?.role === 'company' && (
-            <>
-              <Separator />
-              <NavLink to="/company/profile" label="Profile" />
-            </>
-          )}
+            {profile?.role === 'candidate' && (
+              <>
+                <Separator />
+                <NavLink to="/candidate/rounds" label="My Rounds" />
+                <Separator />
+                <NavLink to="/candidate/opportunities" label="Opportunities" />
+                <Separator />
+                <NavLink to="/candidate/profile" label="Profile" />
+              </>
+            )}
 
-          <Separator />
-          <button
-            onClick={handleSignOut}
-            className="font-mono uppercase text-sm tracking-wider text-muted-foreground hover:text-foreground transition-colors text-left"
-          >
-            Logout
-          </button>
-        </>
-      ) : (
-        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
-          <NavLink to="/signup" label="Sign Up" />
-          <Separator />
-          <NavLink to="/login" label="Login" />
-        </div>
-      )}
-    </>
-  );
+            {profile?.role === 'company' && (
+              <>
+                <Separator />
+                <NavLink to="/company/profile" label="Profile" />
+              </>
+            )}
+
+            <Separator />
+            <button
+              onClick={handleSignOut}
+              className="font-mono uppercase text-sm tracking-wider text-muted-foreground hover:text-foreground transition-colors text-left"
+            >
+              Logout
+            </button>
+          </>
+        ) : (
+          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+            <NavLink to="/signup" label="Sign Up" />
+            <Separator />
+            <NavLink to="/login" label="Login" />
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/60 bg-background/60 backdrop-blur-md">

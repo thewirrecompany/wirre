@@ -62,6 +62,37 @@ export default function CompanyDashboard({ companyUserId }: CompanyDashboardProp
   const ownerId = companyUserId || profile?.id;
 
   const { data, isLoading } = useCompanyDashboard(ownerId);
+  const queryClient = useQueryClient();
+
+  // Add real-time listeners for instant updates
+  useEffect(() => {
+    if (!ownerId) return;
+
+    const channel = supabase
+      .channel('company-dashboard-realtime')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'assessments', 
+        filter: `company_user_id=eq.${ownerId}` 
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['company-dashboard', ownerId] });
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'assessment_registrations' 
+      }, () => {
+        // We invalidate on any registration since we don't have a direct company_id in that table
+        // but we can optimize this if needed by checking the assessment_id
+        queryClient.invalidateQueries({ queryKey: ['company-dashboard', ownerId] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [ownerId, queryClient]);
 
   if (isLoading) return <DashboardSkeleton />;
 

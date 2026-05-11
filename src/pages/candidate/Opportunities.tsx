@@ -106,7 +106,10 @@ export default function CandidateOpportunities() {
             if (error) throw error;
 
             toast({ title: "Registration successful", description: "You've successfully registered for this assessment." });
+            
+            // Invalidate multiple queries to ensure all tabs are up to date
             queryClient.invalidateQueries({ queryKey: ['opportunities', profile?.id] });
+            queryClient.invalidateQueries({ queryKey: ['candidate-rounds', profile?.id] });
         } catch (err: any) {
             toast({ title: 'Registration failed', description: err?.message || String(err), variant: 'destructive' });
         }
