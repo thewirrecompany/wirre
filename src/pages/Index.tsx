@@ -27,12 +27,13 @@ export default function Index() {
             WIRRE
           </h1>
           <p className="mt-5 text-2xl md:text-3xl font-mono text-muted-foreground tracking-tight">
-            Code in the Sandbox.
+            Competitive Programming - For Codebases.
           </p>
           <p className="mt-6 text-base md:text-lg text-muted-foreground font-mono max-w-xl leading-relaxed">
             Enter our secure, browser-based environment.
-            Fix the bug. Push your code. Climb the leaderboard.<br />
-            Engineering — in its purest form — as a sport.
+            Navigate the codebase. Fix the bugs. Make the features. Climb the leaderboard.<br />
+            Engineering — in its purest form — as a sport. <br />
+            Not algorithms. No AI. Real engineering.
           </p>
           <div className="mt-12 flex flex-wrap items-center gap-4">
             <Button asChild size="lg" className="font-mono uppercase tracking-widest px-8 h-12">
