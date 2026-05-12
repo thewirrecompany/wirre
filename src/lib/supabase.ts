@@ -1,10 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const isProd = import.meta.env.PROD;
-const supabaseUrl = isProd 
-  ? `${window.location.origin}/supabase-proxy`
-  : import.meta.env.VITE_SUPABASE_URL;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
