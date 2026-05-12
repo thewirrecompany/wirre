@@ -25,7 +25,7 @@ export async function fetchOpportunities(userId: string): Promise<OpportunitiesD
 
   if (error) throw error;
 
-  const profileIncomplete = !(candidateData?.github_username && candidateData?.linkedin_url);
+  const profileIncomplete = !candidateData?.github_username;
   const assessments = assessmentData || [];
 
   // Fetch companies + registrations in parallel

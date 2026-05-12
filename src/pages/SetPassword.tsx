@@ -17,6 +17,8 @@ export default function SetPassword() {
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
     const [cooldown, setCooldown] = useState(0);
+    const [otpVerified, setOtpVerified] = useState(false);
+    const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
     const { toast } = useToast();
     const navigate = useNavigate();
     const location = useLocation();
@@ -59,6 +61,9 @@ export default function SetPassword() {
 
             if (error) throw error;
 
+            setOtpVerified(false);
+            setVerifiedUserId(null);
+
             toast({
                 title: "OTP Sent",
                 description: "A new code has been sent to your email.",
@@ -99,14 +104,33 @@ export default function SetPassword() {
         setLoading(true);
 
         try {
-            // 1. Verify the OTP with Supabase Auth
-            const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
-                email: email!,
-                token: otp,
-                type: 'email',
-            });
+            let currentUserId = verifiedUserId;
 
-            if (verifyError) throw verifyError;
+            // 1. Verify the OTP with Supabase Auth only if not already verified
+            if (!otpVerified) {
+                const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+                    email: email!,
+                    token: otp,
+                    type: 'email',
+                });
+
+                if (verifyError) throw verifyError;
+
+                // OTP verification successful, mark as verified so subsequent attempts don't consume it again
+                setOtpVerified(true);
+                if (verifyData.user?.id) {
+                    currentUserId = verifyData.user.id;
+                    setVerifiedUserId(verifyData.user.id);
+                }
+            }
+
+            if (!currentUserId) {
+                const { data: userData } = await supabase.auth.getUser();
+                if (userData?.user?.id) {
+                    currentUserId = userData.user.id;
+                    setVerifiedUserId(userData.user.id);
+                }
+            }
 
             // 2. Once verified, we have a session. Update the password.
             const { error: updateError } = await supabase.auth.updateUser({
@@ -124,7 +148,7 @@ export default function SetPassword() {
             const { data: profileData } = await supabase
                 .from('profiles')
                 .select('role')
-                .eq('id', verifyData.user?.id)
+                .eq('id', currentUserId)
                 .single();
 
             const role = profileData?.role || 'candidate';
@@ -159,7 +183,9 @@ export default function SetPassword() {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <Label className="font-mono text-xs uppercase text-muted-foreground">OTP Code</Label>
+                                <Label className="font-mono text-xs uppercase text-muted-foreground">
+                                    {otpVerified ? "OTP Code (Verified ✓)" : "OTP Code"}
+                                </Label>
                                 <button
                                     type="button"
                                     onClick={handleResend}
@@ -174,7 +200,8 @@ export default function SetPassword() {
                                 value={otp}
                                 onChange={(e) => setOtp(e.target.value)}
                                 placeholder="6-digit code"
-                                className="font-mono rounded-none border-foreground text-center text-2xl tracking-[0.5em] text-foreground bg-background"
+                                disabled={otpVerified}
+                                className="font-mono rounded-none border-foreground text-center text-2xl tracking-[0.5em] text-foreground bg-background disabled:opacity-60"
                                 maxLength={6}
                             />
                         </div>

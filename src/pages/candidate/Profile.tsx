@@ -58,7 +58,7 @@ export default function CandidateProfile() {
                 setDateOfBirth(data.date_of_birth || '');
 
                 // Check if profile is complete
-                const complete = !!(data.full_name && data.username && data.github_username && data.linkedin_url && data.date_of_birth);
+                const complete = !!(data.full_name && data.username && data.github_username && data.date_of_birth);
                 setIsComplete(complete);
             }
 
@@ -107,8 +107,8 @@ export default function CandidateProfile() {
         setLoading(true);
 
         try {
-            if (!fullName || !username || !githubUsername || !linkedinUrl) {
-                throw new Error('All fields are required');
+            if (!fullName || !username || !githubUsername) {
+                throw new Error('Full Name, Username, and GitHub Username are required');
             }
 
             // Validate Username formatting (optional alphanumeric constraints)
@@ -121,8 +121,8 @@ export default function CandidateProfile() {
                 throw new Error('Invalid GitHub username format');
             }
 
-            // Validate LinkedIn URL
-            if (!linkedinUrl.includes('linkedin.com/in/')) {
+            // Validate LinkedIn URL if provided
+            if (linkedinUrl && !linkedinUrl.includes('linkedin.com/in/')) {
                 throw new Error('Please enter a valid LinkedIn profile URL');
             }
 
@@ -231,7 +231,7 @@ export default function CandidateProfile() {
                         <CardHeader>
                             <CardTitle className="font-mono text-2xl">Complete Your Profile</CardTitle>
                             <CardDescription className="font-mono">
-                                Add your GitHub and LinkedIn to participate in assessment rounds
+                                Add your GitHub username to participate in assessment rounds (LinkedIn optional)
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -338,7 +338,6 @@ export default function CandidateProfile() {
                                         onChange={(e) => setLinkedinUrl(e.target.value)}
                                         placeholder="https://linkedin.com/in/janedoe"
                                         className="font-mono"
-                                        required
                                     />
                                     <p className="text-xs text-muted-foreground font-mono">
                                         Your full LinkedIn profile URL

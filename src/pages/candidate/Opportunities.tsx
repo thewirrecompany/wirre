@@ -69,7 +69,7 @@ export default function CandidateOpportunities() {
 
     const handleRegister = async (oppId: string) => {
         if (profileIncomplete) {
-            toast({ title: "Complete your profile", description: "Add your GitHub and LinkedIn URLs before registering", variant: "destructive" });
+            toast({ title: "Complete your profile", description: "Add your GitHub URL before registering", variant: "destructive" });
             return;
         }
         try {
@@ -137,7 +137,7 @@ export default function CandidateOpportunities() {
                             <Alert variant="destructive">
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription className="font-mono text-sm flex items-center justify-between">
-                                    <span>Complete your profile with GitHub and LinkedIn URLs to register for rounds</span>
+                                    <span>Complete your profile with your GitHub username to register for rounds</span>
                                     <Button size="sm" variant="outline" asChild>
                                         <Link to="/candidate/profile">Complete Profile</Link>
                                     </Button>
