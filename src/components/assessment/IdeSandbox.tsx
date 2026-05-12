@@ -4,6 +4,7 @@ import {
   Folder, 
   ChevronRight, 
   ChevronDown, 
+  ChevronUp,
   Play, 
   Save, 
   Terminal as TerminalIcon, 
@@ -16,7 +17,8 @@ import {
   Loader2,
   ExternalLink,
   Globe,
-  Code
+  Code,
+  RefreshCw
 } from 'lucide-react';
 import { 
   ResizableHandle, 
@@ -92,6 +94,7 @@ export function IdeSandbox({
   const [isInitializing, setIsInitializing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'editor' | 'preview'>('editor');
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
   const terminalRef = React.useRef<Terminal | null>(null);
   const xtermContainerRef = React.useRef<HTMLDivElement>(null);
   const fitAddonRef = React.useRef<FitAddon | null>(null);
@@ -130,11 +133,34 @@ export function IdeSandbox({
   }, [modifiedFiles, assessmentTitle]);
   const [terminalInput, setTerminalInput] = useState('');
   const [terminalOutput, setTerminalOutput] = useState([
-    { type: 'info', text: 'WIRRE Sandbox Environment v1.0.4' },
-    { type: 'error', text: 'Terminal execution is currently unavailable.' },
-    { type: 'info', text: 'We are actively working on supporting full remote execution environments.' },
-    { type: 'info', text: 'For now, please focus on identifying bugs and logic improvements through code analysis.' }
+    { type: 'info', text: 'WIRRE Cloud Sandbox Environment v1.0.5' },
+    { type: 'info', text: '=================================================================' },
+    { type: 'command', text: '💡 CRITICAL GUIDANCE FOR DEVELOPERS:' },
+    { type: 'info', text: '• Running "npm install" for the first time might take 2-3 minutes to provision native packages.' },
+    { type: 'command', text: '• You MUST click the "Save" button in the navigation bar above to ensure your progress has been saved!' },
+    { type: 'info', text: '=================================================================' }
   ]);
+  const [previewLogs, setPreviewLogs] = useState<Array<{ type: 'info' | 'log' | 'error' | 'warn', text: string, time: string }>>([
+    { type: 'info', text: 'Integrated Preview Console Initialized.', time: new Date().toLocaleTimeString() },
+    { type: 'info', text: 'Listening for client-side console output and framework HMR telemetry...', time: new Date().toLocaleTimeString() },
+    { type: 'warn', text: 'Note: Server compilation and build failures stream automatically to the native Terminal view below.', time: new Date().toLocaleTimeString() }
+  ]);
+  const [isPreviewConsoleExpanded, setIsPreviewConsoleExpanded] = useState(true);
+
+  React.useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data && typeof e.data === 'object') {
+        if (e.data.type === 'CONSOLE_LOG') {
+          setPreviewLogs(prev => [...prev, { type: e.data.level || 'log', text: String(e.data.message), time: new Date().toLocaleTimeString() }]);
+        } else if (e.data.type === 'vite:ws:error' || e.data.type === 'error') {
+          setPreviewLogs(prev => [...prev, { type: 'error', text: String(e.data.message || e.data.error || JSON.stringify(e.data)), time: new Date().toLocaleTimeString() }]);
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const containerRef = React.useRef<HTMLDivElement>(null);
   const terminalEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -479,6 +505,11 @@ export function IdeSandbox({
 
         setIsWebContainerReady(true);
         term.writeln('\x1b[1;32mSandbox Ready.\x1b[0m');
+        term.writeln('\x1b[1;33m=================================================================\x1b[0m');
+        term.writeln('\x1b[1;36m💡 CRITICAL GUIDANCE FOR DEVELOPERS:\x1b[0m');
+        term.writeln('\x1b[1;37m• Running \x1b[1;32mnpm install\x1b[1;37m for the first time might take \x1b[1;33m2-3 minutes\x1b[1;37m to provision native packages.\x1b[0m');
+        term.writeln('\x1b[1;37m• You MUST click the \x1b[1;32m"Save"\x1b[1;37m button in the navigation bar above to ensure your progress has been saved!\x1b[0m');
+        term.writeln('\x1b[1;33m=================================================================\x1b[0m');
       } catch (err) {
         console.error('WebContainer init failed:', err);
       } finally {
@@ -589,6 +620,17 @@ export function IdeSandbox({
                  <Globe className="h-3 w-3 mr-1.5" />
                  Preview
                </Button>
+               {viewMode === 'preview' && previewUrl && (
+                 <Button
+                   variant="ghost"
+                   size="sm"
+                   className="h-6 px-2.5 text-muted-foreground hover:text-white transition-all ml-0.5 border-l border-border/50 rounded-none"
+                   onClick={() => setPreviewRefreshKey(k => k + 1)}
+                   title="Refresh Preview"
+                 >
+                   <RefreshCw className="h-3 w-3" />
+                 </Button>
+               )}
              </div>
           )}
         </div>
@@ -664,7 +706,11 @@ export function IdeSandbox({
             {/* Editor Area or Preview Iframe */}
             <ResizablePanel defaultSize={70}>
               <div className="h-full bg-[#09090b] relative">
-                {viewMode === 'editor' ? (
+                {/* Editor Container */}
+                <div className={cn(
+                  "absolute inset-0 bg-[#09090b]",
+                  viewMode !== 'editor' && "hidden"
+                )}>
                   <div className="absolute top-4 left-4 right-4 bottom-4 font-mono text-sm overflow-auto">
                     <div className="flex gap-4 min-h-full w-max min-w-full">
                       {/* Line Numbers (Sticky on horizontal scroll) */}
@@ -702,21 +748,82 @@ export function IdeSandbox({
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <div className="absolute inset-0 bg-white">
-                    {previewUrl ? (
-                      <iframe 
-                        src={previewUrl} 
-                        className="w-full h-full border-none"
-                        title="WebContainer Preview"
-                      />
-                    ) : (
-                      <div className="h-full flex items-center justify-center bg-[#09090b] text-muted-foreground font-mono text-xs uppercase tracking-widest">
-                        Starting preview server...
+                </div>
+
+                {/* Preview Container (Preserves active execution state in background) */}
+                <div className={cn(
+                  "absolute inset-0 flex flex-col bg-white overflow-hidden",
+                  viewMode !== 'preview' && "hidden"
+                )}>
+                  {previewUrl ? (
+                    <>
+                      <div className="flex-1 relative min-h-0 bg-white">
+                        <iframe 
+                          key={previewRefreshKey}
+                          src={previewUrl} 
+                          className="absolute inset-0 w-full h-full border-none bg-white"
+                          title="WebContainer Preview"
+                        />
                       </div>
-                    )}
-                  </div>
-                )}
+                      {/* Integrated Client-Side Preview Console Pane */}
+                      <div className={cn(
+                        "border-t border-border bg-[#09090b] flex flex-col font-mono text-xs select-text shrink-0 transition-all duration-200",
+                        isPreviewConsoleExpanded ? "h-44" : "h-7"
+                      )}>
+                        <div className="h-7 border-b border-border/50 bg-[#18181b] flex items-center justify-between px-3 shrink-0 select-none">
+                          <div 
+                            className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest cursor-pointer hover:text-foreground flex-1 h-full"
+                            onClick={() => setIsPreviewConsoleExpanded(p => !p)}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0"></span>
+                            Preview Console Logs
+                            {isPreviewConsoleExpanded ? <ChevronDown className="h-3 w-3 ml-1" /> : <ChevronUp className="h-3 w-3 ml-1" />}
+                            {!isPreviewConsoleExpanded && previewLogs.length > 0 && (
+                              <span className="text-[9px] text-blue-400 lowercase ml-1 font-normal">({previewLogs.length} events)</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-5 px-2 text-[9px] text-muted-foreground hover:text-foreground"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewLogs([]);
+                              }}
+                            >
+                              Clear
+                            </Button>
+                          </div>
+                        </div>
+                        {isPreviewConsoleExpanded && (
+                          <ScrollArea className="flex-1 p-2">
+                            <div className="space-y-1">
+                              {previewLogs.map((log, lIdx) => (
+                                <div key={lIdx} className="flex gap-3 leading-relaxed hover:bg-white/[0.02] px-1 rounded">
+                                  <span className="text-muted-foreground/40 select-none text-[10px] shrink-0">{log.time}</span>
+                                  <span className={cn(
+                                    "flex-1 font-mono break-all",
+                                    log.type === 'info' && "text-blue-400",
+                                    log.type === 'log' && "text-gray-300",
+                                    log.type === 'warn' && "text-amber-400",
+                                    log.type === 'error' && "text-rose-400 font-medium"
+                                  )}>
+                                    {log.text}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="h-full flex items-center justify-center bg-[#09090b] text-muted-foreground font-mono text-xs uppercase tracking-widest">
+                      Starting preview server...
+                    </div>
+                  )}
+                </div>
 
                 {isFetchingContent && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/5 animate-in fade-in duration-300">
