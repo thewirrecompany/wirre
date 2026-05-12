@@ -58,7 +58,7 @@ export default function CandidateProfile() {
                 setDateOfBirth(data.date_of_birth || '');
 
                 // Check if profile is complete
-                const complete = !!(data.full_name && data.username && data.github_username && data.date_of_birth);
+                const complete = !!(data.full_name && data.username && data.github_username);
                 setIsComplete(complete);
             }
 
@@ -231,7 +231,7 @@ export default function CandidateProfile() {
                         <CardHeader>
                             <CardTitle className="font-mono text-2xl">Complete Your Profile</CardTitle>
                             <CardDescription className="font-mono">
-                                Add your GitHub username to participate in assessment rounds (LinkedIn optional)
+                                Add your GitHub username to participate in assessment rounds
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -354,7 +354,6 @@ export default function CandidateProfile() {
                                         value={dateOfBirth}
                                         onChange={(e) => setDateOfBirth(e.target.value)}
                                         className="font-mono"
-                                        required
                                     />
                                     <p className="text-xs text-muted-foreground font-mono">
                                         Must be 18+ to participate in paid assessments. Date of birth is permanently set and cannot be changed.
