@@ -165,6 +165,24 @@ export function IdeSandbox({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const terminalEndRef = React.useRef<HTMLDivElement>(null);
 
+  // Completely block all copy, cut, and paste operations inside the sandbox
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const preventClipboard = (e: ClipboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    el.addEventListener('copy', preventClipboard, true);
+    el.addEventListener('cut', preventClipboard, true);
+    el.addEventListener('paste', preventClipboard, true);
+    return () => {
+      el.removeEventListener('copy', preventClipboard, true);
+      el.removeEventListener('cut', preventClipboard, true);
+      el.removeEventListener('paste', preventClipboard, true);
+    };
+  }, []);
+
   // Auto-scroll terminal
   React.useEffect(() => {
     // block: 'nearest' ensures the scroll happens within the terminal div
@@ -584,6 +602,9 @@ export function IdeSandbox({
   return (
     <div 
       ref={containerRef}
+      onCopy={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onCut={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onPaste={(e) => { e.preventDefault(); e.stopPropagation(); }}
       className={cn(
         "flex flex-col border border-border bg-[#09090b] rounded-md overflow-hidden font-mono shadow-2xl relative",
         document.fullscreenElement ? "h-screen w-screen rounded-none" : "h-[700px]"
@@ -743,6 +764,16 @@ export function IdeSandbox({
                           }}
                           value={currentContent}
                           onChange={handleContentChange}
+                          onCopy={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          onCut={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          onPaste={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          onContextMenu={(e) => e.preventDefault()}
+                          onKeyDown={(e) => {
+                            if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'v' || e.key.toLowerCase() === 'x')) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }
+                          }}
                           spellCheck={false}
                           disabled={!activeFile || readOnly || isFetchingContent}
                           readOnly={readOnly}
