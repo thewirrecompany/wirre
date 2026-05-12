@@ -500,6 +500,54 @@ export function IdeSandbox({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const renderHighlightedCode = (code: string, filepath: string | undefined) => {
+    const ext = filepath?.split('.').pop()?.toLowerCase() || '';
+    const isPythonOrShell = ext === 'py' || ext === 'sh' || ext === 'yml' || ext === 'yaml';
+    const isHtml = ext === 'html' || ext === 'xml';
+    
+    return code.split('\n').map((line, lineIdx) => {
+      if (!line) return <div key={lineIdx} className="h-[20px] leading-[20px]"></div>;
+      
+      let commentPart = '';
+      let codePart = line;
+      
+      // Find comment delimiter safely outside standard URL/Hex patterns
+      const delim = isPythonOrShell ? '#' : isHtml ? '<!--' : '//';
+      const cIdx = line.indexOf(delim);
+      if (cIdx !== -1) {
+        const isHttp = delim === '//' && line.charAt(cIdx - 1) === ':';
+        const isHex = delim === '#' && /[0-9a-fA-F]/.test(line.charAt(cIdx + 1) || '');
+        if (!isHttp && (!isHex || isPythonOrShell)) {
+          codePart = line.substring(0, cIdx);
+          commentPart = line.substring(cIdx);
+        }
+      }
+
+      // Split code by string literals, keywords, numbers/booleans
+      const tokens = codePart.split(/(["'`][^"'`]*["'`])|(\b(?:import|export|const|let|var|function|return|if|else|for|while|class|interface|type|async|await|from|def|try|catch|switch|case|default|break)\b)|(\b(?:true|false|null|undefined|\d+(?:\.\d+)?)\b)/);
+
+      return (
+        <div key={lineIdx} className="h-[20px] leading-[20px] whitespace-pre font-mono text-gray-300">
+          {tokens.map((token, tIdx) => {
+            if (!token) return null;
+            const firstChar = token.charAt(0);
+            const isStr = (firstChar === '"' || firstChar === "'" || firstChar === '`') && token.length >= 2;
+            const isKw = /^(?:import|export|const|let|var|function|return|if|else|for|while|class|interface|type|async|await|from|def|try|catch|switch|case|default|break)$/.test(token);
+            const isLit = /^(?:true|false|null|undefined|\d+(?:\.\d+)?)$/.test(token);
+            
+            let colorClass = ""; 
+            if (isStr) colorClass = "text-amber-400"; // gorgeous vibrant gold/amber
+            else if (isKw) colorClass = "text-sky-400 font-medium"; // electric cyan/sky blue
+            else if (isLit) colorClass = "text-pink-400"; // vibrant pink
+            
+            return <span key={tIdx} className={colorClass}>{token}</span>;
+          })}
+          {commentPart && <span className="text-emerald-400 italic">{commentPart}</span>}
+        </div>
+      );
+    });
+  };
+
   return (
     <div 
       ref={containerRef}
@@ -618,26 +666,40 @@ export function IdeSandbox({
               <div className="h-full bg-[#09090b] relative">
                 {viewMode === 'editor' ? (
                   <div className="absolute top-4 left-4 right-4 bottom-4 font-mono text-sm overflow-auto">
-                    <div className="flex gap-4 min-h-full">
-                      {/* Line Numbers */}
-                      <div className="text-right text-muted-foreground/30 select-none pr-4 border-r border-border/50 pt-[2px]">
+                    <div className="flex gap-4 min-h-full w-max min-w-full">
+                      {/* Line Numbers (Sticky on horizontal scroll) */}
+                      <div className="text-right text-muted-foreground/30 select-none pr-4 border-r border-border/50 pt-[2px] sticky left-0 bg-[#09090b] z-20">
                         {Array.from({ length: Math.max(20, currentContent.split('\n').length) }).map((_, i) => (
-                          <div key={i} className="leading-snug h-[20px]">{i + 1}</div>
+                          <div key={i} className="h-[20px] leading-[20px]">{i + 1}</div>
                         ))}
                       </div>
-                      {/* Code Editor Mock */}
-                      <textarea 
-                        className={cn(
-                          "flex-1 bg-transparent text-gray-300 outline-none resize-none spellcheck-false whitespace-pre leading-snug overflow-hidden",
-                          isFetchingContent && "opacity-30"
-                        )}
-                        style={{ height: `${Math.max(20, currentContent.split('\n').length) * 20}px` }}
-                        value={currentContent}
-                        onChange={handleContentChange}
-                        spellCheck={false}
-                        disabled={!activeFile || readOnly || isFetchingContent}
-                        readOnly={readOnly}
-                      />
+                      {/* Code Editor Area with Live Syntax Highlighting Overlay */}
+                      <div className="flex-1 relative pt-[2px] min-w-max pr-4">
+                        {/* Syntax Highlighted Text Layer (Dictates Content Dimensions) */}
+                        <div 
+                          className="pointer-events-none select-none overflow-visible"
+                          style={{ minHeight: `${Math.max(20, currentContent.split('\n').length) * 20}px` }}
+                          aria-hidden="true"
+                        >
+                          {renderHighlightedCode(currentContent, activeFile?.path)}
+                        </div>
+                        
+                        {/* Transparent Editable Textarea Layer (Absolutely positioned to match expanded width) */}
+                        <textarea 
+                          className={cn(
+                            "absolute inset-x-0 top-[2px] bottom-0 w-full h-full bg-transparent text-transparent caret-white outline-none resize-none spellcheck-false whitespace-pre overflow-hidden block z-10 p-0 m-0 border-none rounded-none selection:bg-blue-500/30 font-mono text-sm",
+                            isFetchingContent && "opacity-30"
+                          )}
+                          style={{ 
+                            lineHeight: '20px',
+                          }}
+                          value={currentContent}
+                          onChange={handleContentChange}
+                          spellCheck={false}
+                          disabled={!activeFile || readOnly || isFetchingContent}
+                          readOnly={readOnly}
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
