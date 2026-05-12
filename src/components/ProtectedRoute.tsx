@@ -33,6 +33,8 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
         dashboardPath = '/superadmin/dashboard';
       } else if (profile.role === 'admin') {
         dashboardPath = '/admin/dashboard';
+      } else if (profile.role === 'candidate') {
+        dashboardPath = '/candidate/profile';
       } else {
         dashboardPath = `/${profile.role}/dashboard`;
       }

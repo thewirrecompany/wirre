@@ -128,7 +128,13 @@ export default function SetPassword() {
                 .single();
 
             const role = profileData?.role || 'candidate';
-            navigate(redirectTo ?? `/${role}/dashboard`);
+            if (redirectTo) {
+                navigate(redirectTo);
+            } else if (role === 'candidate') {
+                navigate('/candidate/profile');
+            } else {
+                navigate(`/${role}/profile`);
+            }
         } catch (error: any) {
             console.error('Set password error:', error);
             toast({
