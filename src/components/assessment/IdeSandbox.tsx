@@ -133,10 +133,11 @@ export function IdeSandbox({
   }, [modifiedFiles, assessmentTitle]);
   const [terminalInput, setTerminalInput] = useState('');
   const [terminalOutput, setTerminalOutput] = useState([
-    { type: 'info', text: 'WIRRE Cloud Sandbox Environment v1.0.5' },
+    { type: 'info', text: 'WIRRE Cloud Sandbox Environment v1.0.6' },
     { type: 'info', text: '=================================================================' },
     { type: 'command', text: '💡 CRITICAL GUIDANCE FOR DEVELOPERS:' },
     { type: 'info', text: '• Running "npm install" for the first time might take 2-3 minutes to provision native packages.' },
+    { type: 'info', text: '• DO NOT modify the default application listening port (e.g., 5173), as automated sandboxing binds directly to standard host ingress targets.' },
     { type: 'command', text: '• You MUST click the "Save" button in the navigation bar above to ensure your progress has been saved!' },
     { type: 'info', text: '=================================================================' }
   ]);
@@ -508,6 +509,7 @@ export function IdeSandbox({
         term.writeln('\x1b[1;33m=================================================================\x1b[0m');
         term.writeln('\x1b[1;36m💡 CRITICAL GUIDANCE FOR DEVELOPERS:\x1b[0m');
         term.writeln('\x1b[1;37m• Running \x1b[1;32mnpm install\x1b[1;37m for the first time might take \x1b[1;33m2-3 minutes\x1b[1;37m to provision native packages.\x1b[0m');
+        term.writeln('\x1b[1;37m• \x1b[1;31mDO NOT\x1b[1;37m modify default server ports (e.g., \x1b[1;33m5173\x1b[1;37m); ingress routing binds directly to standard host streams.\x1b[0m');
         term.writeln('\x1b[1;37m• You MUST click the \x1b[1;32m"Save"\x1b[1;37m button in the navigation bar above to ensure your progress has been saved!\x1b[0m');
         term.writeln('\x1b[1;33m=================================================================\x1b[0m');
       } catch (err) {
