@@ -32,7 +32,7 @@ function loadGithubPrivateKey(): string {
 export const config = {
   // DeepInfra
   deepinfraApiKey: requireEnv('DEEPINFRA_API_KEY'),
-  deepinfraModel: process.env.DEEPINFRA_MODEL || 'Qwen/Qwen3-235B-A22B-Instruct-2507',
+  deepinfraModel: process.env.DEEPINFRA_MODEL || 'openai/gpt-oss-120b',
 
   // Groq
   groqApiKey: process.env.GROQ_API_KEY || '',
