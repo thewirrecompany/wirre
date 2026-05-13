@@ -772,6 +772,39 @@ export function IdeSandbox({
                             if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'v' || e.key.toLowerCase() === 'x')) {
                               e.preventDefault();
                               e.stopPropagation();
+                              return;
+                            }
+                            if (e.key === 'Tab') {
+                              e.preventDefault();
+                              const target = e.currentTarget;
+                              const start = target.selectionStart;
+                              const end = target.selectionEnd;
+                              const newText = currentContent.substring(0, start) + "  " + currentContent.substring(end);
+                              setCurrentContent(newText);
+                              if (activeFile) {
+                                setModifiedFiles(prev => ({ ...prev, [activeFile.path]: newText }));
+                              }
+                              setTimeout(() => {
+                                target.selectionStart = target.selectionEnd = start + 2;
+                              }, 0);
+                            } else if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const target = e.currentTarget;
+                              const start = target.selectionStart;
+                              const end = target.selectionEnd;
+                              const lastNewline = currentContent.lastIndexOf('\n', start - 1);
+                              const currentLine = currentContent.substring(lastNewline + 1, start);
+                              const match = currentLine.match(/^\s*/);
+                              const indentation = match ? match[0] : "";
+                              const insertStr = "\n" + indentation;
+                              const newText = currentContent.substring(0, start) + insertStr + currentContent.substring(end);
+                              setCurrentContent(newText);
+                              if (activeFile) {
+                                setModifiedFiles(prev => ({ ...prev, [activeFile.path]: newText }));
+                              }
+                              setTimeout(() => {
+                                target.selectionStart = target.selectionEnd = start + insertStr.length;
+                              }, 0);
                             }
                           }}
                           spellCheck={false}

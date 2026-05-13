@@ -949,14 +949,14 @@ export default function Assessment() {
                                                 />;
                                             }
                                             const now = Date.now() + serverTimeOffset;
-                                            const finishedTime = codingFinishedAt ? new Date(codingFinishedAt).getTime() : 0;
+                                            const finishedTime = codingFinishedAt ? new Date(codingFinishedAt).getTime() : (_codingEndMs || 0);
                                             const waitingElapsedMs = finishedTime ? now - finishedTime : 0;
-                                            const threeHoursMs = 3 * 60 * 60 * 1000;
-                                            const remainingWaitingMs = Math.max(0, threeHoursMs - waitingElapsedMs);
+                                            const tenMinutesMs = 10 * 60 * 1000;
+                                            const remainingWaitingMs = Math.max(0, tenMinutesMs - waitingElapsedMs);
 
-                                            // Auto-finalize if 3 hours pass
-                                            if (finishedTime && waitingElapsedMs > threeHoursMs && !skippedPeerReview && !submittedPeerReview) {
-                                              console.log('3-hour waiting timeout reached (scheduled phase), auto-finalizing...');
+                                            // Auto-finalize if 10 minutes pass
+                                            if (finishedTime && waitingElapsedMs > tenMinutesMs && !skippedPeerReview && !submittedPeerReview) {
+                                              console.log('10-minute waiting timeout reached (scheduled phase), auto-finalizing...');
                                               supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id }).then(({ error }) => {
                                                 if (!error) {
                                                   if (mounted) {
@@ -973,13 +973,13 @@ export default function Assessment() {
                                                         <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
                                                         <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Peer Review Phase</h3>
                                                         <p className="font-mono text-xs text-muted-foreground">Waiting for a competitor to finish... peer-review round will be available soon</p>
-                                                        {finishedTime && (
-                                                          <div className="mt-2 p-2 bg-yellow-500/5 border border-yellow-500/10 rounded-sm">
+                                                        {finishedTime > 0 && (
+                                                          <div className="mt-2 p-2 bg-yellow-500/5 border border-yellow-500/10 rounded-sm animate-in fade-in">
                                                               <p className="text-[10px] font-mono text-yellow-500/60 uppercase tracking-widest">
                                                                 Auto-finalizing Round in {formatTimeRemaining(remainingWaitingMs)}
                                                               </p>
                                                               <p className="text-[9px] font-mono text-muted-foreground mt-1 max-w-[280px] leading-relaxed mx-auto">
-                                                                (If no competitor is found within 3 hours, round ends. This "0" peer score is marked as <strong>Not Assigned</strong>, distinct from a performance-based 0.)
+                                                                (If no competitor is found within 10 minutes, round ends. This "0" peer score is marked as <strong>Not Assigned</strong>, distinct from a performance-based 0.)
                                                               </p>
                                                           </div>
                                                         )}
@@ -1011,14 +1011,14 @@ export default function Assessment() {
                                                 />;
                                             } else {
                                               const now = Date.now() + serverTimeOffset;
-                                              const finishedTime = codingFinishedAt ? new Date(codingFinishedAt).getTime() : 0;
+                                              const finishedTime = codingFinishedAt ? new Date(codingFinishedAt).getTime() : (_codingEndMs || 0);
                                               const waitingElapsedMs = finishedTime ? now - finishedTime : 0;
-                                              const threeHoursMs = 3 * 60 * 60 * 1000;
-                                              const remainingWaitingMs = Math.max(0, threeHoursMs - waitingElapsedMs);
+                                              const tenMinutesMs = 10 * 60 * 1000;
+                                              const remainingWaitingMs = Math.max(0, tenMinutesMs - waitingElapsedMs);
 
-                                              // Auto-finalize if 3 hours pass
-                                              if (finishedTime && waitingElapsedMs > threeHoursMs && !skippedPeerReview && !submittedPeerReview) {
-                                                console.log('3-hour waiting timeout reached, auto-finalizing...');
+                                              // Auto-finalize if 10 minutes pass
+                                              if (finishedTime && waitingElapsedMs > tenMinutesMs && !skippedPeerReview && !submittedPeerReview) {
+                                                console.log('10-minute waiting timeout reached, auto-finalizing...');
                                                 supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id }).then(({ error }) => {
                                                   if (!error && isMounted.current) {
                                                     setIsFinished(true);
@@ -1033,13 +1033,13 @@ export default function Assessment() {
                                                           <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
                                                           <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Coding Submitted</h3>
                                                           <p className="font-mono text-xs text-muted-foreground">Waiting for a competitor to finish... peer review will be assigned shortly.</p>
-                                                          {finishedTime && (
-                                                            <div className="mt-2 p-2 bg-yellow-500/5 border border-yellow-500/10 rounded-sm">
+                                                          {finishedTime > 0 && (
+                                                            <div className="mt-2 p-2 bg-yellow-500/5 border border-yellow-500/10 rounded-sm animate-in fade-in">
                                                               <p className="text-[10px] font-mono text-yellow-500/60 uppercase tracking-widest">
                                                                 Auto-finalizing Round in {formatTimeRemaining(remainingWaitingMs)}
                                                               </p>
                                                               <p className="text-[9px] font-mono text-muted-foreground mt-1">
-                                                                (If no competitor is found within 3 hours, round ends. This "0" peer score is marked as <strong>Not Assigned</strong>, distinct from a performance-based 0.)
+                                                                (If no competitor is found within 10 minutes, round ends. This "0" peer score is marked as <strong>Not Assigned</strong>, distinct from a performance-based 0.)
                                                               </p>
                                                             </div>
                                                           )}
