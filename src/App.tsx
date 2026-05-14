@@ -38,6 +38,7 @@ const ViewAsCompany = lazy(() => import("./pages/admin/ViewAsCompany"));
 const ViewAsCandidate = lazy(() => import("./pages/admin/ViewAsCandidate"));
 const AssessmentSetup = lazy(() => import("./pages/admin/AssessmentSetup"));
 const AdminAssessmentDetail = lazy(() => import("./pages/admin/AssessmentDetail"));
+const IdeTest = lazy(() => import("./pages/admin/IdeTest"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Maintenance = lazy(() => import("./pages/Maintenance"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
@@ -245,6 +246,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRole="admin">
                     <AssessmentSetup />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/ide-test"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <IdeTest />
                   </ProtectedRoute>
                 }
               />
