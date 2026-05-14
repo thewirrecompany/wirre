@@ -18,8 +18,12 @@ import {
   ExternalLink,
   Globe,
   Code,
-  RefreshCw
+  RefreshCw,
+  Plus,
+  FilePlus,
+  Pencil
 } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 import { 
   ResizableHandle, 
   ResizablePanel, 
@@ -57,6 +61,7 @@ interface FileNode {
   decoded_content?: string;
   sha?: string;
   children?: FileNode[];
+  is_custom?: boolean;
 }
 
 interface IdeSandboxProps {
@@ -128,9 +133,36 @@ export function IdeSandbox({
     }
   });
 
+  const [customFiles, setCustomFiles] = useState<FileNode[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(`wirre-sandbox-custom-${assessmentTitle}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [deletedPaths, setDeletedPaths] = useState<string[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(`wirre-sandbox-deleted-${assessmentTitle}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [isAddingFile, setIsAddingFile] = useState(false);
+  const [newFilePathInput, setNewFilePathInput] = useState('');
+  const [renamingTarget, setRenamingTarget] = useState<FileNode | null>(null);
+  const [newFileNameInput, setNewFileNameInput] = useState('');
+  const [movingTarget, setMovingTarget] = useState<FileNode | null>(null);
+  const [targetFolderInput, setTargetFolderInput] = useState('');
+
   React.useEffect(() => {
     sessionStorage.setItem(`wirre-sandbox-modified-${assessmentTitle}`, JSON.stringify(modifiedFiles));
-  }, [modifiedFiles, assessmentTitle]);
+    sessionStorage.setItem(`wirre-sandbox-custom-${assessmentTitle}`, JSON.stringify(customFiles));
+    sessionStorage.setItem(`wirre-sandbox-deleted-${assessmentTitle}`, JSON.stringify(deletedPaths));
+  }, [modifiedFiles, customFiles, deletedPaths, assessmentTitle]);
   const [terminalInput, setTerminalInput] = useState('');
   const [terminalOutput, setTerminalOutput] = useState([
     { type: 'info', text: 'WIRRE Cloud Sandbox Environment v1.0.6' },
@@ -213,6 +245,58 @@ export function IdeSandbox({
     }
   };
 
+  // Dynamically compute merged unified workspace tree
+  const mergedFiles = React.useMemo(() => {
+    const cloneNodes = (nodes: FileNode[]): FileNode[] => {
+      return nodes
+        .filter(n => !deletedPaths.includes(n.path))
+        .map(n => ({
+          ...n,
+          children: n.children ? cloneNodes(n.children) : undefined
+        }));
+    };
+
+    const tree = cloneNodes(files || []);
+
+    const insertIntoTree = (currentLevel: FileNode[], parts: string[], currentPath: string, fileToInsert: FileNode) => {
+      if (parts.length === 1) {
+        const existingIdx = currentLevel.findIndex(n => n.name === parts[0] && n.type === 'file');
+        if (existingIdx >= 0) {
+          currentLevel[existingIdx] = { ...currentLevel[existingIdx], ...fileToInsert };
+        } else {
+          currentLevel.push(fileToInsert);
+        }
+        return;
+      }
+
+      const dirName = parts[0];
+      const nextPath = currentPath ? `${currentPath}/${dirName}` : dirName;
+      let dirNode = currentLevel.find(n => n.name === dirName && n.type === 'dir');
+      
+      if (!dirNode) {
+        dirNode = {
+          name: dirName,
+          type: 'dir',
+          path: nextPath,
+          children: []
+        };
+        currentLevel.push(dirNode);
+      }
+
+      if (!dirNode.children) dirNode.children = [];
+      insertIntoTree(dirNode.children, parts.slice(1), nextPath, fileToInsert);
+    };
+
+    for (const cf of customFiles) {
+      if (!cf || !cf.path) continue;
+      const parts = cf.path.split('/');
+      const content = modifiedFiles[cf.path] !== undefined ? modifiedFiles[cf.path] : cf.decoded_content;
+      insertIntoTree(tree, parts, '', { ...cf, decoded_content: content });
+    }
+
+    return tree;
+  }, [files, customFiles, modifiedFiles, deletedPaths]);
+
   function findFileNode(nodes: FileNode[], path: string): FileNode | null {
     for (const node of nodes) {
        if (node.path === path) return node;
@@ -224,20 +308,169 @@ export function IdeSandbox({
     return null;
   }
 
+  const handleCreateCustomFile = () => {
+    const cleanPath = newFilePathInput.trim().replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!cleanPath) return;
+
+    const exists = customFiles.some(f => f.path.toLowerCase() === cleanPath.toLowerCase()) || findFileNode(files, cleanPath) !== null;
+    if (exists && !deletedPaths.includes(cleanPath)) {
+      toast({ title: 'Duplicate Path', description: 'A file already active at this path.', variant: 'destructive' });
+      return;
+    }
+
+    const name = cleanPath.split('/').pop() || 'untitled';
+    const ext = name.split('.').pop()?.toLowerCase() || '';
+    let initialContent = `// Created custom file: ${name}\n`;
+    if (ext === 'py') initialContent = `# Created custom file: ${name}\n`;
+    else if (ext === 'html') initialContent = `<!-- Created custom file: ${name} -->\n`;
+    else if (ext === 'css') initialContent = `/* Created custom file: ${name} */\n`;
+
+    const newCustom: FileNode = {
+      name,
+      type: 'file',
+      path: cleanPath,
+      decoded_content: initialContent,
+      is_custom: true
+    };
+
+    // Remove from deletedPaths if restoring/overwriting
+    setDeletedPaths(prev => prev.filter(p => p !== cleanPath));
+    setCustomFiles(prev => [...prev, newCustom]);
+    setModifiedFiles(prev => ({ ...prev, [cleanPath]: initialContent }));
+    setIsAddingFile(false);
+    setNewFilePathInput('');
+    onFileSelect(newCustom);
+    toast({ title: 'Workspace File Created', description: `Successfully mounted ${cleanPath}` });
+  };
+
+  const submitRenameCustomFile = () => {
+    if (!renamingTarget) return;
+    const cleanName = newFileNameInput.trim().replace(/[\/\\]/g, '');
+    if (!cleanName) return;
+
+    const parts = renamingTarget.path.split('/');
+    parts[parts.length - 1] = cleanName;
+    const newPath = parts.join('/');
+
+    if (customFiles.some(f => f.path.toLowerCase() === newPath.toLowerCase()) || findFileNode(files, newPath) !== null) {
+      toast({ title: 'Name Exists', description: 'Target path already maps to active node.', variant: 'destructive' });
+      return;
+    }
+
+    const currentContent = modifiedFiles[renamingTarget.path] !== undefined ? modifiedFiles[renamingTarget.path] : renamingTarget.decoded_content || '';
+    
+    setCustomFiles(prev => prev.map(f => f.path === renamingTarget.path ? { ...f, name: cleanName, path: newPath } : f));
+    setModifiedFiles(prev => {
+      const copy = { ...prev };
+      copy[newPath] = currentContent;
+      delete copy[renamingTarget.path];
+      return copy;
+    });
+
+    if (activeFile?.path === renamingTarget.path) {
+      onFileSelect({ ...renamingTarget, name: cleanName, path: newPath, decoded_content: currentContent });
+    }
+    setRenamingTarget(null);
+    setNewFileNameInput('');
+    toast({ title: 'Custom File Renamed', description: `Updated reference path to ${newPath}` });
+  };
+
+  const submitMoveFile = () => {
+    if (!movingTarget) return;
+    const cleanFolder = targetFolderInput.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+    const newPath = cleanFolder ? `${cleanFolder}/${movingTarget.name}` : movingTarget.name;
+
+    if (movingTarget.path === newPath) {
+      setMovingTarget(null);
+      return;
+    }
+
+    if (customFiles.some(f => f.path.toLowerCase() === newPath.toLowerCase()) || (findFileNode(files, newPath) !== null && !deletedPaths.includes(newPath))) {
+      toast({ title: 'Path Unavailable', description: 'Destination active under matching name.', variant: 'destructive' });
+      return;
+    }
+
+    const content = modifiedFiles[movingTarget.path] !== undefined ? modifiedFiles[movingTarget.path] : movingTarget.decoded_content || '';
+
+    if (movingTarget.is_custom) {
+      setCustomFiles(prev => prev.map(f => f.path === movingTarget.path ? { ...f, path: newPath } : f));
+    } else {
+      // It's a base original asset: mark old path as deleted and inject custom mapped clone
+      setDeletedPaths(prev => [...prev, movingTarget.path]);
+      setCustomFiles(prev => [...prev, { ...movingTarget, path: newPath, is_custom: true, decoded_content: content }]);
+    }
+
+    setModifiedFiles(prev => {
+      const copy = { ...prev };
+      copy[newPath] = content;
+      delete copy[movingTarget.path];
+      return copy;
+    });
+
+    if (activeFile?.path === movingTarget.path) {
+      onFileSelect({ ...movingTarget, path: newPath, decoded_content: content });
+    }
+    setMovingTarget(null);
+    setTargetFolderInput('');
+    toast({ title: 'File Relocated', description: `Transferred asset seamlessly to ${newPath}` });
+  };
+
+  const handleDropFile = (draggedPath: string, targetFolderPath: string) => {
+    if (!draggedPath) return;
+    const draggedNode = findFileNode(mergedFiles, draggedPath);
+    if (!draggedNode || draggedNode.type === 'dir') return; // Only files can be dragged
+
+    const cleanFolder = targetFolderPath.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+    const newPath = cleanFolder ? `${cleanFolder}/${draggedNode.name}` : draggedNode.name;
+
+    if (draggedNode.path.toLowerCase() === newPath.toLowerCase()) return;
+
+    if (customFiles.some(f => f.path.toLowerCase() === newPath.toLowerCase()) || (findFileNode(files, newPath) !== null && !deletedPaths.includes(newPath))) {
+      toast({ title: 'Relocation Blocked', description: 'Destination already maps active item matching this name.', variant: 'destructive' });
+      return;
+    }
+
+    const content = modifiedFiles[draggedNode.path] !== undefined ? modifiedFiles[draggedNode.path] : draggedNode.decoded_content || '';
+
+    if (draggedNode.is_custom) {
+      setCustomFiles(prev => prev.map(f => f.path === draggedNode.path ? { ...f, path: newPath } : f));
+    } else {
+      setDeletedPaths(prev => [...prev, draggedNode.path]);
+      setCustomFiles(prev => [...prev, { ...draggedNode, path: newPath, is_custom: true, decoded_content: content }]);
+    }
+
+    setModifiedFiles(prev => {
+      const copy = { ...prev };
+      copy[newPath] = content;
+      delete copy[draggedNode.path];
+      return copy;
+    });
+
+    if (activeFile?.path === draggedNode.path) {
+      onFileSelect({ ...draggedNode, path: newPath, decoded_content: content });
+    }
+    toast({ title: 'Relocated Asset', description: `Moved ${draggedNode.name} to ${cleanFolder || 'workspace root'}` });
+  };
+
   const handleSave = async () => {
-    // Collect all changes
-    const changes = Object.entries(modifiedFiles).map(([path, content]) => {
-      const file = findFileNode(files, path);
+    const pathsToSave = new Set<string>();
+    Object.keys(modifiedFiles).forEach(p => pathsToSave.add(p));
+    customFiles.forEach(cf => {
+      if (!deletedPaths.includes(cf.path)) pathsToSave.add(cf.path);
+    });
+
+    const changes = Array.from(pathsToSave).map(path => {
+      const file = findFileNode(mergedFiles, path);
+      const content = modifiedFiles[path] !== undefined ? modifiedFiles[path] : file?.decoded_content || '';
       return { file, newContent: content };
     }).filter(c => c.file !== null) as { file: FileNode, newContent: string }[];
-    
+
     if (changes.length === 0 && activeFile) {
        await onSave([{ file: activeFile, newContent: currentContent }]);
        return;
     }
 
     await onSave(changes);
-    // Clear modified files after successful save
     setModifiedFiles({});
   };
 
@@ -497,8 +730,8 @@ export function IdeSandbox({
           setPreviewUrl(url);
         });
 
-        // 3. Mount Files
-        const tree = mapFilesToTree(files);
+        // 3. Mount Files dynamically from computed tree mapping
+        const tree = mapFilesToTree(mergedFiles);
         await wc.mount(tree);
 
         // 4. Start Shell
@@ -705,16 +938,126 @@ export function IdeSandbox({
       <ResizablePanelGroup direction="horizontal">
         {/* --- Sidebar --- */}
         <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-          <div className="h-full border-r border-border bg-[#09090b]">
-            <div className="p-3 uppercase text-[10px] tracking-widest text-muted-foreground font-bold flex items-center gap-2 border-b border-border/50">
-              <Files className="h-3 w-3" />
-              Explorer
+          <div className="h-full border-r border-border bg-[#09090b] flex flex-col overflow-hidden">
+            <div className="p-2.5 uppercase text-[10px] tracking-widest text-muted-foreground font-bold flex items-center justify-between border-b border-border/50 bg-[#18181b] shrink-0">
+              <span className="flex items-center gap-2">
+                <Files className="h-3 w-3" />
+                Explorer
+              </span>
+              {!readOnly && (
+                <div className="flex items-center gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all rounded-sm"
+                    onClick={() => setIsAddingFile(true)}
+                    title="New File..."
+                  >
+                    <FilePlus className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all rounded-sm"
+                    onClick={() => {
+                      sessionStorage.removeItem(`wirre-sandbox-modified-${assessmentTitle}`);
+                      sessionStorage.removeItem(`wirre-sandbox-custom-${assessmentTitle}`);
+                      sessionStorage.removeItem(`wirre-sandbox-deleted-${assessmentTitle}`);
+                      setModifiedFiles({});
+                      setCustomFiles([]);
+                      setDeletedPaths([]);
+                      toast({ title: 'Sandbox Cache Wiped', description: 'Restored pristine base structure mappings.' });
+                    }}
+                    title="Reset Session Modifications Cache"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
             </div>
-            <ScrollArea className="h-[calc(100%-40px)]">
-              <div className="p-2 space-y-1">
+
+            {/* Modal actions / prompts rendering inline */}
+            {isAddingFile && (
+              <div className="p-2 bg-black/40 border-b border-border/50 space-y-1.5 shrink-0 animate-in fade-in duration-150">
+                <div className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider">File Path & Ext</div>
+                <input
+                  type="text"
+                  className="w-full bg-[#09090b] border border-border rounded px-2 py-0.5 text-xs text-foreground font-mono outline-none focus:border-primary"
+                  placeholder="e.g. src/api.ts or test.py"
+                  value={newFilePathInput}
+                  onChange={(e) => setNewFilePathInput(e.target.value)}
+                  autoFocus
+                  spellCheck={false}
+                />
+                <div className="flex justify-end gap-1 pt-0.5">
+                  <Button variant="ghost" size="sm" className="h-4 px-1.5 text-[9px]" onClick={() => { setIsAddingFile(false); setNewFilePathInput(''); }}>Cancel</Button>
+                  <Button variant="default" size="sm" className="h-4 px-2 text-[9px] bg-primary text-primary-foreground font-bold" onClick={handleCreateCustomFile}>Add</Button>
+                </div>
+              </div>
+            )}
+
+            {renamingTarget && (
+              <div className="p-2 bg-amber-500/10 border-b border-amber-500/20 space-y-1.5 shrink-0 animate-in fade-in duration-150">
+                <div className="text-[9px] text-amber-500 font-mono uppercase tracking-wider">Rename: {renamingTarget.name}</div>
+                <input
+                  type="text"
+                  className="w-full bg-[#09090b] border border-amber-500/30 rounded px-2 py-0.5 text-xs text-foreground font-mono outline-none focus:border-amber-500"
+                  placeholder="New filename..."
+                  value={newFileNameInput}
+                  onChange={(e) => setNewFileNameInput(e.target.value)}
+                  autoFocus
+                  spellCheck={false}
+                />
+                <div className="flex justify-end gap-1 pt-0.5">
+                  <Button variant="ghost" size="sm" className="h-4 px-1.5 text-[9px]" onClick={() => { setRenamingTarget(null); setNewFileNameInput(''); }}>Cancel</Button>
+                  <Button variant="default" size="sm" className="h-4 px-2 text-[9px] bg-amber-500 text-black font-bold hover:bg-amber-400" onClick={submitRenameCustomFile}>Save</Button>
+                </div>
+              </div>
+            )}
+
+            {movingTarget && (
+              <div className="p-2 bg-blue-500/10 border-b border-blue-500/20 space-y-1.5 shrink-0 animate-in fade-in duration-150">
+                <div className="text-[9px] text-blue-400 font-mono uppercase tracking-wider">Move: {movingTarget.name}</div>
+                <input
+                  type="text"
+                  className="w-full bg-[#09090b] border border-blue-500/30 rounded px-2 py-0.5 text-xs text-foreground font-mono outline-none focus:border-blue-400"
+                  placeholder="Target directory (e.g. src/libs)"
+                  value={targetFolderInput}
+                  onChange={(e) => setTargetFolderInput(e.target.value)}
+                  autoFocus
+                  spellCheck={false}
+                />
+                <div className="flex justify-end gap-1 pt-0.5">
+                  <Button variant="ghost" size="sm" className="h-4 px-1.5 text-[9px]" onClick={() => { setMovingTarget(null); setTargetFolderInput(''); }}>Cancel</Button>
+                  <Button variant="default" size="sm" className="h-4 px-2 text-[9px] bg-blue-500 text-white font-bold hover:bg-blue-400" onClick={submitMoveFile}>Apply</Button>
+                </div>
+              </div>
+            )}
+
+            <ScrollArea className="flex-1">
+              <div 
+                className="p-2 space-y-0.5 min-h-[150px]"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const draggedPath = e.dataTransfer.getData('text/plain');
+                  if (draggedPath) handleDropFile(draggedPath, '');
+                }}
+              >
                 {isLoading && <div className="p-4 text-[10px] text-muted-foreground animate-pulse">Scanning files...</div>}
-                {files.map((file, i) => (
-                  <FileItem key={i} item={file} depth={0} activeFile={activeFile} onClick={onFileSelect} />
+                {mergedFiles.map((file, i) => (
+                  <FileItem 
+                    key={i} 
+                    item={file} 
+                    depth={0} 
+                    folderPath=""
+                    activeFile={activeFile} 
+                    onClick={onFileSelect} 
+                    onRename={(f) => { setRenamingTarget(f); setNewFileNameInput(f.name); }}
+                    onMove={(f) => { setMovingTarget(f); const parts = f.path.split('/'); setTargetFolderInput(parts.slice(0, -1).join('/')); }}
+                    onDropFile={handleDropFile}
+                    readOnly={readOnly}
+                  />
                 ))}
               </div>
             </ScrollArea>
@@ -975,16 +1318,66 @@ export function IdeSandbox({
   );
 }
 
-function FileItem({ item, depth, activeFile, onClick }: { item: FileNode, depth: number, activeFile: FileNode | null, onClick: (f: FileNode) => void }) {
+function FileItem({ 
+  item, 
+  depth, 
+  folderPath,
+  activeFile, 
+  onClick, 
+  onRename, 
+  onMove,
+  onDropFile,
+  readOnly 
+}: { 
+  item: FileNode; 
+  depth: number; 
+  folderPath?: string;
+  activeFile: FileNode | null; 
+  onClick: (f: FileNode) => void;
+  onRename?: (f: FileNode) => void;
+  onMove?: (f: FileNode) => void;
+  onDropFile?: (draggedPath: string, targetFolder: string) => void;
+  readOnly?: boolean;
+}) {
   const [isOpen, setIsOpen] = useState(true);
+  const [isDragOver, setIsDragOver] = useState(false);
   const isActive = activeFile?.path === item.path;
+
+  // Accurately resolve true structural directory bounds for nesting targets
+  const nodePath = item.type === 'dir' 
+    ? (folderPath ? `${folderPath}/${item.name}` : item.name)
+    : (folderPath || '');
 
   return (
     <div>
       <div 
+        draggable={!readOnly && item.type === 'file'}
+        onDragStart={(e) => {
+          e.stopPropagation();
+          e.dataTransfer.setData('text/plain', item.path);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (item.type === 'dir') setIsDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.stopPropagation();
+          if (item.type === 'dir') setIsDragOver(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragOver(false);
+          const draggedPath = e.dataTransfer.getData('text/plain');
+          if (draggedPath && draggedPath !== item.path) {
+            onDropFile?.(draggedPath, nodePath);
+          }
+        }}
         className={cn(
-          "flex items-center gap-2 px-2 py-1 cursor-pointer rounded-sm hover:bg-white/5 transition-colors group",
-          isActive && item.type !== 'dir' && "bg-primary/10 text-primary border-l-2 border-primary"
+          "flex items-center gap-2 px-2 py-1 cursor-pointer rounded-sm hover:bg-white/5 transition-colors group relative",
+          isActive && item.type !== 'dir' && "bg-primary/10 text-primary border-l-2 border-primary",
+          isDragOver && item.type === 'dir' && "bg-blue-500/20 border border-blue-400"
         )}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={() => {
@@ -993,25 +1386,58 @@ function FileItem({ item, depth, activeFile, onClick }: { item: FileNode, depth:
         }}
       >
         {item.type === 'dir' ? (
-          isOpen ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />
+          isOpen ? <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
         ) : (
-          <FileCode className={cn("h-3 w-3 text-muted-foreground", isActive && "text-primary")} />
+          <FileCode className={cn("h-3 w-3 text-muted-foreground shrink-0", isActive && "text-primary")} />
         )}
         
-        {item.type === 'dir' ? (
-          <Folder className="h-3 w-3 text-blue-400 fill-current opacity-50" />
-        ) : (
-          null
+        {item.type === 'dir' && (
+          <Folder className="h-3 w-3 text-blue-400 fill-current opacity-50 shrink-0" />
         )}
-        <span className={cn("text-xs", isActive && item.type !== 'dir' ? "font-bold" : "text-gray-400 group-hover:text-gray-200")}>
+        <span className={cn("text-xs truncate pr-12", isActive && item.type !== 'dir' ? "font-bold" : "text-gray-400 group-hover:text-gray-200")}>
           {item.name}
         </span>
+
+        {/* Hover quick-actions overlay */}
+        {!readOnly && (
+          <div className="absolute right-1.5 hidden group-hover:flex items-center gap-1 pl-1 bg-[#09090b]/90 backdrop-blur-sm rounded">
+            {item.type === 'file' && (
+              <span 
+                className="p-0.5 text-muted-foreground hover:text-white transition-colors"
+                title="Relocate Asset (Move)"
+                onClick={(e) => { e.stopPropagation(); onMove?.(item); }}
+              >
+                <Folder className="h-2.5 w-2.5 text-blue-400" />
+              </span>
+            )}
+            {item.type === 'file' && item.is_custom && (
+              <span 
+                className="p-0.5 text-muted-foreground hover:text-white transition-colors"
+                title="Rename Customized Asset"
+                onClick={(e) => { e.stopPropagation(); onRename?.(item); }}
+              >
+                <Pencil className="h-2.5 w-2.5 text-amber-400" />
+              </span>
+            )}
+          </div>
+        )}
       </div>
       
       {item.type === 'dir' && isOpen && item.children && (
-        <div className="mt-1">
+        <div className="mt-0.5">
           {item.children.map((child: FileNode, i: number) => (
-            <FileItem key={i} item={child} depth={depth + 1} activeFile={activeFile} onClick={onClick} />
+            <FileItem 
+              key={i} 
+              item={child} 
+              depth={depth + 1} 
+              folderPath={item.type === 'dir' ? nodePath : folderPath}
+              activeFile={activeFile} 
+              onClick={onClick} 
+              onRename={onRename}
+              onMove={onMove}
+              onDropFile={onDropFile}
+              readOnly={readOnly}
+            />
           ))}
         </div>
       )}

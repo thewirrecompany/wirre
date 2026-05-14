@@ -700,18 +700,28 @@ export default function AdminDashboard() {
                   <Badge className="bg-primary hover:bg-primary px-3 py-1 text-[10px] font-black tracking-[0.2em] rounded-sm uppercase">Superadmin</Badge>
                 )}
               </div>
-              <p className="text-white font-mono text-xs md:text-sm tracking-widest uppercase font-bold">
+              <p className="text-white font-mono text-xs md:text-sm tracking-widest uppercase font-bold mb-4 md:mb-0">
                 Manage companies, assessments and user permissions
               </p>
             </div>
-            {isSuperadmin && (
-              <div className="hidden lg:block p-4 border border-primary/20 bg-primary/5 rounded-sm">
-                <p className="text-[10px] font-mono text-primary uppercase tracking-[0.1em] leading-tight text-right text-muted-foreground">
-                  System Authorization: Level 0<br />
-                  <span className="opacity-60 text-[9px]">All protocols editable</span>
-                </p>
-              </div>
-            )}
+            <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0">
+              <Button
+                onClick={() => navigate('/admin/ide-test')}
+                variant="outline"
+                className="w-full sm:w-auto font-mono text-xs uppercase tracking-wider bg-primary/10 hover:bg-primary/20 text-primary border-primary/30"
+              >
+                <Terminal className="w-4 h-4 mr-2" />
+                Direct IDE Sandbox Test
+              </Button>
+              {isSuperadmin && (
+                <div className="hidden lg:block p-4 border border-primary/20 bg-primary/5 rounded-sm">
+                  <p className="text-[10px] font-mono text-primary uppercase tracking-[0.1em] leading-tight text-right text-muted-foreground">
+                    System Authorization: Level 0<br />
+                    <span className="opacity-60 text-[9px]">All protocols editable</span>
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
