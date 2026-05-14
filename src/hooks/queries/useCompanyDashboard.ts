@@ -18,7 +18,7 @@ export async function fetchCompanyDashboard(ownerId: string): Promise<CompanyDas
   const [{ data: aData, error: aErr }, { data: cData }] = await Promise.all([
     supabase
       .from('assessments')
-      .select('id,title,positions,created_at,status,start_at,payment_confirmed,is_paid')
+      .select('id,title,positions,created_at,status,start_at,duration_minutes,payment_confirmed,is_paid')
       .eq('company_user_id', ownerId)
       .order('created_at', { ascending: false }),
     supabase
