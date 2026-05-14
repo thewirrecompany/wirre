@@ -711,7 +711,7 @@ export default function AdminDashboard() {
                 className="w-full sm:w-auto font-mono text-xs uppercase tracking-wider bg-primary/10 hover:bg-primary/20 text-primary border-primary/30"
               >
                 <Terminal className="w-4 h-4 mr-2" />
-                Direct IDE Sandbox Test
+                  Test IDE
               </Button>
               {isSuperadmin && (
                 <div className="hidden lg:block p-4 border border-primary/20 bg-primary/5 rounded-sm">
