@@ -29,7 +29,14 @@ export default function AssessmentDetail() {
         const { data, error } = await supabase.from('assessments').select('*').eq('id', id).single();
         if (error) throw error;
         if (!mounted) return;
-        setAssessment(data);
+        const fetched = data ? { ...data } : null;
+        if (fetched && fetched.status !== 'completed' && fetched.start_at && fetched.duration_minutes) {
+          const endMs = new Date(fetched.start_at).getTime() + (fetched.duration_minutes * 60 * 1000) + (60 * 60 * 1000);
+          if (Date.now() > endMs) {
+            fetched.status = 'completed';
+          }
+        }
+        setAssessment(fetched);
 
         if (data?.company_user_id) {
           try {

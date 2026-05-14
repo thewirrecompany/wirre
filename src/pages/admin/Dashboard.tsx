@@ -145,10 +145,21 @@ export default function AdminDashboard() {
         }
       }
 
-      const enrichedData = (data || []).map(a => ({
-        ...a,
-        company_name: companiesMap[a.company_user_id] || 'Unknown'
-      }));
+      const nowMs = Date.now();
+      const enrichedData = (data || []).map(a => {
+        let status = a.status;
+        if (status !== 'completed' && a.start_at && a.duration_minutes) {
+          const endMs = new Date(a.start_at).getTime() + (a.duration_minutes * 60 * 1000) + (60 * 60 * 1000);
+          if (nowMs > endMs) {
+            status = 'completed';
+          }
+        }
+        return {
+          ...a,
+          status,
+          company_name: companiesMap[a.company_user_id] || 'Unknown'
+        };
+      });
 
       setAssessments(enrichedData);
     } catch (err) {
@@ -212,8 +223,16 @@ export default function AdminDashboard() {
           );
 
           console.log(`Assessment ${assessment.title} has ${enrichedRegs.length} registrations:`, enrichedRegs);
+          let status = assessment.status;
+          if (status !== 'completed' && assessment.start_at && assessment.duration_minutes) {
+            const endMs = new Date(assessment.start_at).getTime() + (assessment.duration_minutes * 60 * 1000) + (60 * 60 * 1000);
+            if (Date.now() > endMs) {
+              status = 'completed';
+            }
+          }
           return {
             ...assessment,
+            status,
             assessment_registrations: enrichedRegs,
             company_name: companiesMap[assessment.company_user_id] || 'Unknown'
           };

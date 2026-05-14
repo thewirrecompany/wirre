@@ -29,7 +29,17 @@ export async function fetchCompanyDashboard(ownerId: string): Promise<CompanyDas
   ]);
 
   if (aErr) throw aErr;
-  const aList = aData || [];
+  const nowMs = Date.now();
+  const aList = (aData || []).map((a: any) => {
+    let status = a.status;
+    if (status !== 'completed' && a.start_at && a.duration_minutes) {
+      const endMs = new Date(a.start_at).getTime() + (a.duration_minutes * 60 * 1000) + (60 * 60 * 1000);
+      if (nowMs > endMs) {
+        status = 'completed';
+      }
+    }
+    return { ...a, status };
+  });
 
   const assessmentIds = aList.map((a: any) => a.id).filter(Boolean);
 
@@ -38,7 +48,7 @@ export async function fetchCompanyDashboard(ownerId: string): Promise<CompanyDas
   const upcoming = aList.filter((a: any) =>
     a.status !== 'completed' && a.start_at && new Date(a.start_at) > now
   ).length;
-  const activeAss = aList.filter((a: any) => a.status === 'published').length;
+  const activeAss = aList.filter((a: any) => a.status === 'published' || a.status === 'started').length;
   const pastAss = aList.filter((a: any) => a.status === 'completed').length;
 
   // Fetch registrations + audits in parallel
