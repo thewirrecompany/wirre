@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  FileCode, 
-  Folder, 
-  ChevronRight, 
-  ChevronDown, 
+import {
+  FileCode,
+  Folder,
+  ChevronRight,
+  ChevronDown,
   ChevronUp,
-  Play, 
-  Save, 
-  Terminal as TerminalIcon, 
-  Maximize2, 
+  Play,
+  Save,
+  Terminal as TerminalIcon,
+  Maximize2,
   ShieldAlert,
   FileText,
   Search,
@@ -24,10 +24,10 @@ import {
   Pencil
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import { 
-  ResizableHandle, 
-  ResizablePanel, 
-  ResizablePanelGroup 
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup
 } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -39,9 +39,9 @@ import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 
 const WEB_CONTAINER_SUPPORTED_TECH = [
-  'node.js', 'javascript', 'typescript', 'react', 'next.js', 'vite', 
-  'vue', 'angular', 'svelte', 'express', 'nestjs', 'tailwind css', 
-  'html', 'css', 'redux', 'jest', 'vitest', 'postcss', 'sass', 
+  'node.js', 'javascript', 'typescript', 'react', 'next.js', 'vite',
+  'vue', 'angular', 'svelte', 'express', 'nestjs', 'tailwind css',
+  'html', 'css', 'redux', 'jest', 'vitest', 'postcss', 'sass',
   'webpack', 'rollup', 'storybook', 'playwright', 'graphql', 'solidjs', 'rxjs'
 ];
 
@@ -78,11 +78,11 @@ interface IdeSandboxProps {
   isLoading?: boolean;
 }
 
-export function IdeSandbox({ 
-  assessmentTitle, 
-  files, 
-  activeFile, 
-  onFileSelect, 
+export function IdeSandbox({
+  assessmentTitle,
+  files,
+  activeFile,
+  onFileSelect,
   onSave,
   isLoading = false,
   isSaving = false,
@@ -108,17 +108,17 @@ export function IdeSandbox({
   const runtimeType = React.useMemo(() => {
     if (!technologies || technologies.length === 0) return 'none';
     const techLower = technologies.map(t => t.toLowerCase());
-    
+
     // If all tech is in WebContainer list, use WebContainer
     if (techLower.every(tech => WEB_CONTAINER_SUPPORTED_TECH.includes(tech))) {
       return 'webcontainer';
     }
-    
+
     // If any tech is Python-related, use Pyodide
     if (techLower.some(tech => PYODIDE_SUPPORTED_TECH.includes(tech))) {
       return 'pyodide';
     }
-    
+
     return 'none';
   }, [technologies]);
 
@@ -241,7 +241,7 @@ export function IdeSandbox({
     const val = e.target.value;
     setCurrentContent(val);
     if (activeFile) {
-       setModifiedFiles(prev => ({ ...prev, [activeFile.path]: val }));
+      setModifiedFiles(prev => ({ ...prev, [activeFile.path]: val }));
     }
   };
 
@@ -272,7 +272,7 @@ export function IdeSandbox({
       const dirName = parts[0];
       const nextPath = currentPath ? `${currentPath}/${dirName}` : dirName;
       let dirNode = currentLevel.find(n => n.name === dirName && n.type === 'dir');
-      
+
       if (!dirNode) {
         dirNode = {
           name: dirName,
@@ -299,11 +299,11 @@ export function IdeSandbox({
 
   function findFileNode(nodes: FileNode[], path: string): FileNode | null {
     for (const node of nodes) {
-       if (node.path === path) return node;
-       if (node.children) {
-          const found = findFileNode(node.children, path);
-          if (found) return found;
-       }
+      if (node.path === path) return node;
+      if (node.children) {
+        const found = findFileNode(node.children, path);
+        if (found) return found;
+      }
     }
     return null;
   }
@@ -358,7 +358,7 @@ export function IdeSandbox({
     }
 
     const currentContent = modifiedFiles[renamingTarget.path] !== undefined ? modifiedFiles[renamingTarget.path] : renamingTarget.decoded_content || '';
-    
+
     setCustomFiles(prev => prev.map(f => f.path === renamingTarget.path ? { ...f, name: cleanName, path: newPath } : f));
     setModifiedFiles(prev => {
       const copy = { ...prev };
@@ -466,8 +466,8 @@ export function IdeSandbox({
     }).filter(c => c.file !== null) as { file: FileNode, newContent: string }[];
 
     if (changes.length === 0 && activeFile) {
-       await onSave([{ file: activeFile, newContent: currentContent }]);
-       return;
+      await onSave([{ file: activeFile, newContent: currentContent }]);
+      return;
     }
 
     await onSave(changes);
@@ -477,11 +477,11 @@ export function IdeSandbox({
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-        containerRef.current.requestFullscreen().catch(err => {
-            console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-        });
+      containerRef.current.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
     } else {
-        document.exitFullscreen();
+      document.exitFullscreen();
     }
   };
 
@@ -495,9 +495,9 @@ export function IdeSandbox({
     if (!cmd) return;
 
     setTerminalOutput(prev => [
-        ...prev,
-        { type: 'command', text: `$ ${cmd}` },
-        { type: 'info', text: `[WIRRE-SH] Execution of '${cmd.split(' ')[0]}' restricted. Sandbox prevents external process spawning.` }
+      ...prev,
+      { type: 'command', text: `$ ${cmd}` },
+      { type: 'info', text: `[WIRRE-SH] Execution of '${cmd.split(' ')[0]}' restricted. Sandbox prevents external process spawning.` }
     ]);
     setTerminalInput('');
   };
@@ -584,7 +584,7 @@ export function IdeSandbox({
         const pkgsToLoad = technologies
           .map(t => t.toLowerCase())
           .filter(t => commonPkgs.includes(t));
-        
+
         if (pkgsToLoad.length > 0) {
           term.writeln(`\x1b[1;34mPre-loading libraries: ${pkgsToLoad.join(', ')}...\x1b[0m`);
           await py.loadPackage(pkgsToLoad);
@@ -596,7 +596,7 @@ export function IdeSandbox({
           for (const node of nodes) {
             const fullPath = `${parent}/${node.name}`;
             if (node.type === 'dir') {
-              try { py.FS.mkdir(fullPath); } catch (e) {}
+              try { py.FS.mkdir(fullPath); } catch (e) { }
               syncFiles(node.children || [], fullPath);
             } else {
               py.FS.writeFile(fullPath, node.decoded_content || '');
@@ -627,12 +627,12 @@ export function IdeSandbox({
             if (baseCmd === 'python') {
               const fileName = cmdParts[1];
               if (!fileName) {
-                 term.writeln('Usage: python <filename.py>');
+                term.writeln('Usage: python <filename.py>');
               } else {
                 try {
                   // CRITICAL: Sync modified files to Pyodide FS before running
                   Object.entries(modifiedFiles).forEach(([path, content]) => {
-                    try { py.FS.writeFile(path, content); } catch (e) {}
+                    try { py.FS.writeFile(path, content); } catch (e) { }
                   });
 
                   const content = py.FS.readFile(fileName, { encoding: 'utf8' });
@@ -711,7 +711,7 @@ export function IdeSandbox({
         term.loadAddon(fitAddon);
         term.open(xtermContainerRef.current!);
         fitAddon.fit();
-        
+
         terminalRef.current = term;
         fitAddonRef.current = fitAddon;
 
@@ -788,13 +788,13 @@ export function IdeSandbox({
     const ext = filepath?.split('.').pop()?.toLowerCase() || '';
     const isPythonOrShell = ext === 'py' || ext === 'sh' || ext === 'yml' || ext === 'yaml';
     const isHtml = ext === 'html' || ext === 'xml';
-    
+
     return code.split('\n').map((line, lineIdx) => {
       if (!line) return <div key={lineIdx} className="h-[20px] leading-[20px]"></div>;
-      
+
       let commentPart = '';
       let codePart = line;
-      
+
       // Find comment delimiter safely outside standard URL/Hex patterns
       const delim = isPythonOrShell ? '#' : isHtml ? '<!--' : '//';
       const cIdx = line.indexOf(delim);
@@ -818,12 +818,12 @@ export function IdeSandbox({
             const isStr = (firstChar === '"' || firstChar === "'" || firstChar === '`') && token.length >= 2;
             const isKw = /^(?:import|export|const|let|var|function|return|if|else|for|while|class|interface|type|async|await|from|def|try|catch|switch|case|default|break)$/.test(token);
             const isLit = /^(?:true|false|null|undefined|\d+(?:\.\d+)?)$/.test(token);
-            
-            let colorClass = ""; 
+
+            let colorClass = "";
             if (isStr) colorClass = "text-amber-400"; // gorgeous vibrant gold/amber
             else if (isKw) colorClass = "text-sky-400 font-medium"; // electric cyan/sky blue
             else if (isLit) colorClass = "text-pink-400"; // vibrant pink
-            
+
             return <span key={tIdx} className={colorClass}>{token}</span>;
           })}
           {commentPart && <span className="text-emerald-400 italic">{commentPart}</span>}
@@ -833,7 +833,7 @@ export function IdeSandbox({
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
       onCopy={(e) => { e.preventDefault(); e.stopPropagation(); }}
       onCut={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -847,54 +847,54 @@ export function IdeSandbox({
       <div className="h-10 border-b border-border bg-[#18181b] flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <span className="text-xs text-muted-foreground truncate max-w-[300px] font-mono">{assessmentTitle} / {activeFile?.path || '...'}</span>
-          
+
           {/* Editor/Preview Toggles */}
           {(previewUrl || isWebContainerSupported) && (
-             <div className="flex bg-black/40 rounded-sm p-0.5 border border-border/50">
-               <Button 
-                variant="ghost" 
-                size="sm" 
+            <div className="flex bg-black/40 rounded-sm p-0.5 border border-border/50">
+              <Button
+                variant="ghost"
+                size="sm"
                 className={cn(
                   "h-6 px-3 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all",
                   viewMode === 'editor' ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-white"
                 )}
                 onClick={() => setViewMode('editor')}
-               >
-                 <Code className="h-3 w-3 mr-1.5" />
-                 Code
-               </Button>
-               <Button 
-                variant="ghost" 
-                size="sm" 
+              >
+                <Code className="h-3 w-3 mr-1.5" />
+                Code
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 className={cn(
                   "h-6 px-3 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-all",
                   viewMode === 'preview' ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-white"
                 )}
                 onClick={() => setViewMode('preview')}
                 disabled={!isWebContainerReady}
-               >
-                 <Globe className="h-3 w-3 mr-1.5" />
-                 Preview
-               </Button>
-               {viewMode === 'preview' && previewUrl && (
-                 <Button
-                   variant="ghost"
-                   size="sm"
-                   className="h-6 px-2.5 text-muted-foreground hover:text-white transition-all ml-0.5 border-l border-border/50 rounded-none"
-                   onClick={() => setPreviewRefreshKey(k => k + 1)}
-                   title="Refresh Preview"
-                 >
-                   <RefreshCw className="h-3 w-3" />
-                 </Button>
-               )}
-             </div>
+              >
+                <Globe className="h-3 w-3 mr-1.5" />
+                Preview
+              </Button>
+              {viewMode === 'preview' && previewUrl && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2.5 text-muted-foreground hover:text-white transition-all ml-0.5 border-l border-border/50 rounded-none"
+                  onClick={() => setPreviewRefreshKey(k => k + 1)}
+                  title="Refresh Preview"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-2">
           {!readOnly && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className={cn("h-7 w-7 text-muted-foreground hover:text-white", isSaving && "animate-pulse")}
               onClick={handleSave}
               disabled={isSaving || !activeFile}
@@ -902,9 +902,9 @@ export function IdeSandbox({
               <Save className="h-4 w-4" />
             </Button>
           )}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-white"
             onClick={toggleFullscreen}
           >
@@ -912,7 +912,7 @@ export function IdeSandbox({
           </Button>
         </div>
       </div>
-      
+
       {isPrefetching && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#09090b]/90 backdrop-blur-sm border border-border rounded-md animate-in fade-in duration-500">
           <div className="flex flex-col items-center gap-6 max-w-sm text-center">
@@ -1035,7 +1035,7 @@ export function IdeSandbox({
             )}
 
             <ScrollArea className="flex-1">
-              <div 
+              <div
                 className="p-2 space-y-0.5 min-h-[150px]"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -1046,13 +1046,13 @@ export function IdeSandbox({
               >
                 {isLoading && <div className="p-4 text-[10px] text-muted-foreground animate-pulse">Scanning files...</div>}
                 {mergedFiles.map((file, i) => (
-                  <FileItem 
-                    key={i} 
-                    item={file} 
-                    depth={0} 
+                  <FileItem
+                    key={i}
+                    item={file}
+                    depth={0}
                     folderPath=""
-                    activeFile={activeFile} 
-                    onClick={onFileSelect} 
+                    activeFile={activeFile}
+                    onClick={onFileSelect}
                     onRename={(f) => { setRenamingTarget(f); setNewFileNameInput(f.name); }}
                     onMove={(f) => { setMovingTarget(f); const parts = f.path.split('/'); setTargetFolderInput(parts.slice(0, -1).join('/')); }}
                     onDropFile={handleDropFile}
@@ -1088,21 +1088,21 @@ export function IdeSandbox({
                       {/* Code Editor Area with Live Syntax Highlighting Overlay */}
                       <div className="flex-1 relative pt-[2px] min-w-max pr-4">
                         {/* Syntax Highlighted Text Layer (Dictates Content Dimensions) */}
-                        <div 
+                        <div
                           className="pointer-events-none select-none overflow-visible"
                           style={{ minHeight: `${Math.max(20, currentContent.split('\n').length) * 20}px` }}
                           aria-hidden="true"
                         >
                           {renderHighlightedCode(currentContent, activeFile?.path)}
                         </div>
-                        
+
                         {/* Transparent Editable Textarea Layer (Absolutely positioned to match expanded width) */}
-                        <textarea 
+                        <textarea
                           className={cn(
                             "absolute inset-x-0 top-[2px] bottom-0 w-full h-full bg-transparent text-transparent caret-white outline-none resize-none spellcheck-false whitespace-pre overflow-hidden block z-10 p-0 m-0 border-none rounded-none selection:bg-blue-500/30 font-mono text-sm",
                             isFetchingContent && "opacity-30"
                           )}
-                          style={{ 
+                          style={{
                             lineHeight: '20px',
                           }}
                           value={currentContent}
@@ -1167,9 +1167,9 @@ export function IdeSandbox({
                   {previewUrl ? (
                     <>
                       <div className="flex-1 relative min-h-0 bg-white">
-                        <iframe 
+                        <iframe
                           key={previewRefreshKey}
-                          src={previewUrl} 
+                          src={previewUrl}
                           className="absolute inset-0 w-full h-full border-none bg-white"
                           title="WebContainer Preview"
                         />
@@ -1180,7 +1180,7 @@ export function IdeSandbox({
                         isPreviewConsoleExpanded ? "h-44" : "h-7"
                       )}>
                         <div className="h-7 border-b border-border/50 bg-[#18181b] flex items-center justify-between px-3 shrink-0 select-none">
-                          <div 
+                          <div
                             className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest cursor-pointer hover:text-foreground flex-1 h-full"
                             onClick={() => setIsPreviewConsoleExpanded(p => !p)}
                           >
@@ -1192,9 +1192,9 @@ export function IdeSandbox({
                             )}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className="h-5 px-2 text-[9px] text-muted-foreground hover:text-foreground"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1244,12 +1244,12 @@ export function IdeSandbox({
                 )}
                 {/* Warning Overlay (Subtle) */}
                 {readOnly && (
-                    <div className="absolute bottom-4 right-6 pointer-events-none opacity-20">
-                      <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-amber-500/80">
-                        <FileText className="h-3 w-3" />
-                        Review Mode: Read-Only Access
-                      </div>
+                  <div className="absolute bottom-4 right-6 pointer-events-none opacity-20">
+                    <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-amber-500/80">
+                      <FileText className="h-3 w-3" />
+                      Review Mode: Read-Only Access
                     </div>
+                  </div>
                 )}
               </div>
             </ResizablePanel>
@@ -1262,7 +1262,7 @@ export function IdeSandbox({
                 <div className="h-8 border-b border-border/50 bg-[#18181b] flex items-center px-4 justify-between shrink-0">
                   <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                     <TerminalIcon className="h-3 w-3" />
-                    Terminal 
+                    Terminal
                     {isWebContainerSupported && isWebContainerReady && <span className="text-green-500 lowercase opacity-60 ml-2">(cloud-ready)</span>}
                     {isPyodideSupported && isPyodideReady && <span className="text-blue-500 lowercase opacity-60 ml-2">(wasm-ready)</span>}
                   </div>
@@ -1273,7 +1273,7 @@ export function IdeSandbox({
                     </div>
                   ) : null}
                 </div>
-                
+
                 <div className="flex-1 relative overflow-hidden">
                   {isWebContainerSupported || isPyodideSupported ? (
                     <div ref={xtermContainerRef} className="absolute inset-0 p-2" />
@@ -1291,7 +1291,7 @@ export function IdeSandbox({
                             {line.text}
                           </div>
                         ))}
-                        
+
                         {/* Interactive Input (Mock) */}
                         <form onSubmit={handleTerminalSubmit} className="flex gap-2 items-center text-green-400 mt-1">
                           <span>$</span>
@@ -1318,21 +1318,21 @@ export function IdeSandbox({
   );
 }
 
-function FileItem({ 
-  item, 
-  depth, 
+function FileItem({
+  item,
+  depth,
   folderPath,
-  activeFile, 
-  onClick, 
-  onRename, 
+  activeFile,
+  onClick,
+  onRename,
   onMove,
   onDropFile,
-  readOnly 
-}: { 
-  item: FileNode; 
-  depth: number; 
+  readOnly
+}: {
+  item: FileNode;
+  depth: number;
   folderPath?: string;
-  activeFile: FileNode | null; 
+  activeFile: FileNode | null;
   onClick: (f: FileNode) => void;
   onRename?: (f: FileNode) => void;
   onMove?: (f: FileNode) => void;
@@ -1344,13 +1344,13 @@ function FileItem({
   const isActive = activeFile?.path === item.path;
 
   // Accurately resolve true structural directory bounds for nesting targets
-  const nodePath = item.type === 'dir' 
+  const nodePath = item.type === 'dir'
     ? (folderPath ? `${folderPath}/${item.name}` : item.name)
     : (folderPath || '');
 
   return (
     <div>
-      <div 
+      <div
         draggable={!readOnly && item.type === 'file'}
         onDragStart={(e) => {
           e.stopPropagation();
@@ -1390,7 +1390,7 @@ function FileItem({
         ) : (
           <FileCode className={cn("h-3 w-3 text-muted-foreground shrink-0", isActive && "text-primary")} />
         )}
-        
+
         {item.type === 'dir' && (
           <Folder className="h-3 w-3 text-blue-400 fill-current opacity-50 shrink-0" />
         )}
@@ -1402,7 +1402,7 @@ function FileItem({
         {!readOnly && (
           <div className="absolute right-1.5 hidden group-hover:flex items-center gap-1 pl-1 bg-[#09090b]/90 backdrop-blur-sm rounded">
             {item.type === 'file' && (
-              <span 
+              <span
                 className="p-0.5 text-muted-foreground hover:text-white transition-colors"
                 title="Relocate Asset (Move)"
                 onClick={(e) => { e.stopPropagation(); onMove?.(item); }}
@@ -1411,7 +1411,7 @@ function FileItem({
               </span>
             )}
             {item.type === 'file' && item.is_custom && (
-              <span 
+              <span
                 className="p-0.5 text-muted-foreground hover:text-white transition-colors"
                 title="Rename Customized Asset"
                 onClick={(e) => { e.stopPropagation(); onRename?.(item); }}
@@ -1422,17 +1422,17 @@ function FileItem({
           </div>
         )}
       </div>
-      
+
       {item.type === 'dir' && isOpen && item.children && (
         <div className="mt-0.5">
           {item.children.map((child: FileNode, i: number) => (
-            <FileItem 
-              key={i} 
-              item={child} 
-              depth={depth + 1} 
+            <FileItem
+              key={i}
+              item={child}
+              depth={depth + 1}
               folderPath={item.type === 'dir' ? nodePath : folderPath}
-              activeFile={activeFile} 
-              onClick={onClick} 
+              activeFile={activeFile}
+              onClick={onClick}
               onRename={onRename}
               onMove={onMove}
               onDropFile={onDropFile}

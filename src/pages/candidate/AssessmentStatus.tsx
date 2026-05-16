@@ -326,7 +326,7 @@ export default function AssessmentStatus() {
                                         </CardContent>
                                     </Card>
                                 )}
-                                
+
                                 {registration.ai_report && (
                                     <Card className="border-border/50 bg-card/10 rounded-sm">
                                         <CardHeader className="p-4 md:p-6 pb-2 md:pb-4 border-b border-border/50">

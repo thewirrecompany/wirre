@@ -112,7 +112,7 @@ export default function Assessment() {
 
         // 1. LocalStorage Sync (Instant for same-browser tabs)
         const storageKey = `wirre-assessment-active-${id}-${profile.id}`;
-        
+
         const announcePresenceLocal = () => {
             localStorage.setItem(storageKey, JSON.stringify({
                 tabId: sessionTabId.current,
@@ -222,7 +222,7 @@ export default function Assessment() {
 
         if (canLaunch) {
             fetchLock.current = true; // Block any further attempts immediately
-            
+
             const cached = sessionStorage.getItem(`wirre-candidate-files-${id}-${profile.id}`);
             if (cached) {
                 try {
@@ -378,7 +378,7 @@ export default function Assessment() {
         }
     };
 
-    const handleSaveAllFiles = async (changes: {file: any, newContent: string}[]) => {
+    const handleSaveAllFiles = async (changes: { file: any, newContent: string }[]) => {
         if (!id || changes.length === 0) return;
         setIsSyncingFile(true);
         try {
@@ -391,7 +391,7 @@ export default function Assessment() {
                     body: { assessmentId: id, path: file.path, content: newContent, sha: file.sha }
                 });
                 if (error) throw error;
-                
+
                 const updatedFile = { ...file, decoded_content: newContent, sha: data.sha };
                 newTree = updateFileInTree(newTree, file.path, updatedFile);
                 if (active?.path === file.path) {
@@ -956,15 +956,15 @@ export default function Assessment() {
 
                                             // Auto-finalize if 10 minutes pass
                                             if (finishedTime && waitingElapsedMs > tenMinutesMs && !skippedPeerReview && !submittedPeerReview) {
-                                              console.log('10-minute waiting timeout reached (scheduled phase), auto-finalizing...');
-                                              supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id }).then(({ error }) => {
-                                                if (!error) {
-                                                  if (mounted) {
-                                                    setIsFinished(true);
-                                                    setSkippedPeerReview(true);
-                                                  }
-                                                }
-                                              });
+                                                console.log('10-minute waiting timeout reached (scheduled phase), auto-finalizing...');
+                                                supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id }).then(({ error }) => {
+                                                    if (!error) {
+                                                        if (mounted) {
+                                                            setIsFinished(true);
+                                                            setSkippedPeerReview(true);
+                                                        }
+                                                    }
+                                                });
                                             }
 
                                             return (
@@ -974,14 +974,14 @@ export default function Assessment() {
                                                         <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Peer Review Phase</h3>
                                                         <p className="font-mono text-xs text-muted-foreground">Waiting for a competitor to finish... peer-review round will be available soon</p>
                                                         {finishedTime > 0 && (
-                                                          <div className="mt-2 p-2 bg-yellow-500/5 border border-yellow-500/10 rounded-sm animate-in fade-in">
-                                                              <p className="text-[10px] font-mono text-yellow-500/60 uppercase tracking-widest">
-                                                                Auto-finalizing Round in {formatTimeRemaining(remainingWaitingMs)}
-                                                              </p>
-                                                              <p className="text-[9px] font-mono text-muted-foreground mt-1 max-w-[280px] leading-relaxed mx-auto">
-                                                                (If no competitor is found within 10 minutes, round ends. This "0" peer score is marked as <strong>Not Assigned</strong>, distinct from a performance-based 0.)
-                                                              </p>
-                                                          </div>
+                                                            <div className="mt-2 p-2 bg-yellow-500/5 border border-yellow-500/10 rounded-sm animate-in fade-in">
+                                                                <p className="text-[10px] font-mono text-yellow-500/60 uppercase tracking-widest">
+                                                                    Auto-finalizing Round in {formatTimeRemaining(remainingWaitingMs)}
+                                                                </p>
+                                                                <p className="text-[9px] font-mono text-muted-foreground mt-1 max-w-[280px] leading-relaxed mx-auto">
+                                                                    (If no competitor is found within 10 minutes, round ends. This "0" peer score is marked as <strong>Not Assigned</strong>, distinct from a performance-based 0.)
+                                                                </p>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>
@@ -1010,42 +1010,42 @@ export default function Assessment() {
                                                     peerRepoUrl={peerReviewRepoUrl}
                                                 />;
                                             } else {
-                                              const now = Date.now() + serverTimeOffset;
-                                              const finishedTime = codingFinishedAt ? new Date(codingFinishedAt).getTime() : (_codingEndMs || 0);
-                                              const waitingElapsedMs = finishedTime ? now - finishedTime : 0;
-                                              const tenMinutesMs = 10 * 60 * 1000;
-                                              const remainingWaitingMs = Math.max(0, tenMinutesMs - waitingElapsedMs);
+                                                const now = Date.now() + serverTimeOffset;
+                                                const finishedTime = codingFinishedAt ? new Date(codingFinishedAt).getTime() : (_codingEndMs || 0);
+                                                const waitingElapsedMs = finishedTime ? now - finishedTime : 0;
+                                                const tenMinutesMs = 10 * 60 * 1000;
+                                                const remainingWaitingMs = Math.max(0, tenMinutesMs - waitingElapsedMs);
 
-                                              // Auto-finalize if 10 minutes pass
-                                              if (finishedTime && waitingElapsedMs > tenMinutesMs && !skippedPeerReview && !submittedPeerReview) {
-                                                console.log('10-minute waiting timeout reached, auto-finalizing...');
-                                                supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id }).then(({ error }) => {
-                                                  if (!error && isMounted.current) {
-                                                    setIsFinished(true);
-                                                    setSkippedPeerReview(true);
-                                                  }
-                                                });
-                                              }
+                                                // Auto-finalize if 10 minutes pass
+                                                if (finishedTime && waitingElapsedMs > tenMinutesMs && !skippedPeerReview && !submittedPeerReview) {
+                                                    console.log('10-minute waiting timeout reached, auto-finalizing...');
+                                                    supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id }).then(({ error }) => {
+                                                        if (!error && isMounted.current) {
+                                                            setIsFinished(true);
+                                                            setSkippedPeerReview(true);
+                                                        }
+                                                    });
+                                                }
 
-                                              return (
-                                                  <div className="text-center p-8 bg-black/20 rounded-md border border-dashed border-indigo-500/30">
-                                                      <div className="flex flex-col items-center gap-4">
-                                                          <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
-                                                          <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Coding Submitted</h3>
-                                                          <p className="font-mono text-xs text-muted-foreground">Waiting for a competitor to finish... peer review will be assigned shortly.</p>
-                                                          {finishedTime > 0 && (
-                                                            <div className="mt-2 p-2 bg-yellow-500/5 border border-yellow-500/10 rounded-sm animate-in fade-in">
-                                                              <p className="text-[10px] font-mono text-yellow-500/60 uppercase tracking-widest">
-                                                                Auto-finalizing Round in {formatTimeRemaining(remainingWaitingMs)}
-                                                              </p>
-                                                              <p className="text-[9px] font-mono text-muted-foreground mt-1">
-                                                                (If no competitor is found within 10 minutes, round ends. This "0" peer score is marked as <strong>Not Assigned</strong>, distinct from a performance-based 0.)
-                                                              </p>
-                                                            </div>
-                                                          )}
-                                                      </div>
-                                                  </div>
-                                              );
+                                                return (
+                                                    <div className="text-center p-8 bg-black/20 rounded-md border border-dashed border-indigo-500/30">
+                                                        <div className="flex flex-col items-center gap-4">
+                                                            <div className="animate-spin h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
+                                                            <h3 className="font-mono text-sm uppercase tracking-wider text-indigo-400">Coding Submitted</h3>
+                                                            <p className="font-mono text-xs text-muted-foreground">Waiting for a competitor to finish... peer review will be assigned shortly.</p>
+                                                            {finishedTime > 0 && (
+                                                                <div className="mt-2 p-2 bg-yellow-500/5 border border-yellow-500/10 rounded-sm animate-in fade-in">
+                                                                    <p className="text-[10px] font-mono text-yellow-500/60 uppercase tracking-widest">
+                                                                        Auto-finalizing Round in {formatTimeRemaining(remainingWaitingMs)}
+                                                                    </p>
+                                                                    <p className="text-[9px] font-mono text-muted-foreground mt-1">
+                                                                        (If no competitor is found within 10 minutes, round ends. This "0" peer score is marked as <strong>Not Assigned</strong>, distinct from a performance-based 0.)
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
                                             }
                                         }
 
@@ -1257,8 +1257,8 @@ export default function Assessment() {
                                         <div className="border-t pt-4 mt-2 border-border">
                                             <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">Time Remaining</p>
                                             <p className={`font-mono text-xl font-bold tabular-nums ${timeRemainingMs !== null && timeRemainingMs < 5 * 60 * 1000
-                                                    ? 'text-red-400 animate-pulse'
-                                                    : 'text-primary'
+                                                ? 'text-red-400 animate-pulse'
+                                                : 'text-primary'
                                                 }`}>
                                                 {timeRemainingMs !== null ? formatTimeRemaining(timeRemainingMs) : '—'}
                                             </p>

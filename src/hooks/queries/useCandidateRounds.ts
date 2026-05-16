@@ -31,7 +31,7 @@ export async function fetchCandidateRounds(userId: string): Promise<CandidateRou
     Promise.resolve(supabase.rpc('auto_complete_expired_assessments')),
     supabase
       .from('assessment_registrations')
-      .select('assessment_id,created_at,access_granted,coding_finished_at,peer_review_assigned_at,peer_review_skipped')
+      .select('assessment_id,created_at,coding_finished_at,peer_review_assigned_at,peer_review_skipped')
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
   ]);
@@ -43,7 +43,6 @@ export async function fetchCandidateRounds(userId: string): Promise<CandidateRou
   if (!regsErr && regs && regs.length > 0) {
     const ids = Array.from(new Set(regs.map((r: any) => r.assessment_id)));
     regs.forEach((r: any) => {
-      accessGrantedMap[r.assessment_id] = r.access_granted;
       registrationDataMap[r.assessment_id] = r;
     });
 
