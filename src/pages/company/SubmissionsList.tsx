@@ -52,7 +52,7 @@ export default function SubmissionsList() {
       // Load all submissions (registrations with repos)
       const { data: registrations, error: regError } = await supabase
         .from('assessment_registrations')
-        .select('id, anonymous_id, user_id, repo_provisioned, access_granted, created_at, score, selection_status, ai_score, ai_peer_review_score, ai_grading_status')
+        .select('id, anonymous_id, user_id, repo_provisioned, created_at, score, selection_status, ai_score, ai_peer_review_score, ai_grading_status')
         .eq('assessment_id', id)
         .eq('repo_provisioned', true);
 
@@ -388,7 +388,7 @@ export default function SubmissionsList() {
                     <CardContent className="px-4 md:px-6 pb-4 md:pb-6 pt-0">
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-mono text-muted-foreground uppercase tracking-widest border-t border-border/20 pt-4">
                         <span>Joined: {new Date(submission.created_at).toLocaleDateString('en-GB')}</span>
-                        {submission.access_granted && <span className="text-primary font-bold">● Active Environment</span>}
+                        {submission.repo_provisioned && <span className="text-primary font-bold">● Ready</span>}
                       </div>
                     </CardContent>
                   </Card>

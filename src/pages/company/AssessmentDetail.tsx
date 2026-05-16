@@ -48,7 +48,7 @@ export default function AssessmentDetail() {
         // load registrants with anonymous IDs
         const { data: regs } = await supabase
           .from('assessment_registrations')
-          .select('user_id, created_at, anonymous_id, repo_provisioned, access_granted')
+          .select('user_id, created_at, anonymous_id, repo_provisioned')
           .eq('assessment_id', id);
 
         // Organizers should ONLY see anonymous IDs, not real names/usernames
@@ -242,9 +242,7 @@ export default function AssessmentDetail() {
                     <div key={r.user_id} className="font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 bg-background/50 border border-border/50 rounded-sm">
                       <span className="font-bold text-primary">{r.anonymous_id || 'CAND-PENDING'}</span>
                       <div className="flex gap-2 text-[10px] text-muted-foreground overflow-x-auto whitespace-nowrap">
-                        <span>{new Date(r.created_at).toLocaleDateString('en-GB')}</span>
-                        {r.repo_provisioned && <span className="text-green-500">Repo ✓</span>}
-                        {r.access_granted && <span className="text-green-500">Access ✓</span>}
+                        {r.repo_provisioned && <span className="text-primary font-bold">● Environment Ready</span>}
                       </div>
                     </div>
                   ))}

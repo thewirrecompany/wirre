@@ -555,7 +555,7 @@ export default function Assessment() {
             try {
                 const { data, error } = await supabase
                     .from('assessment_registrations')
-                    .select('id, private_repo_url, access_granted, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, coding_started_at, coding_finished_at, peer_review_assigned_at, peer_review_skipped')
+                    .select('id, private_repo_url, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, coding_started_at, coding_finished_at, peer_review_assigned_at, peer_review_skipped')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
@@ -566,7 +566,7 @@ export default function Assessment() {
                     setRegistrationCreatedAt(data.created_at);
                     setCodingStartedAt(data.coding_started_at);
                     setPrivateRepoUrl(data.private_repo_url || '');
-                    setAccessGranted(data.access_granted || false);
+                    setAccessGranted(true);
                     setPeerReviewRepoUrl(data.peer_review_repo_url);
                     setAssignedPeerRegistrationId(data.assigned_peer_registration_id);
                     setPeerReviewAssignedAt(data.peer_review_assigned_at);
@@ -617,7 +617,7 @@ export default function Assessment() {
         const checkAccess = async () => {
             const { data: regCheck } = await supabase
                 .from('assessment_registrations')
-                .select('access_granted, coding_finished_at, coding_started_at, peer_review_assigned_at, peer_review_skipped')
+                .select('coding_finished_at, coding_started_at, peer_review_assigned_at, peer_review_skipped')
                 .eq('assessment_id', id)
                 .eq('user_id', profile?.id)
                 .single();
@@ -635,7 +635,7 @@ export default function Assessment() {
                     return;
                 }
                 // Sync access state directly from DB (single source of truth)
-                setAccessGranted(regCheck.access_granted ?? false);
+                setAccessGranted(true);
             }
 
             // Also refresh assessment data to catch emergency_abandoned or status changes
@@ -790,7 +790,7 @@ export default function Assessment() {
                 // 2. Refresh registration data from DB
                 const { data: regData } = await supabase
                     .from('assessment_registrations')
-                    .select('private_repo_url, access_granted, anonymous_id, coding_started_at')
+                    .select('private_repo_url, anonymous_id, coding_started_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single();
@@ -798,7 +798,7 @@ export default function Assessment() {
                 if (regData) {
                     if (regData.coding_started_at) setCodingStartedAt(regData.coding_started_at);
                     setPrivateRepoUrl(regData.private_repo_url || result.repoUrl || '');
-                    setAccessGranted(regData.access_granted || true); // Default to true if provision was successful
+                    setAccessGranted(true); // Default to true if provision was successful
 
                 }
             }

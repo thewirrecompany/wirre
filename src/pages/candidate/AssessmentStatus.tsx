@@ -28,7 +28,7 @@ export default function AssessmentStatus() {
             const [assessmentRes, regRes, serverTimeRes] = await Promise.all([
                 supabase.from('assessments').select('*').eq('id', id).single(),
                 supabase.from('assessment_registrations')
-                    .select('id, score, notes, selection_status, created_at, coding_started_at, anonymous_id, peer_review_repo_url, peer_review_assigned_at, access_granted, coding_finished_at, ai_score, ai_peer_review_score, ai_report, ai_peer_review_report')
+                    .select('id, score, notes, selection_status, created_at, coding_started_at, anonymous_id, peer_review_repo_url, peer_review_assigned_at, coding_finished_at, ai_score, ai_peer_review_score, ai_report, ai_peer_review_report')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
                     .single(),

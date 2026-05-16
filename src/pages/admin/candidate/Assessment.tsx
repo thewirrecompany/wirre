@@ -77,14 +77,14 @@ export default function Assessment() {
       try {
         const { data, error } = await supabase
           .from('assessment_registrations')
-          .select('id, private_repo_url, access_granted, anonymous_id')
+          .select('id, private_repo_url, anonymous_id')
           .eq('assessment_id', id)
           .eq('user_id', profile.id)
           .single();
         if (!error && data && mounted) {
           setIsRegistered(true);
           setPrivateRepoUrl(data.private_repo_url || '');
-          setAccessGranted(data.access_granted || false);
+          setAccessGranted(true);
           setAnonymousId(data.anonymous_id);
         }
 
@@ -112,13 +112,13 @@ export default function Assessment() {
       // This ensures admin revocations are respected
       const { data: regCheck } = await supabase
         .from('assessment_registrations')
-        .select('access_granted')
+        .select('id')
         .eq('assessment_id', id)
         .eq('user_id', profile?.id)
         .single();
 
       // If access was explicitly revoked (false) or registration deleted, don't re-grant
-      if (!regCheck || regCheck.access_granted === false) {
+      if (!regCheck) {
         if (accessGranted) setAccessGranted(false);
         return;
       }

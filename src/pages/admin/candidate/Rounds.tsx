@@ -40,18 +40,13 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
         // 1) Fetch this user's registrations (IDs) and then load assessments by id (two-step avoids RLS recursion)
         const { data: regs, error: regsErr } = await supabase
           .from('assessment_registrations')
-          .select('assessment_id,created_at,access_granted')
+          .select('assessment_id,created_at')
           .eq('user_id', targetId)
           .order('created_at', { ascending: false });
 
         let registeredAssessments: any[] = [];
-        const accessGrantedMap: Record<string, boolean> = {};
         if (!regsErr && regs && regs.length > 0) {
           const ids = Array.from(new Set(regs.map((r: any) => r.assessment_id)));
-          // Build map of access_granted status
-          regs.forEach((r: any) => {
-            accessGrantedMap[r.assessment_id] = r.access_granted;
-          });
           const { data: asses } = await supabase
             .from('assessments')
             .select('id,title,status,start_at,duration_minutes,positions,company_user_id,created_at,is_paid')
@@ -94,7 +89,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
             if (now > endTime) return true;
           }
 
-          // Otherwise, it's not completed (even if access_granted is false, we keep it active until time runs out or status changes)
+          // Otherwise, it's not completed (we keep it active until time runs out or status changes)
           return false;
         });
 
