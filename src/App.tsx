@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PageLoader } from "@/components/layout/PageLoader";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { OfflineOverlay } from "@/components/OfflineOverlay";
 
 // Lazy load all pages
 const Index = lazy(() => import("./pages/Index"));
@@ -55,9 +56,10 @@ const App = () => (
       <BrowserRouter
         future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
-        <AuthProvider>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
+        <OfflineOverlay>
+          <AuthProvider>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/about" element={<AboutUs />} />
               <Route path="/waitlist" element={<Waitlist />} />
@@ -261,7 +263,8 @@ const App = () => (
             </Routes>
           </Suspense>
         </AuthProvider>
-      </BrowserRouter>
+      </OfflineOverlay>
+    </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
