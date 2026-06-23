@@ -28,7 +28,7 @@ export async function fetchCandidateRounds(userId: string): Promise<CandidateRou
   // Trigger RPC calls and fetch registrations in parallel
   const [, , { data: regs, error: regsErr }] = await Promise.all([
     Promise.resolve(supabase.rpc('mark_due_assessments_started')),
-    Promise.resolve(supabase.rpc('auto_complete_expired_assessments')),
+    Promise.resolve(supabase.rpc('auto_complete_expired_assessments').then(null, () => {})),
     supabase
       .from('assessment_registrations')
       .select('assessment_id,created_at,coding_finished_at,peer_review_assigned_at,peer_review_skipped')

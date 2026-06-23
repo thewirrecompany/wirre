@@ -58,12 +58,12 @@ serve(async (req) => {
     // 2. Verify registration and access permissions
     const { data: registration, error: regError } = await supabase
       .from('assessment_registrations')
-      .select('id, user_id, private_repo_url, access_granted')
+      .select('id, user_id, private_repo_url, repo_provisioned')
       .eq('assessment_id', assessmentId)
       .eq('user_id', user.id)
       .single();
 
-    if (regError || !registration || !registration.access_granted) {
+    if (regError || !registration || !registration.repo_provisioned) {
       return new Response(JSON.stringify({ error: 'Unauthorized: Access not granted or round finished' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

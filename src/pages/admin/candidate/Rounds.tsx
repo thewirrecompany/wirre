@@ -35,7 +35,7 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
         try { await supabase.rpc('mark_due_assessments_started'); } catch (e) { /* ignore */ }
 
         // auto-complete expired assessments
-        try { await supabase.rpc('auto_complete_expired_assessments'); } catch (e) { /* ignore */ }
+        supabase.rpc('auto_complete_expired_assessments').then(null, () => {});
 
         // 1) Fetch this user's registrations (IDs) and then load assessments by id (two-step avoids RLS recursion)
         const { data: regs, error: regsErr } = await supabase

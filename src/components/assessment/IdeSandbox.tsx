@@ -773,6 +773,15 @@ export function IdeSandbox({
     init();
   }, [isWebContainerSupported, files, xtermContainerRef.current]);
 
+  // Re-mount files into WebContainer whenever the file list updates (files load async after boot)
+  React.useEffect(() => {
+    if (!webContainer || !files || files.length === 0) return;
+    const tree = mapFilesToTree(mergedFiles);
+    webContainer.mount(tree).catch((err: any) => {
+      console.error('Failed to remount files into WebContainer:', err);
+    });
+  }, [webContainer, files]);
+
   // Handle resizing
   React.useEffect(() => {
     const handleResize = () => {

@@ -36,12 +36,8 @@ export default function Assessment() {
     (async () => {
       setLoading(true);
 
-      // Auto-complete expired assessments
-      try {
-        await supabase.rpc('auto_complete_expired_assessments');
-      } catch (e) {
-        console.debug('Auto-complete check failed', e);
-      }
+      // Auto-complete expired assessments (silently ignored if RPC not available)
+      supabase.rpc('auto_complete_expired_assessments').then(null, () => {});
 
       const { data, error } = await supabase.from('assessments').select('*').eq('id', id).single();
       if (error) console.error('Error loading assessment:', error);

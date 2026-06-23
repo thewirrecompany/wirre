@@ -145,7 +145,6 @@ export default function Assessment() {
                 }
             })
             .subscribe((status) => {
-                console.log('Security Channel Status:', status);
                 if (status === 'SUBSCRIBED') {
                     channel.send({
                         type: 'broadcast',
@@ -417,12 +416,8 @@ export default function Assessment() {
         (async () => {
             setLoading(true);
 
-            // Auto-complete expired assessments
-            try {
-                await supabase.rpc('auto_complete_expired_assessments');
-            } catch (e) {
-                console.debug('Auto-complete check failed', e);
-            }
+            // Auto-complete expired assessments (RPC may not exist yet — silently ignore errors)
+            supabase.rpc('auto_complete_expired_assessments').then(null, () => {});
 
             const { data, error } = await supabase.from('assessments').select('*').eq('id', id).single();
             if (error) console.error('Error loading assessment:', error);
@@ -487,12 +482,8 @@ export default function Assessment() {
 
             // Peer review hour ended -> auto-finalize and redirect
             if (_peerReviewEndMs !== null && now > _peerReviewEndMs) {
-                console.log('Peer review window ended, finalizing...');
-                try {
-                    await supabase.rpc('auto_complete_expired_assessments');
-                } catch (e) {
-                    console.debug('auto_complete_expired_assessments failed', e);
-                }
+                // Auto-complete via RPC (silently ignored if unavailable)
+                supabase.rpc('auto_complete_expired_assessments').then(null, () => {});
                 toast({ title: 'Round Complete', description: 'The peer review window has closed. Your submission is finalized.' });
                 setTimeout(() => {
                     window.location.href = `/candidate/assessment/${id}/status`;
