@@ -27,15 +27,15 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
     isPeerReviewSkip = false,
     isPeerReviewSubmit = false,
 }) => {
-    // Auto-redirect when submission is finalized (peer review submitted or skipped)
+    // Auto-redirect when submission is finalized (peer review submitted, skipped, or sample round complete)
     useEffect(() => {
         if (!isOpen) return;
-        if (!isPeerReviewSubmit && !isPeerReviewSkip) return;
+        if (!isPeerReviewSubmit && !isPeerReviewSkip && !isSampleRound) return;
         const timer = setTimeout(() => {
             onGoToDashboard();
         }, 5000);
         return () => clearTimeout(timer);
-    }, [isOpen, isPeerReviewSubmit, isPeerReviewSkip]);
+    }, [isOpen, isPeerReviewSubmit, isPeerReviewSkip, isSampleRound]);
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -45,7 +45,7 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
                         <CheckCircle2 className="h-10 w-10 text-primary" />
                     </div>
                     <DialogTitle className="text-xl font-bold uppercase tracking-widest text-center">
-                        {isPeerReviewSubmit ? 'Peer Review Submitted' : isPeerReviewSkip ? 'Peer Review Skipped' : 'Submission Finalized'}
+                        {isPeerReviewSubmit ? 'Peer Review Submitted' : isPeerReviewSkip ? 'Peer Review Skipped' : isSampleRound ? 'Sample Round Complete' : 'Submission Finalized'}
                     </DialogTitle>
                     <DialogDescription className="text-center text-muted-foreground text-sm leading-relaxed">
                         {isPeerReviewSubmit
@@ -53,7 +53,7 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
                             : isPeerReviewSkip
                             ? "You've opted out of the peer review phase. Your coding submission has been recorded."
                             : isSampleRound
-                                ? "Your sample repository access has been revoked. Since this is a sample round, you can see how the platform transitions through the workflow."
+                                ? "Your coding submission has been finalized. This sample round is now complete."
                                 : "Your repository access has been successfully revoked. Your work has been submitted for evaluation."}
                     </DialogDescription>
                 </DialogHeader>
@@ -77,6 +77,16 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
                                     <p className="text-xs font-bold uppercase tracking-wider mb-1">What's Next?</p>
                                     <p className="text-[11px] text-muted-foreground leading-relaxed">
                                         Your coding submission is under review. Since you skipped the peer review round, you will receive 0 points for that component. Final results will be visible once the evaluation period ends.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : isSampleRound ? (
+                            <div className="flex items-start gap-3">
+                                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-wider mb-1">Round Complete</p>
+                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                        You have successfully experienced the Wirre platform workflow. This was a sample round — no scores or evaluations apply. You'll be redirected to your dashboard shortly.
                                     </p>
                                 </div>
                             </div>
@@ -113,7 +123,7 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
                     >
                         Go to Dashboard
                     </Button>
-                    {!isPeerReviewSubmit && !isPeerReviewSkip && (
+                    {!isPeerReviewSubmit && !isPeerReviewSkip && !isSampleRound && (
                         <Button
                             variant="ghost"
                             className="w-full text-[10px] uppercase tracking-tighter text-muted-foreground hover:bg-transparent"
@@ -122,7 +132,7 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
                             Close and Wait
                         </Button>
                     )}
-                    {(isPeerReviewSubmit || isPeerReviewSkip) && (
+                    {(isPeerReviewSubmit || isPeerReviewSkip || isSampleRound) && (
                         <p className="text-[10px] text-muted-foreground text-center font-mono">
                             Redirecting to dashboard in 5 seconds...
                         </p>
