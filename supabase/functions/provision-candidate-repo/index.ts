@@ -112,27 +112,48 @@ serve(async (req) => {
     
     console.log(`GitHub response status: ${createRepoResponse.status}`);
 
+    let newRepo: any;
+
     if (!createRepoResponse.ok) {
-      const error = await createRepoResponse.text();
-      console.error(`Failed to create repo. Template: ${templateOwner}/${templateRepo}, Status: ${createRepoResponse.status}, Error:`, error);
-      
-      // Check if it's a permission error
-      if (error.includes('does not have permission') || error.includes('Not Found')) {
+      const errorText = await createRepoResponse.text();
+      console.error(`Failed to create repo. Template: ${templateOwner}/${templateRepo}, Status: ${createRepoResponse.status}, Error:`, errorText);
+
+      // 422 = repo already exists (from a previous failed provisioning attempt where GitHub
+      // succeeded but the DB update failed). Recover by fetching the existing repo instead.
+      if (createRepoResponse.status === 422) {
+        console.log('Repo may already exist — attempting to fetch existing repo...');
+        const fetchExisting = await fetch(`https://api.github.com/repos/${WIRRE_ORG}/${candidateRepoName}`, {
+          headers: {
+            'Authorization': `Bearer ${installationToken}`,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
+        });
+        if (fetchExisting.ok) {
+          newRepo = await fetchExisting.json();
+          console.log('Recovered existing repo:', newRepo.html_url);
+        } else {
+          return new Response(JSON.stringify({ error: `Repo creation failed (422) and could not recover existing repo: ${errorText}` }), {
+            status: 422,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          });
+        }
+      } else if (errorText.includes('does not have permission') || errorText.includes('Not Found')) {
         return new Response(JSON.stringify({ 
           error: `GitHub App doesn't have access to template repository ${templateOwner}/${templateRepo}. The repository owner needs to install the WIRRE GitHub App and grant access to this repository. Installation URL: https://github.com/apps/${Deno.env.get('GITHUB_APP_SLUG')}/installations/new`
         }), {
           status: createRepoResponse.status,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });
+      } else {
+        return new Response(JSON.stringify({ error: `Failed to create repo: ${errorText}` }), {
+          status: createRepoResponse.status,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
       }
-      
-      return new Response(JSON.stringify({ error: `Failed to create repo: ${error}` }), {
-        status: createRepoResponse.status,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
+    } else {
+      newRepo = await createRepoResponse.json();
     }
-
-    const newRepo = await createRepoResponse.json();
     
     console.log('Repo created successfully:', newRepo.html_url);
 
@@ -148,7 +169,6 @@ serve(async (req) => {
         private_repo_url: newRepo.html_url,
         github_username: candidateGithubUsername,
         repo_provisioned: true,
-        access_granted: false, // Will be set to true when assessment starts
         coding_started_at: new Date().toISOString(), // For sample rounds
       })
       .eq('user_id', candidateUserId)

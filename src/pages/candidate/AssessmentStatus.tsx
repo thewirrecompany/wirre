@@ -193,7 +193,7 @@ export default function AssessmentStatus() {
                         const now = Date.now();
                         // If candidate has already finished (submitted or skipped peer review), never show the peer review banner.
                         const candidateFinished = !!registration?.coding_finished_at;
-                        const isPeerReviewPhase = !candidateFinished && _codingEndMs !== null && now > _codingEndMs && (_peerReviewEndMs === null || now < _peerReviewEndMs);
+                        const isPeerReviewPhase = !candidateFinished && !assessment?.is_sample && _codingEndMs !== null && now > _codingEndMs && (_peerReviewEndMs === null || now < _peerReviewEndMs);
 
                         if (isPeerReviewPhase) {
                             const hasPeer = !!registration?.peer_review_repo_url;

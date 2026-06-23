@@ -58,7 +58,7 @@ serve(async (req) => {
     // Verify the assessment exists and get registration + company info to check ownership
     const { data: registration, error: regError } = await supabase
       .from('assessment_registrations')
-      .select('id, user_id, private_repo_url, repo_provisioned, access_granted, assessments!inner(company_user_id)')
+      .select('id, user_id, private_repo_url, repo_provisioned, assessments!inner(company_user_id)')
       .eq('assessment_id', assessmentId)
       .eq('anonymous_id', anonymousId)
       .single();
@@ -71,7 +71,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('Registration found:', { id: registration.id, userId: registration.user_id, accessGranted: registration.access_granted, repoProvisioned: registration.repo_provisioned });
+    console.log('Registration found:', { id: registration.id, userId: registration.user_id, repoProvisioned: registration.repo_provisioned });
     console.log('Caller user.id:', user.id);
 
     // Access Control Logic
@@ -80,27 +80,16 @@ serve(async (req) => {
     let isAuthorized = false;
 
     if (isCandidate) {
-      // Candidates can only access if permission is explicitly granted (during assessment time)
-      if (registration.access_granted) {
+      // Candidate owns this registration and the repo is provisioned — grant access.
+      // (access_granted column no longer exists; access is controlled by repo provisioning state)
+      if (registration.repo_provisioned) {
         isAuthorized = true;
       } else {
-        // Check if self-review is active (peer review phase where assigned to self)
-        const { data: myReg } = await supabase
-            .from('assessment_registrations')
-            .select('assigned_peer_registration_id, peer_review_repo_url')
-            .eq('assessment_id', assessmentId)
-            .eq('user_id', user.id)
-            .single();
-        
-        if (myReg?.assigned_peer_registration_id === registration.id) {
-            isAuthorized = true;
-        } else {
-            console.error('Candidate access denied: access_granted=false and not self-review', { myRegPeerRegId: myReg?.assigned_peer_registration_id, targetRegId: registration.id });
-            return new Response(JSON.stringify({ error: 'Access revoked or not yet granted' }), {
-            status: 403,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-        }
+        console.error('Candidate access denied: repo not yet provisioned');
+        return new Response(JSON.stringify({ error: 'Repository not yet provisioned' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
     } else {
       // Not the candidate? Check if Company Owner or Admin or PEER REVIEWER

@@ -508,17 +508,17 @@ export default function Assessment() {
         // immediately re-revoke (which would create an infinite revocation loop).
     }, [id, isRegistered, privateRepoUrl, _codingEndMs, _peerReviewEndMs, isFinished, profile?.id]);
 
-    // Peer Review Assignment Hook
+    // Peer Review Assignment Hook — disabled for sample rounds
     useEffect(() => {
         if (!id || !isRegistered || !assessment) return;
+        // Sample rounds have no peer review phase at all
+        if (assessment?.is_sample) return;
 
         const checkPeerReview = async () => {
             const now = new Date().getTime();
             const isPeerReviewPhase = _codingEndMs !== null && now > _codingEndMs;
-            // For sample rounds, also trigger assignment when the candidate has finished early
-            const shouldTryAssign = isPeerReviewPhase || (assessment?.is_sample && isFinished);
 
-            if (shouldTryAssign && !peerReviewRepoUrl) {
+            if (isPeerReviewPhase && !peerReviewRepoUrl) {
                 // Try to trigger assignment if missing
                 const { error: rpcError } = await supabase.rpc('assign_peer_reviews', { target_assessment_id: id });
                 if (rpcError) {
@@ -813,17 +813,26 @@ export default function Assessment() {
     // --- Submissions & Transitions ---
     const handleFinishCodingRound = async () => {
         if (!id) return;
-        const ok = window.confirm('Finish coding round? Your sandbox access will be locked and you will enter the peer review phase.');
+        const isSample = assessment?.is_sample;
+        const confirmMsg = isSample
+            ? 'Finish coding round? Your sandbox access will be locked and the round will be complete.'
+            : 'Finish coding round? Your sandbox access will be locked and you will enter the peer review phase.';
+        const ok = window.confirm(confirmMsg);
         if (!ok) return;
         try {
             const { error: finishError } = await supabase.rpc('candidate_finish_assessment', { p_assessment_id: id });
             if (finishError) throw finishError;
+            // For sample rounds, immediately skip peer review so the round is fully finalized
+            if (isSample) {
+                await supabase.rpc('candidate_skip_peer_review', { p_assessment_id: id });
+            }
             const { error: revokeError } = await supabase.functions.invoke('revoke-assessment-access', { body: { assessmentId: id, candidateUserId: profile?.id } });
             if (revokeError) console.error('GitHub revoke failed:', revokeError);
             setAccessGranted(false);
             setIsFinished(true);
+            if (isSample) setSkippedPeerReview(true);
             setShowSuccessModal(true);
-            toast({ title: 'Coding Round Finished', description: 'Waiting for peer review to be assigned.' });
+            toast({ title: 'Coding Round Finished', description: isSample ? 'Sample round complete.' : 'Waiting for peer review to be assigned.' });
         } catch (err: any) {
             toast({ title: 'Error', description: err?.message || String(err), variant: 'destructive' });
         }
@@ -912,7 +921,7 @@ export default function Assessment() {
                                         )
                                     )}
                                 </div>
-                                {isPeerReviewPhase && (
+                                {isPeerReviewPhase && !assessment?.is_sample && (
                                     <div className="animate-in fade-in zoom-in-95 duration-700 bg-indigo-500/5 border border-indigo-500/20 p-4 rounded-sm max-w-md shrink-0 self-start">
                                         <PeerReviewHeader />
                                     </div>
@@ -927,7 +936,8 @@ export default function Assessment() {
                                 </div>
                                 <div className="flex flex-col gap-4">
                                     {(() => {
-                                        if (isPeerReviewPhase) {
+                                        // Sample rounds: no peer review phase — once finished, show completion state
+                                        if (isPeerReviewPhase && !assessment?.is_sample) {
                                             const isPeerReviewExpired = isPeerReviewExpiredCalc;
 
                                             if (isPeerReviewExpired) {
@@ -1000,6 +1010,21 @@ export default function Assessment() {
                                                         </h3>
                                                         <p className="text-[10px] font-mono text-gray-400 uppercase tracking-tight leading-relaxed max-w-[240px]">
                                                             This assessment has been formally abandoned by the administrator. Access is permanently revoked.
+                                                        </p>
+                                                    </div>
+                                                );
+                                            } else if (assessment?.is_sample) {
+                                                // Sample rounds: coding finished = round complete, no peer review
+                                                return (
+                                                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-primary/20 bg-primary/5 rounded-sm animate-in fade-in zoom-in-95">
+                                                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                                                            <CheckCircle className="h-6 w-6 text-primary" />
+                                                        </div>
+                                                        <h3 className="text-sm font-mono font-bold text-primary uppercase tracking-widest mb-3">
+                                                            Sample Round Complete
+                                                        </h3>
+                                                        <p className="text-[10px] font-mono text-gray-400 uppercase tracking-tight leading-relaxed max-w-[240px]">
+                                                            Your coding submission has been finalized. Thank you for trying the platform!
                                                         </p>
                                                     </div>
                                                 );
@@ -1279,8 +1304,8 @@ export default function Assessment() {
                                 </div>
                             ) : null}
 
-                            {/* Peer Review Reporter (Moved to Sidebar) */}
-                            {isPeerReviewPhase && peerReviewRepoUrl && (
+                            {/* Peer Review Reporter (Moved to Sidebar) — hidden for sample rounds */}
+                            {isPeerReviewPhase && peerReviewRepoUrl && !assessment?.is_sample && (
                                 <div className="mt-6 animate-in fade-in slide-in-from-right-4 duration-700 delay-150">
                                     <PeerReviewReporter {...prState} />
                                 </div>
@@ -1323,6 +1348,36 @@ export default function Assessment() {
 
                                                 if (isFinished) {
                                                     const hasPeer = !!peerReviewRepoUrl;
+                                                    // Sample rounds: finished = complete, no peer review phase
+                                                    if (assessment?.is_sample) {
+                                                        return (
+                                                            <div className="space-y-3">
+                                                                <div className="p-4 bg-primary/5 border border-primary/20 rounded-sm text-center">
+                                                                    {assessment?.emergency_abandoned ? (
+                                                                        <p className="text-[10px] font-mono font-bold text-red-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                                                                            <XCircle className="h-3 w-3" /> Round Abandoned
+                                                                        </p>
+                                                                    ) : (
+                                                                        <p className="text-[10px] font-mono font-bold text-primary uppercase tracking-widest flex items-center justify-center gap-2">
+                                                                            <CheckCircle className="h-3 w-3" /> Round Complete
+                                                                        </p>
+                                                                    )}
+                                                                    <p className="text-[9px] font-mono text-white/50 uppercase leading-relaxed mt-1">
+                                                                        {assessment?.emergency_abandoned
+                                                                            ? 'This round was emergency abandoned by the administrator.'
+                                                                            : 'Sample round finished. Your submission has been recorded.'
+                                                                        }
+                                                                    </p>
+                                                                </div>
+                                                                <Button
+                                                                    className="w-full font-mono text-xs h-10 uppercase tracking-widest"
+                                                                    onClick={() => window.location.href = '/candidate/rounds'}
+                                                                >
+                                                                    Go to Dashboard
+                                                                </Button>
+                                                            </div>
+                                                        );
+                                                    }
                                                     return (
                                                         <div className="space-y-3">
                                                             <div className="p-4 bg-primary/5 border border-primary/20 rounded-sm text-center">
@@ -1380,8 +1435,8 @@ export default function Assessment() {
                                                 }
                                                 return hasStarted ? (
                                                     <div className="space-y-3">
-                                                        {isPeerReviewPhase ? (
-                                                            // Coding time expired but candidate hasn't formally submitted yet
+                                                        {isPeerReviewPhase && !assessment?.is_sample ? (
+                                                            // Coding time expired but candidate hasn't formally submitted yet (non-sample rounds)
                                                             <>
                                                                 <div className="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-sm text-center">
                                                                     <p className="text-[10px] font-mono font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
@@ -1413,7 +1468,7 @@ export default function Assessment() {
                                                                 </p>
                                                             </>
                                                         ) : (
-                                                            // Active coding phase
+                                                            // Active coding phase (or sample round — no peer review)
                                                             <>
                                                                 <Button
                                                                     className="w-full font-mono text-sm h-12 uppercase tracking-widest"
@@ -1423,7 +1478,9 @@ export default function Assessment() {
                                                                     Finish Coding Round
                                                                 </Button>
                                                                 <p className="text-[10px] text-muted-foreground text-center font-mono leading-relaxed">
-                                                                    Locks the sandbox and waits for peer review phase.
+                                                                    {assessment?.is_sample
+                                                                        ? 'Locks the sandbox and completes the sample round.'
+                                                                        : 'Locks the sandbox and waits for peer review phase.'}
                                                                 </p>
                                                             </>
                                                         )}
@@ -1607,14 +1664,23 @@ export default function Assessment() {
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-3 pb-4 px-2">
-                        <p className="text-sm text-muted-foreground text-center font-mono leading-relaxed">
-                            Your coding time has ended. Please wait for the{' '}
-                            <span className="text-primary font-bold">peer review round</span>{' '}
-                            to begin.
-                        </p>
-                        <p className="text-xs text-muted-foreground text-center font-mono">
-                            You'll be notified here once a peer reviewer is assigned.
-                        </p>
+                        {assessment?.is_sample ? (
+                            <p className="text-sm text-muted-foreground text-center font-mono leading-relaxed">
+                                Your coding time has ended. The sample round is now{' '}
+                                <span className="text-primary font-bold">complete</span>.
+                            </p>
+                        ) : (
+                            <>
+                                <p className="text-sm text-muted-foreground text-center font-mono leading-relaxed">
+                                    Your coding time has ended. Please wait for the{' '}
+                                    <span className="text-primary font-bold">peer review round</span>{' '}
+                                    to begin.
+                                </p>
+                                <p className="text-xs text-muted-foreground text-center font-mono">
+                                    You'll be notified here once a peer reviewer is assigned.
+                                </p>
+                            </>
+                        )}
                     </div>
                     <div className="flex justify-center pb-4">
                         <Button
