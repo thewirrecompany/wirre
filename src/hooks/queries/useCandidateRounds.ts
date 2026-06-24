@@ -78,7 +78,9 @@ export async function fetchCandidateRounds(userId: string): Promise<CandidateRou
     const reg = registrationDataMap[a.id];
     if (a.status === 'completed') return true;
     if (reg?.peer_review_skipped) return true;
-    if (a.is_sample) return false;
+    if (a.is_sample) {
+      return !!reg?.coding_finished_at;
+    }
     if (a.start_at && a.duration_minutes) {
       const endTime = new Date(new Date(a.start_at).getTime() + (a.duration_minutes + 60) * 60000);
       if (now > endTime) return true;
