@@ -522,7 +522,7 @@ export default function Assessment() {
                     .select('peer_review_repo_url, assigned_peer_registration_id, peer_review_assigned_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile?.id)
-                    .single();
+                    .maybeSingle();
 
                 if (data?.peer_review_repo_url) {
                     setPeerReviewRepoUrl(data.peer_review_repo_url);
@@ -549,7 +549,7 @@ export default function Assessment() {
                     .select('id, private_repo_url, anonymous_id, peer_review_repo_url, assigned_peer_registration_id, created_at, coding_started_at, coding_finished_at, peer_review_assigned_at, peer_review_skipped')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
-                    .single();
+                    .maybeSingle();
                 if (!error && data && mounted) {
                     setIsRegistered(true);
                     setRegistrationId(data.id);
@@ -568,7 +568,7 @@ export default function Assessment() {
 
                 // fetch user DOB and GitHub username for validation
                 if (mounted) {
-                    const { data: userData } = await supabase.from('candidates').select('date_of_birth, github_username, username').eq('user_id', profile.id).single();
+                    const { data: userData } = await supabase.from('candidates').select('date_of_birth, github_username, username').eq('user_id', profile.id).maybeSingle();
                     if (userData) {
                         setUserDob(userData.date_of_birth);
                         setGithubUsername(userData.github_username);
@@ -611,7 +611,7 @@ export default function Assessment() {
                 .select('coding_finished_at, coding_started_at, peer_review_assigned_at, peer_review_skipped')
                 .eq('assessment_id', id)
                 .eq('user_id', profile?.id)
-                .single();
+                .maybeSingle();
 
             if (!mounted) return;
 
@@ -784,7 +784,7 @@ export default function Assessment() {
                     .select('private_repo_url, anonymous_id, coding_started_at')
                     .eq('assessment_id', id)
                     .eq('user_id', profile.id)
-                    .single();
+                    .maybeSingle();
 
                 if (regData) {
                     if (regData.coding_started_at) setCodingStartedAt(regData.coding_started_at);
