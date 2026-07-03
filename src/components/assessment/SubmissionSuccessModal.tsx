@@ -45,22 +45,32 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
                         <CheckCircle2 className="h-10 w-10 text-primary" />
                     </div>
                     <DialogTitle className="text-xl font-bold uppercase tracking-widest text-center">
-                        {isPeerReviewSubmit ? 'Peer Review Submitted' : isPeerReviewSkip ? 'Peer Review Skipped' : isSampleRound ? 'Sample Round Complete' : 'Submission Finalized'}
+                        {isSampleRound ? 'Sample Round Complete' : isPeerReviewSubmit ? 'Peer Review Submitted' : isPeerReviewSkip ? 'Peer Review Skipped' : 'Submission Finalized'}
                     </DialogTitle>
                     <DialogDescription className="text-center text-muted-foreground text-sm leading-relaxed">
-                        {isPeerReviewSubmit
+                        {isSampleRound
+                            ? "Your coding submission has been finalized. This sample round is now complete."
+                            : isPeerReviewSubmit
                             ? "Your findings have been submitted. Your full submission is now finalized."
                             : isPeerReviewSkip
                             ? "You've opted out of the peer review phase. Your coding submission has been recorded."
-                            : isSampleRound
-                                ? "Your coding submission has been finalized. This sample round is now complete."
-                                : "Your repository access has been successfully revoked. Your work has been submitted for evaluation."}
+                            : "Your repository access has been successfully revoked. Your work has been submitted for evaluation."}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
                     <div className="p-4 bg-muted/50 border border-border rounded-sm space-y-3">
-                        {isPeerReviewSubmit ? (
+                        {isSampleRound ? (
+                            <div className="flex items-start gap-3">
+                                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-wider mb-1">Round Complete</p>
+                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                        You have successfully experienced the Wirre platform workflow. This was a sample round — no scores or evaluations apply. You'll be redirected to your dashboard shortly.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : isPeerReviewSubmit ? (
                             <div className="flex items-start gap-3">
                                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                                 <div>
@@ -77,16 +87,6 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
                                     <p className="text-xs font-bold uppercase tracking-wider mb-1">What's Next?</p>
                                     <p className="text-[11px] text-muted-foreground leading-relaxed">
                                         Your coding submission is under review. Since you skipped the peer review round, you will receive 0 points for that component. Final results will be visible once the evaluation period ends.
-                                    </p>
-                                </div>
-                            </div>
-                        ) : isSampleRound ? (
-                            <div className="flex items-start gap-3">
-                                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="text-xs font-bold uppercase tracking-wider mb-1">Round Complete</p>
-                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                        You have successfully experienced the Wirre platform workflow. This was a sample round — no scores or evaluations apply. You'll be redirected to your dashboard shortly.
                                     </p>
                                 </div>
                             </div>

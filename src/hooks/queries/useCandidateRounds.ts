@@ -16,6 +16,7 @@ export type Round = {
   is_sample: boolean;
   company: string;
   peer_review_skipped?: boolean;
+  coding_finished_at?: string | null;
 };
 
 export type CandidateRoundsData = {
@@ -37,7 +38,6 @@ export async function fetchCandidateRounds(userId: string): Promise<CandidateRou
   ]);
 
   let registeredAssessments: any[] = [];
-  const accessGrantedMap: Record<string, boolean> = {};
   const registrationDataMap: Record<string, any> = {};
 
   if (!regsErr && regs && regs.length > 0) {
@@ -93,7 +93,11 @@ export async function fetchCandidateRounds(userId: string): Promise<CandidateRou
   );
 
   const enrich = (arr: any[]) =>
-    arr.map((a: any) => ({ ...a, company: companiesMap[a.company_user_id] || '' }));
+    arr.map((a: any) => ({ 
+      ...a, 
+      company: companiesMap[a.company_user_id] || '',
+      coding_finished_at: registrationDataMap[a.id]?.coding_finished_at || null
+    }));
 
   return {
     upcomingRounds: enrich(upcomingRegistered),

@@ -101,13 +101,13 @@ export default function CandidateRounds({ userId, embedded = false }: CandidateR
                         <Clock className="h-3.5 w-3.5" />
                         <span className="font-mono">
                             {isCompleted
-                                ? `Completed ${round.start_at ? new Date(round.start_at).toLocaleDateString('en-GB') : '—'}`
+                                ? `Completed ${round.coding_finished_at ? new Date(round.coding_finished_at).toLocaleDateString('en-GB') : round.start_at ? new Date(round.start_at).toLocaleDateString('en-GB') : '—'}`
                                 : round.start_at ? new Date(round.start_at).toLocaleString('en-GB') : '—'
                             }
                         </span>
                     </div>
-                    {round.duration_minutes && (
-                        <span className="font-mono">{round.duration_minutes}m</span>
+                    {!isCompleted && round.duration_minutes && (
+                        <span className="font-mono">{round.duration_minutes}m allotted</span>
                     )}
                 </div>
                 {isCompleted ? (
