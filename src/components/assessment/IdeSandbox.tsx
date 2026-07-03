@@ -751,12 +751,6 @@ export function IdeSandbox({
 
         setIsWebContainerReady(true);
         term.writeln('\x1b[1;32mSandbox Ready.\x1b[0m');
-        term.writeln('\x1b[1;33m=================================================================\x1b[0m');
-        term.writeln('\x1b[1;36m💡 CRITICAL GUIDANCE FOR DEVELOPERS:\x1b[0m');
-        term.writeln('\x1b[1;37m• Running \x1b[1;32mnpm install\x1b[1;37m for the first time might take \x1b[1;33m2-3 minutes\x1b[1;37m to provision native packages.\x1b[0m');
-        term.writeln('\x1b[1;37m• \x1b[1;31mDO NOT\x1b[1;37m modify default server ports (e.g., \x1b[1;33m5173\x1b[1;37m); ingress routing binds directly to standard host streams.\x1b[0m');
-        term.writeln('\x1b[1;37m• You MUST click the \x1b[1;32m"Save"\x1b[1;37m button in the navigation bar above to ensure your progress has been saved!\x1b[0m');
-        term.writeln('\x1b[1;33m=================================================================\x1b[0m');
       } catch (err) {
         console.error('WebContainer init failed:', err);
       } finally {
