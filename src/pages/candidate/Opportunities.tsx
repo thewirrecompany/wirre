@@ -154,14 +154,7 @@ export default function CandidateOpportunities() {
                                 return true;
                             })
                             .map((opp) => (
-                                <Card key={opp.id} className={`relative overflow-hidden transition-colors ${opp.isRegistered ? 'opacity-60 pointer-events-none' : 'hover:border-foreground'}`}>
-                                    {opp.isRegistered && (
-                                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/10 backdrop-blur-[1px]">
-                                            <div className="bg-background border border-border px-4 py-2 rounded shadow-lg font-mono font-bold tracking-widest text-primary/80 border-primary/50 shadow-primary/20 rotate-[-5deg]">
-                                                REGISTERED
-                                            </div>
-                                        </div>
-                                    )}
+                                <Card key={opp.id} className="hover:border-foreground transition-colors">
                                     <CardHeader>
                                         <div className="flex items-start justify-between mb-2">
                                             <div className="flex items-center gap-3">
@@ -207,7 +200,11 @@ export default function CandidateOpportunities() {
                                                 </div>
                                             )}
                                             <div className="flex gap-3 ml-auto">
-                                                <Button size="sm" onClick={() => handleRegister(opp.id)} disabled={profileIncomplete}>Register</Button>
+                                                {opp.isRegistered ? (
+                                                    <Button size="sm" variant="secondary" disabled>Registered</Button>
+                                                ) : (
+                                                    <Button size="sm" onClick={() => handleRegister(opp.id)} disabled={profileIncomplete}>Register</Button>
+                                                )}
                                                 <Button size="sm" variant="outline" asChild>
                                                     <Link to={`/candidate/assessment/${opp.id}`}>View</Link>
                                                 </Button>
