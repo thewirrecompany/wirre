@@ -925,6 +925,16 @@ export default function Assessment() {
                                     <Terminal className="h-5 w-5 text-primary" />
                                     <h2 className="font-mono font-bold uppercase text-sm tracking-wider">Development Sandbox</h2>
                                 </div>
+
+                                <div className="mb-6 p-4 bg-red-950/30 border border-red-500/30 rounded-sm">
+                                    <p className="font-mono text-xs font-bold text-red-400 uppercase tracking-wider mb-2">⚠ Critical Guidance for Developers</p>
+                                    <ul className="space-y-1.5 font-mono text-xs text-red-300/80">
+                                        <li>• Running <span className="font-bold text-red-300">npm install</span> for the first time might take <span className="font-bold text-red-300">2-3 minutes</span> to provision native packages.</li>
+                                        <li>• <span className="font-bold text-red-300">DO NOT</span> modify default server ports (e.g., <span className="font-bold text-red-300">5173</span>); ingress routing binds directly to standard host streams.</li>
+                                        <li>• You <span className="font-bold text-red-300">MUST</span> click the <span className="font-bold text-red-300">"Save"</span> button in the navigation bar above to ensure your progress has been saved!</li>
+                                    </ul>
+                                </div>
+
                                 <div className="flex flex-col gap-4">
                                     {(() => {
                                         // Sample rounds: no peer review phase — once finished, show completion state

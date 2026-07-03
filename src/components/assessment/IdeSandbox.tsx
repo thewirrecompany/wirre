@@ -166,12 +166,6 @@ export function IdeSandbox({
   const [terminalInput, setTerminalInput] = useState('');
   const [terminalOutput, setTerminalOutput] = useState([
     { type: 'info', text: 'WIRRE Cloud Sandbox Environment v1.0.6' },
-    { type: 'info', text: '=================================================================' },
-    { type: 'command', text: '💡 CRITICAL GUIDANCE FOR DEVELOPERS:' },
-    { type: 'info', text: '• Running "npm install" for the first time might take 2-3 minutes to provision native packages.' },
-    { type: 'info', text: '• DO NOT modify the default application listening port (e.g., 5173), as automated sandboxing binds directly to standard host ingress targets.' },
-    { type: 'command', text: '• You MUST click the "Save" button in the navigation bar above to ensure your progress has been saved!' },
-    { type: 'info', text: '=================================================================' }
   ]);
   const [previewLogs, setPreviewLogs] = useState<Array<{ type: 'info' | 'log' | 'error' | 'warn', text: string, time: string }>>([
     { type: 'info', text: 'Integrated Preview Console Initialized.', time: new Date().toLocaleTimeString() },
