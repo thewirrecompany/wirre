@@ -271,6 +271,7 @@ export default function Assessment() {
                     // transform flat tree to nested structure
                     const nested = transformFlatTree(data.tree);
                     setExplorerFiles(nested);
+                    if (!isBackground) setIsLoadingExplorer(false);
                     return nested;
                 } else if (data.type === 'file') {
                     const updatedFile = { ...data, decoded_content: data.decoded_content || data.content };

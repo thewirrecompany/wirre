@@ -1041,7 +1041,7 @@ export function IdeSandbox({
                   if (draggedPath) handleDropFile(draggedPath, '');
                 }}
               >
-                {isLoading && <div className="p-4 text-[10px] text-muted-foreground animate-pulse">Scanning files...</div>}
+                {/* "Scanning files..." removed by request */}
                 {mergedFiles.map((file, i) => (
                   <FileItem
                     key={i}
