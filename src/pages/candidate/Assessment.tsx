@@ -250,36 +250,55 @@ export default function Assessment() {
     const fetchFileTree = async (path = "", isInitial = false, isBackground = false) => {
         if (!id || !profile?.id) return;
         if (!isBackground) setIsLoadingExplorer(true);
-        try {
-            // Greedy fetch: if isInitial, we get the WHOLE structure recursively
-            const { data, error } = await supabase.functions.invoke('get-submission-code', {
-                body: {
-                    assessmentId: id,
-                    anonymousId: anonymousIdState || profile.id,
-                    path,
-                    recursive: isInitial
-                }
-            });
-            if (error) throw error;
+        
+        let attempts = 0;
+        const maxAttempts = isInitial ? 5 : 1;
+        
+        while (attempts < maxAttempts) {
+            try {
+                // Greedy fetch: if isInitial, we get the WHOLE structure recursively
+                const { data, error } = await supabase.functions.invoke('get-submission-code', {
+                    body: {
+                        assessmentId: id,
+                        anonymousId: anonymousIdState || profile.id,
+                        path,
+                        recursive: isInitial
+                    }
+                });
+                if (error) throw error;
 
-            if (isInitial && data.tree) {
-                // transform flat tree to nested structure
-                const nested = transformFlatTree(data.tree);
-                setExplorerFiles(nested);
-                return nested;
-            } else if (data.type === 'file') {
-                const updatedFile = { ...data, decoded_content: data.decoded_content || data.content };
-                // ONLY set active file if This was NOT a background pre-fetch
-                if (!isBackground) setActiveFileNode(updatedFile);
-                setExplorerFiles(prev => updateFileInTree(prev, path, updatedFile));
-            } else if (!path) {
-                setExplorerFiles(Array.isArray(data) ? data : [data]);
+                if (isInitial && data.tree) {
+                    // transform flat tree to nested structure
+                    const nested = transformFlatTree(data.tree);
+                    setExplorerFiles(nested);
+                    return nested;
+                } else if (data.type === 'file') {
+                    const updatedFile = { ...data, decoded_content: data.decoded_content || data.content };
+                    // ONLY set active file if This was NOT a background pre-fetch
+                    if (!isBackground) setActiveFileNode(updatedFile);
+                    setExplorerFiles(prev => updateFileInTree(prev, path, updatedFile));
+                } else if (!path) {
+                    setExplorerFiles(Array.isArray(data) ? data : [data]);
+                }
+                
+                // If successful, ensure we break out of the retry loop
+                if (!isBackground) setIsLoadingExplorer(false);
+                return data;
+                
+            } catch (err: any) {
+                attempts++;
+                console.error(`Failed to fetch files (Attempt ${attempts}/${maxAttempts}):`, err);
+                
+                if (attempts >= maxAttempts) {
+                    if (!isBackground) setIsLoadingExplorer(false);
+                    // Also release the fetch lock so it can be retried manually if needed
+                    if (isInitial) fetchLock.current = false;
+                    return null;
+                }
+                
+                // Wait 2 seconds before retrying to allow GitHub API propagation
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
-            return data;
-        } catch (err: any) {
-            console.error('Failed to fetch files:', err);
-        } finally {
-            if (!isBackground) setIsLoadingExplorer(false);
         }
     };
 
