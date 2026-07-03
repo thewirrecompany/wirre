@@ -43,9 +43,9 @@ export async function fetchOpportunities(userId: string): Promise<OpportunitiesD
   const registeredIds = ((regsRes.data as any[]) || []).map((r: any) => r.assessment_id);
 
   const opportunities = assessments
-    .filter((a: any) => !registeredIds.includes(a.id))
     .map((a: any) => ({
       ...a,
+      isRegistered: registeredIds.includes(a.id),
       company: companiesMap[a.company_user_id] || { name: 'Unknown', domain: '' },
     }));
 
