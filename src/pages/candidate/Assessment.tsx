@@ -937,8 +937,8 @@ export default function Assessment() {
                                     </div>
                                 ) : (
                                     <div className="mb-6 p-4 bg-red-950/30 border border-red-500/30 rounded-sm">
-                                        <p className="font-mono text-xs font-bold text-red-400 uppercase tracking-wider mb-2">⚠ Assessment Format & Sandbox Architecture</p>
-                                        <ul className="space-y-2 font-mono text-[11px] leading-relaxed text-red-300/80">
+                                        <p className="font-mono text-sm font-bold text-red-400 uppercase tracking-wider mb-2">⚠ Assessment Format & Sandbox Architecture</p>
+                                        <ul className="space-y-2 font-mono text-xs leading-relaxed text-red-300/80">
                                             <li>
                                                 Once you register, a secure <span className="font-bold text-red-300">GitHub repository</span> and <span className="font-bold text-red-300">in-browser IDE Sandbox</span> will be provisioned. You will use this sandbox to navigate the codebase, run terminal commands, and implement the required changes.
                                             </li>
