@@ -42,7 +42,7 @@ export default function CandidateProfile() {
                 .from('candidates')
                 .select('*')
                 .eq('user_id', user.id)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
 
@@ -174,15 +174,15 @@ export default function CandidateProfile() {
 
             const { error } = await supabase
                 .from('candidates')
-                .update({
+                .upsert({
+                    user_id: user!.id,
                     full_name: fullName,
                     username: username,
                     is_public: isPublic,
                     github_username: githubUsername,
                     linkedin_url: linkedinUrl,
                     date_of_birth: dateOfBirth || null,
-                })
-                .eq('user_id', user!.id);
+                }, { onConflict: 'user_id' });
 
             if (error) throw error;
 

@@ -52,7 +52,7 @@ export default function CandidateDashboard({ candidateUserId }: CandidateDashboa
           .from('candidates')
           .select('full_name, username, is_public, github_username, linkedin_url, date_of_birth')
           .eq('user_id', targetId)
-          .single();
+          .maybeSingle();
 
         setProfileData({
           full_name: candidateRow?.full_name || "",
