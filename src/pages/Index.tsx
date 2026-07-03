@@ -17,6 +17,27 @@ export default function Index() {
 
   return (
     <Layout>
+      {/* ─── Event Banner ─── */}
+      <div className="bg-primary/10 border-b border-primary/20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        <div className="container py-4 relative z-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+            <div>
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-1.5">
+                <span className="font-mono text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 uppercase tracking-widest">Official Event</span>
+                <span className="font-mono text-sm md:text-base font-bold tracking-tight text-primary">RUNTIME ZERO</span>
+              </div>
+              <p className="text-xs md:text-sm font-mono text-muted-foreground">
+                <span className="text-foreground font-semibold">₹3,000 Prize Pool</span> • July 12, 2026 • 04:00 PM – 08:00 PM IST
+              </p>
+            </div>
+            <Button asChild size="sm" className="font-mono uppercase tracking-widest text-xs h-9 shrink-0">
+              <Link to={user ? (profile?.role === 'candidate' ? '/candidate/opportunities' : dashboardLink) : "/login?redirect=/candidate/opportunities"}>Secure Slot <ArrowRight className="ml-2 h-3 w-3" /></Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* ─── Hero ─── */}
       <section className="min-h-[92vh] flex flex-col justify-center border-b border-border">
         <div className="container py-32 max-w-5xl">
