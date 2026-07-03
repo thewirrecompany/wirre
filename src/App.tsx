@@ -8,8 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PageLoader } from "@/components/layout/PageLoader";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
+
 import { OfflineOverlay } from "@/components/OfflineOverlay";
 
 // Lazy load all pages
@@ -51,8 +50,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <Analytics />
-      <SpeedInsights />
+
       <BrowserRouter
         future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
