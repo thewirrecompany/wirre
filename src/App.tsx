@@ -45,11 +45,16 @@ const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const Feedback = lazy(() => import("./pages/Feedback"));
 const AboutUs = lazy(() => import("./pages/AboutUs"));
 
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <Analytics />
+      <SpeedInsights />
 
       <BrowserRouter
         future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
