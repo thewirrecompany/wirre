@@ -7,10 +7,6 @@ import path from 'path';
 // ==========================================
 const SENDER_ACCOUNTS = [
   {
-    user: 'thewirrecompany@gmail.com',
-    pass: 'xisn fkml ltiq evlc'
-  },
-  {
     user: 'thewirrecompanybackup@gmail.com',
     pass: '***REMOVED***'
   }
@@ -51,10 +47,11 @@ try {
   process.exit(1);
 }
 
-// Ensure we leave 200 emails for website OTPs (Total 1000 - 800 = 200)
-const MAX_SENDS = 800;
+// Ensure we leave the main account completely alone for OTPs. 
+// Backup account has a limit of 500, so we cap at 450 to be safe.
+const MAX_SENDS = 450;
 if (emails.length > MAX_SENDS) {
-  console.log(`⚠️ Limiting blast to ${MAX_SENDS} emails to reserve quota for website OTPs.`);
+  console.log(`⚠️ Limiting blast to ${MAX_SENDS} emails to respect the single account limit.`);
   emails = emails.slice(0, MAX_SENDS);
 }
 
