@@ -810,8 +810,12 @@ export default function Assessment() {
                     if (regData.coding_started_at) setCodingStartedAt(regData.coding_started_at);
                     setPrivateRepoUrl(regData.private_repo_url || result.repoUrl || '');
                     setAccessGranted(true); // Default to true if provision was successful
-
                 }
+                
+                // Force a page refresh to guarantee all state and countdowns are completely synced
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
             }
         } catch (err: any) {
             console.error('Start Now failed', err);
