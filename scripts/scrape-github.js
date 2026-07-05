@@ -72,8 +72,29 @@ async function scrapeGitHubEmails() {
   console.log(`Targeting: ${MAX_EMAILS_TO_FIND} valid student emails\n`);
 
   const extractedEmails = new Set();
-  const csvStream = fs.createWriteStream(OUTPUT_FILE, { flags: 'w' });
-  csvStream.write('email\\n'); // CSV Header
+  
+  // 1. Read existing emails if file exists to avoid duplicates
+  if (fs.existsSync(OUTPUT_FILE)) {
+    try {
+      const existingData = fs.readFileSync(OUTPUT_FILE, 'utf-8');
+      const lines = existingData.split('\n');
+      for (const line of lines) {
+        if (line.includes('@')) {
+          extractedEmails.add(line.trim());
+        }
+      }
+      console.log(`Loaded ${extractedEmails.size} existing emails from ${OUTPUT_FILE}`);
+    } catch (err) {
+      console.warn("Could not read existing file, starting fresh.");
+    }
+  }
+
+  const fileExists = fs.existsSync(OUTPUT_FILE);
+  const csvStream = fs.createWriteStream(OUTPUT_FILE, { flags: 'a' });
+  
+  if (!fileExists || extractedEmails.size === 0) {
+    csvStream.write('email\n'); // Write CSV Header only if new file
+  }
 
   for (const query of searchQueries) {
     if (extractedEmails.size >= MAX_EMAILS_TO_FIND) break;
@@ -81,7 +102,8 @@ async function scrapeGitHubEmails() {
     console.log(`\n🔍 Searching query: [${query}]`);
     let page = 1;
 
-    while (page <= 5 && extractedEmails.size < MAX_EMAILS_TO_FIND) { // Check up to 5 pages per query
+    // GitHub search API returns max 1000 results per query (approx 34 pages at 30 per page)
+    while (page <= 34 && extractedEmails.size < MAX_EMAILS_TO_FIND) {
       const searchUrl = `https://api.github.com/search/users?q=${encodeURIComponent(query)}&per_page=30&page=${page}`;
       const searchData = await fetchWithRetry(searchUrl);
 

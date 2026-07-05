@@ -19,6 +19,8 @@ export interface QueuedSubmission {
   templateRepo: string;
   description: string | null;
   peerReviewSkipped: boolean;
+  candidateEmail?: string;
+  candidateName?: string;
 }
 
 /**
@@ -40,7 +42,7 @@ export async function fetchNextQueued(): Promise<QueuedSubmission | null> {
   // 2. Fetch the oldest queued submission
   const { data: registration, error } = await db
     .from('assessment_registrations')
-    .select('id, assessment_id, anonymous_id, private_repo_url, peer_review_skipped')
+    .select('id, user_id, assessment_id, anonymous_id, private_repo_url, peer_review_skipped')
     .eq('ai_grading_status', 'queued')
     .order('ai_grading_started_at', { ascending: true, nullsFirst: true })
     .order('created_at', { ascending: true })
@@ -86,6 +88,21 @@ export async function fetchNextQueued(): Promise<QueuedSubmission | null> {
     return null;
   }
 
+  // 5. Fetch candidate email and name from profiles table
+  let candidateEmail, candidateName;
+  if (registration.user_id) {
+    const { data: profile } = await db
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', registration.user_id)
+      .maybeSingle();
+      
+    if (profile) {
+      candidateEmail = profile.email;
+      candidateName = profile.full_name;
+    }
+  }
+
   return {
     registrationId: registration.id,
     assessmentId: registration.assessment_id,
@@ -95,6 +112,8 @@ export async function fetchNextQueued(): Promise<QueuedSubmission | null> {
     templateRepo: assessment.github_repo_name,
     description: assessment.description || null,
     peerReviewSkipped: registration.peer_review_skipped || false,
+    candidateEmail,
+    candidateName,
   };
 }
 

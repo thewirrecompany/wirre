@@ -1,8 +1,10 @@
 import { fetchNextQueued, publishResult, markError, getQueueCount, getPeerReviewBugs, getReviewerRegistrationId, type QueuedSubmission } from './queue.js';
 import { getSubmissionDiff } from './github.js';
 import { gradeWithGroq } from './groq.js';
+import { sendCompletionEmails, type CandidateToNotify } from './notifier.js';
 
 let currentSubmissionId: string | null = null;
+const candidatesToNotify: CandidateToNotify[] = [];
 
 export function getCurrentSubmissionId() {
   return currentSubmissionId;
@@ -94,6 +96,16 @@ export async function gradeSubmission(submission: QueuedSubmission): Promise<boo
       result.peerReviewReport
     );
     console.log(`${label} ✅ Done!`);
+    
+    // Add to email notification list if email is available
+    if (submission.candidateEmail) {
+      candidatesToNotify.push({
+        email: submission.candidateEmail,
+        name: submission.candidateName || 'Candidate',
+        registrationId: submission.registrationId
+      });
+    }
+    
     currentSubmissionId = null;
     return true;
   } catch (error: any) {
@@ -107,14 +119,23 @@ export async function gradeSubmission(submission: QueuedSubmission): Promise<boo
 export async function runGradingLoop(shouldStop: () => boolean, pollIntervalMs: number): Promise<void> {
   console.log('\n🚀 Grading loop started. Polling for queued submissions...\n');
   let processed = 0, errors = 0;
+  let processedSinceLastEmpty = false;
 
   while (!shouldStop()) {
     const submission = await fetchNextQueued();
     if (!submission) {
+      if (processedSinceLastEmpty) {
+        console.log('\n✨ Queue is now empty! Triggering notification emails to candidates...');
+        await sendCompletionEmails([...candidatesToNotify]);
+        candidatesToNotify.length = 0; // Clear the list after sending
+        processedSinceLastEmpty = false;
+      }
       process.stdout.write(`\r⏳ Queue empty. Waiting... (processed: ${processed}, errors: ${errors})`);
       await new Promise(r => setTimeout(r, pollIntervalMs));
       continue;
     }
+    
+    processedSinceLastEmpty = true;
     process.stdout.write('\r' + ' '.repeat(80) + '\r');
     console.log(`\n${'═'.repeat(60)}`);
     console.log(`📋 Processing: ${submission.anonymousId} | Assessment: ${submission.assessmentId}`);

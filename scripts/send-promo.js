@@ -3,47 +3,79 @@ import fs from 'fs';
 import path from 'path';
 
 // ==========================================
-// 1. CREDENTIALS
+// 1. CREDENTIALS (LOAD BALANCING)
 // ==========================================
-const SMTP_USER = 'thewirrecompany@gmail.com';
-const SMTP_PASS = 'xisn fkml ltiq evlc'; 
+const SENDER_ACCOUNTS = [
+  {
+    user: 'thewirrecompany@gmail.com',
+    pass: 'xisn fkml ltiq evlc'
+  },
+  {
+    user: 'thewirrecompanybackup@gmail.com',
+    pass: '***REMOVED***'
+  }
+];
 
 // ==========================================
 // 2. READ EMAILS FROM CSV
 // ==========================================
-// This expects profiles_rows.csv to be in the scripts folder
-const csvPath = path.resolve(process.cwd(), 'scripts/profiles_rows.csv');
+const csvPath = path.resolve(process.cwd(), 'scripts/github_leads.csv');
+const sentTrackerPath = path.resolve(process.cwd(), 'scripts/sent_emails.txt');
+
+// Load already sent emails to avoid double-sending
+let sentEmails = new Set();
+if (fs.existsSync(sentTrackerPath)) {
+  const sentData = fs.readFileSync(sentTrackerPath, 'utf-8');
+  sentData.split('\n').forEach(e => {
+    if (e.trim()) sentEmails.add(e.trim().toLowerCase());
+  });
+}
+
 let emails = [];
 
 try {
   const csvContent = fs.readFileSync(csvPath, 'utf-8');
-  // Extract all valid emails using a simple regex
   const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
   const matches = csvContent.match(emailRegex);
   if (matches) {
-    // Remove duplicates
-    emails = [...new Set(matches)];
+    for (const match of matches) {
+      const email = match.toLowerCase();
+      if (!sentEmails.has(email)) {
+        emails.push(email);
+      }
+    }
+    emails = [...new Set(emails)];
   }
 } catch (err) {
-  console.error('Could not read profile_rows.csv. Please ensure it is in the wirre folder.');
+  console.error('Could not read scripts/github_leads.csv. Please ensure it exists.');
   process.exit(1);
+}
+
+// Ensure we leave 200 emails for website OTPs (Total 1000 - 800 = 200)
+const MAX_SENDS = 800;
+if (emails.length > MAX_SENDS) {
+  console.log(`⚠️ Limiting blast to ${MAX_SENDS} emails to reserve quota for website OTPs.`);
+  emails = emails.slice(0, MAX_SENDS);
 }
 
 if (emails.length === 0) {
-  console.error('No emails found in profile_rows.csv!');
-  process.exit(1);
+  console.log('✅ All emails in the CSV have already been sent! Waiting for new emails...');
+  process.exit(0);
 }
 
 // ==========================================
-// 3. SETUP MAILER & HTML
+// 3. SETUP MAILERS & HTML
 // ==========================================
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS,
-  },
-});
+const transporters = SENDER_ACCOUNTS.map(acc => ({
+  user: acc.user,
+  transporter: nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: acc.user,
+      pass: acc.pass,
+    },
+  })
+}));
 
 const generateHtml = () => `
 <!DOCTYPE html>
@@ -110,7 +142,8 @@ const generateHtml = () => `
     <a href="https://wirre.in/" class="btn">Register Now</a>
     
     <div class="footer">
-      You are receiving this because you registered on the WIRRE platform.<br>
+      Made with <3 by the makers at IIIT Hyderabad.<br>
+      This is a promotional email. If you'd prefer not to receive future updates, just reply with "UNSUBSCRIBE".<br>
       © 2026 WIRRE. ALL RIGHTS RESERVED.
     </div>
   </div>
@@ -119,27 +152,46 @@ const generateHtml = () => `
 `;
 
 async function sendEmails() {
-  console.log(`Starting email blast to ${emails.length} recipients...`);
+  console.log(`Starting email blast to ${emails.length} recipients using ${transporters.length} accounts...`);
   
+  let currentAccountIndex = 0;
+  
+  const subjects = [
+    "WIRRE'S First Round !! Register and Win Prizes !!",
+    "WIRRE First Round - Register & Win Prizes!",
+    "Register for WIRRE'S First Round & Win Prizes",
+    "WIRRE Runtime Zero: First Round Registrations Open!"
+  ];
+
   for (const email of emails) {
     try {
-      await transporter.sendMail({
-        from: '"WIRRE" <thewirrecompany@gmail.com>',
+      const currentSender = transporters[currentAccountIndex];
+      const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+      
+      await currentSender.transporter.sendMail({
+        from: `"WIRRE" <${currentSender.user}>`,
         to: email,
-        subject: "WIRRE'S First Round !! Register and Win Prizes !!",
+        subject: randomSubject,
+        headers: {
+          'List-Unsubscribe': `<mailto:${currentSender.user}?subject=unsubscribe>`
+        },
         html: generateHtml(),
         attachments: [
           {
-            filename: 'photo.png',
-            path: path.resolve('./scripts/photo.png'),
-            cid: 'promo-photo' // same cid value as in the html img src
+            filename: 'photo2.png',
+            path: path.resolve('./scripts/photo2.png'),
+            cid: 'promo-photo'
           }
         ]
       });
-      console.log(`✅ Sent to ${email}`);
+      console.log(`✅ Sent to ${email} (via ${currentSender.user})`);
       
-      // Sleep for 1.5 seconds between emails to prevent Gmail rate limits
-      await new Promise(r => setTimeout(r, 1500));
+      currentAccountIndex = (currentAccountIndex + 1) % transporters.length;
+      fs.appendFileSync(sentTrackerPath, `${email}\n`);
+      
+      // Random delay between 3 to 7 seconds to simulate human sending and avoid spam filters
+      const randomDelay = Math.floor(Math.random() * (7000 - 3000 + 1) + 3000);
+      await new Promise(r => setTimeout(r, randomDelay));
     } catch (err) {
       console.error(`❌ Failed to send to ${email}:`, err.message);
     }
