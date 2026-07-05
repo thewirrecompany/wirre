@@ -42,7 +42,7 @@
       "destination": "https://***REMOVED***.supabase.co/:path*"
     },
     {
-      "source": "/:path*",
+      "source": "/(?!_vercel/)(.*)",
       "destination": "/index.html"
     }
   ]
