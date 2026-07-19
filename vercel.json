@@ -39,7 +39,7 @@
   "rewrites": [
     {
       "source": "/supabase-proxy/:path*",
-      "destination": "https://***REMOVED***.supabase.co/:path*"
+      "destination": "https://<YOUR_SUPABASE_PROJECT_ID>.supabase.co/:path*"
     },
     {
       "source": "/((?!_vercel/).*)",

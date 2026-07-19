@@ -52,7 +52,7 @@ export default function AssessmentSetup() {
     setVerifying(true);
 
     try {
-      const res = await fetch('https://***REMOVED***.supabase.co/functions/v1/verify-repo', {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-repo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

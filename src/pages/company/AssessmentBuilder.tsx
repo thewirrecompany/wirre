@@ -351,7 +351,7 @@ export default function AssessmentBuilder() {
         throw new Error(`This repository is already used in "${duplicateTitle}". Please use a different repository.`);
       }
 
-      const res = await fetch('https://***REMOVED***.supabase.co/functions/v1/verify-repo', {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-repo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

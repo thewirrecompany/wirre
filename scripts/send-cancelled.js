@@ -3,14 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 
-const supabaseUrl = 'https://***REMOVED***.supabase.co';
-const supabaseKey = '***REMOVED***';
+const supabaseUrl = 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co';
+const supabaseKey = 'YOUR_SUPABASE_SERVICE_ROLE_KEY';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const SENDER_ACCOUNTS = [
   {
-    user: 'thewirrecompanybackup@gmail.com',
-    pass: '***REMOVED***'
+    user: 'YOUR_EMAIL@gmail.com',
+    pass: 'YOUR_APP_PASSWORD'
   }
 ];
 

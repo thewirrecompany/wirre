@@ -8,7 +8,7 @@ import path from 'path';
 const SENDER_ACCOUNTS = [
   {
     user: 'thewirrecompanybackup@gmail.com',
-    pass: '***REMOVED***'
+    pass: 'gtza hnfs bdlo bkla'
   }
 ];
 
