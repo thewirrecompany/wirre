@@ -18,6 +18,8 @@ const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const SetPassword = lazy(() => import("./pages/SetPassword"));
 const TnC = lazy(() => import("./pages/TnC"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const CompanyDashboard = lazy(() => import("./pages/company/Dashboard"));
 const CompanyProfile = lazy(() => import("./pages/company/Profile"));
 const AssessmentBuilder = lazy(() => import("./pages/company/AssessmentBuilder"));
@@ -71,6 +73,8 @@ const App = () => (
               <Route path="/maintenance" element={<Maintenance />} />
               <Route path="/set-password" element={<SetPassword />} />
               <Route path="/tnc" element={<TnC />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/refund-policy" element={<RefundPolicy />} />
               <Route path="/feedback" element={<Feedback />} />
               <Route path="/rateus" element={<Feedback />} />
               <Route path="/leaderboard" element={

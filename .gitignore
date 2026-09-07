@@ -4,7 +4,8 @@
 # Environment variables
 
 # Editor directories and files
- 
+.DS_Store
+**/.DS_Store
 
 # Dependency directories
 node_modules

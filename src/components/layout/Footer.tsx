@@ -11,6 +11,8 @@ export function Footer() {
   // Build footer links conditionally — hide Login & Signup when already logged in
   const footerLinks = [
     { href: "/tnc", label: "Terms & Conditions" },
+    { href: "/privacy", label: "Privacy Policy" },
+    { href: "/refund-policy", label: "Refund Policy" },
     ...(!user ? [
       { href: "/login", label: "Login" },
       { href: "/signup", label: "Signup" },

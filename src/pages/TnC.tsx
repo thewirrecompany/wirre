@@ -238,6 +238,7 @@ function CandidateTerms() {
         <li>You may request data deletion (with limitations)</li>
         <li>You may export your data in standard formats</li>
       </ul>
+      <p>For full detail on data collection, use, and your rights, see our <a href="/privacy">Privacy Policy</a>.</p>
       <hr />
 
       <h2>8. INTELLECTUAL PROPERTY</h2>
@@ -644,6 +645,7 @@ function CompanyTerms() {
         <li>No refunds for cancelled Assessments after start date</li>
         <li>No refunds for low candidate participation</li>
       </ul>
+      <p>See our full <a href="/refund-policy">Refund &amp; Cancellation Policy</a> for exceptions (e.g. duplicate or failed payments) and how to request a refund.</p>
       <hr />
 
       <h2>6. ORGANIZER ACCOUNT DELETION</h2>

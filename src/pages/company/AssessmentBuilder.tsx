@@ -1128,6 +1128,14 @@ export default function AssessmentBuilder() {
                   <span className="text-2xl md:text-3xl font-bold text-primary">₹{platformFee.toLocaleString('en-IN')}</span>
                 </div>
               )}
+              {maxSalaryNum > 0 && (
+                <p className="mt-2 text-[10px] text-muted-foreground font-mono">
+                  Platform Fees are non-refundable once published. See our{' '}
+                  <a href="/refund-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                    Refund &amp; Cancellation Policy
+                  </a>.
+                </p>
+              )}
             </section>
           )}
 
